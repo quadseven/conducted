@@ -115,7 +115,7 @@ class UI {
         const x = 500;
         const y = 100;
         const width = 250;
-        const height = 320; // Increased from 250 to fit 6 menu items + money
+        const height = 400;
 
         // Draw box
         ctx.fillStyle = CONSTANTS.COLORS.WHITE;
@@ -340,6 +340,55 @@ class UI {
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
         ctx.font = '16px monospace';
         ctx.fillText('Press B to return', x + 20, y + height - 20);
+    }
+
+    static drawDepot(ctx, player, selectedIndex) {
+        const x = 70, y = 55, width = 628, height = 560;
+        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(x, y, width, height);
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText('GRAND TRANSIT DEPOT', x + 24, y + 38);
+        ctx.font = '14px monospace';
+        ctx.fillText('A: move train   B: close', x + 24, y + 64);
+        const entries = [
+            ...player.party.map(train => ({ train, group: 'CREW' })),
+            ...player.storage.map(train => ({ train, group: 'STORED' }))
+        ];
+        const start = Math.max(0, Math.min(selectedIndex - 7, Math.max(0, entries.length - 9)));
+        for (let row = 0; row < 9 && start + row < entries.length; row++) {
+            const index = start + row, entry = entries[index], ry = y + 92 + row * 48;
+            ctx.fillStyle = index === selectedIndex ? CONSTANTS.COLORS.UI_HIGHLIGHT : '#e8e0c4';
+            ctx.fillRect(x + 18, ry, width - 36, 38);
+            ctx.fillStyle = index === selectedIndex ? CONSTANTS.COLORS.WHITE : CONSTANTS.COLORS.BLACK;
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText(`${entry.group.padEnd(7)} ${entry.train.species.name}`, x + 30, ry + 25);
+            ctx.textAlign = 'right';
+            ctx.fillText(`Lv${entry.train.level}`, x + width - 30, ry + 25);
+            ctx.textAlign = 'left';
+        }
+    }
+
+    static drawTrainDex(ctx, player, selectedIndex) {
+        const x = 70, y = 45, width = 628, height = 580;
+        ctx.fillStyle = CONSTANTS.COLORS.WHITE; ctx.fillRect(x, y, width, height);
+        ctx.strokeStyle = CONSTANTS.COLORS.BLACK; ctx.lineWidth = 4; ctx.strokeRect(x, y, width, height);
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK; ctx.font = 'bold 24px monospace';
+        ctx.fillText(`TRAINDEX  SEEN ${player.seenSpecies.length}/151  CAUGHT ${player.caughtSpecies.length}/151`, x + 20, y + 38);
+        const start = Math.max(0, Math.min(selectedIndex - 7, 141));
+        for (let row = 0; row < 10; row++) {
+            const id = start + row + 1, species = TRAIN_SPECIES[id], ry = y + 70 + row * 47;
+            const seen = player.seenSpecies.includes(id), caught = player.caughtSpecies.includes(id);
+            ctx.fillStyle = id - 1 === selectedIndex ? CONSTANTS.COLORS.UI_HIGHLIGHT : '#e8e0c4';
+            ctx.fillRect(x + 18, ry, width - 36, 37);
+            ctx.fillStyle = id - 1 === selectedIndex ? CONSTANTS.COLORS.WHITE : CONSTANTS.COLORS.BLACK;
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText(`#${String(id).padStart(3, '0')}  ${seen ? species.name : '----------'}`, x + 28, ry + 25);
+            ctx.textAlign = 'right'; ctx.fillText(caught ? 'CAUGHT' : seen ? 'SEEN' : '', x + width - 28, ry + 25); ctx.textAlign = 'left';
+        }
     }
 }
 

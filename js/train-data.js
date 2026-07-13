@@ -185,7 +185,6 @@ const TRAIN_SPECIES = {
         catchRate: 45,
         expYield: 178
     },
-    // Continue with remaining trains (13-151)
     13: { id: 13, name: "Cartle", types: ["FREIGHT"], baseStats: { hp: 40, attack: 35, defense: 30, speed: 50, special: 20 }, learnset: [{ level: 1, move: "Ram" }], evolution: { method: "level", level: 7, evolvesTo: 14 }, catchRate: 255, expYield: 52 },
     14: { id: 14, name: "Haulkoon", types: ["FREIGHT"], baseStats: { hp: 45, attack: 25, defense: 50, speed: 35, special: 25 }, learnset: [{ level: 1, move: "Emergency Brake" }], evolution: { method: "level", level: 10, evolvesTo: 15 }, catchRate: 120, expYield: 71 },
     15: { id: 15, name: "Cargodrill", types: ["FREIGHT", "DIESEL"], baseStats: { hp: 65, attack: 90, defense: 40, speed: 75, special: 45 }, learnset: [{ level: 10, move: "Multi-Track Drift" }], evolution: null, catchRate: 45, expYield: 178 },
@@ -238,7 +237,7 @@ const TRAIN_NAMES = {
     151: "MEGALOCOMOTIVE"
 };
 
-// Generate remaining trains (27-151) with clever names!
+// Build the extended roster deterministically so save files remain stable.
 //
 // IMPORTANT: generation is DETERMINISTIC. Each species is built from a PRNG
 // seeded by its own id, so a given train (e.g. #88 "Firetruck") has identical
@@ -283,6 +282,20 @@ for (let i = 27; i <= 151; i++) {
         catchRate = randInt(190, 255); // Common
     }
 
+    const typeMoves = {
+        STEAM: ["Coal Throw", "Steam Jet", "Boiler Burst", "Pressure Blast", "Mega Steam"],
+        ELECTRIC: ["Spark", "Charge Beam", "Third Rail", "Rail Gun", "Lightning Express"],
+        DIESEL: ["Diesel Spray", "Engine Rev", "Fuel Blast", "Turbo Charge", "Exhaust Fumes"],
+        MAGLEV: ["Levitation", "Signal Jam", "Maglev Rush", "Magnetic Pulse", "Sonic Boom"],
+        FREIGHT: ["Cargo Toss", "Boxcar Bash", "Container Crush", "Heavy Haul", "Freight Frenzy"],
+        PASSENGER: ["Ram", "Express Shunt", "Passenger Rush", "Express Service", "Coupler Crush"],
+        NUCLEAR: ["Radiation Leak", "Containment Field", "Atomic Flash", "Reactor Meltdown", "Atomic Flash"],
+        MONORAIL: ["Mono-Strike", "Beam Balance", "Mono-Strike", "Beam Balance", "Mono-Strike"]
+    };
+    const primaryMoves = typeMoves[types[0]];
+    const secondaryMoves = types[1] ? typeMoves[types[1]] : primaryMoves;
+    const signatureIndex = i % primaryMoves.length;
+
     TRAIN_SPECIES[i] = {
         id: i,
         name: TRAIN_NAMES[i] || `Train${String(i).padStart(3, '0')}`,
@@ -296,8 +309,11 @@ for (let i = 27; i <= 151; i++) {
         },
         learnset: [
             { level: 1, move: "Ram" },
-            { level: 10, move: "Express Shunt" },
-            { level: 20, move: "Full Throttle" }
+            { level: 6, move: primaryMoves[signatureIndex] },
+            { level: 12, move: secondaryMoves[(signatureIndex + 1) % secondaryMoves.length] },
+            { level: 20, move: primaryMoves[(signatureIndex + 2) % primaryMoves.length] },
+            { level: 30, move: secondaryMoves[(signatureIndex + 3) % secondaryMoves.length] },
+            { level: 42, move: primaryMoves[(signatureIndex + 4) % primaryMoves.length] }
         ],
         evolution: null,
         catchRate: catchRate,

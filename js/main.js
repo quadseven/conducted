@@ -33,6 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Creating game instance...');
         updateLoadStatus('Creating game...', '#ffaa00');
         const game = new Game(canvas);
+        window.addEventListener('keydown', event => {
+            game.audio.unlock();
+            if (event.key === 'Enter' || event.key.toLowerCase() === 'z') game.audio.playSound('select');
+            if (event.key.toLowerCase() === 'x' || event.key === 'Backspace') game.audio.playSound('cancel');
+        });
         window.DEBUG_GAME = game; // Expose for debugging/testing
         console.log('✓ Game instance created');
         updateLoadStatus('Loading assets...', '#ffaa00');
@@ -44,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Force state to TITLE to ensure we don't get stuck
             game.state = 'title'; // Use string literal to avoid CONSTANTS dependency if that's the issue
+            game.audio.playMusic('title');
 
             // Hide load status immediately
             const loadStatus = document.getElementById('load-status');

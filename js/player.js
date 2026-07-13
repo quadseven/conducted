@@ -8,10 +8,13 @@ class Player {
         this.x = 10;  // Start in center of Piston Town (map is 20x15, so center is ~10,7)
         this.y = 7;
         this.direction = CONSTANTS.DIRECTIONS.DOWN;
-        this.currentMap = 'piston_town';
+        this.currentMap = 'PistonTown';
 
         // Party - empty until starter selection
         this.party = [];
+        this.storage = [];
+        this.seenSpecies = [];
+        this.caughtSpecies = [];
 
         // Inventory - empty until starter selection
         this.items = {
@@ -29,6 +32,7 @@ class Player {
         this.hasStarterTrain = false;
         this.metProfessor = false;
         this.defeatedGymLeaders = [];
+        this.storyFlags = {};
 
         // Animation
         this.isMoving = false;
@@ -117,15 +121,26 @@ class Player {
             train.currentHP = train.maxHP;
             train.status = null;
             train.fainted = false;
+            train.restorePP();
         }
     }
 
     addTrain(train) {
+        this.registerCaught(train.speciesId);
         if (this.party.length < CONSTANTS.MAX_PARTY_SIZE) {
             this.party.push(train);
             return true;
         }
         return false;
+    }
+
+    registerSeen(speciesId) {
+        if (!this.seenSpecies.includes(speciesId)) this.seenSpecies.push(speciesId);
+    }
+
+    registerCaught(speciesId) {
+        this.registerSeen(speciesId);
+        if (!this.caughtSpecies.includes(speciesId)) this.caughtSpecies.push(speciesId);
     }
 
     addItem(item, quantity) {
@@ -176,13 +191,17 @@ class Player {
             direction: this.direction,
             currentMap: this.currentMap,
             party: this.party.map(t => t.toJSON()),
+            storage: this.storage.map(t => t.toJSON()),
+            seenSpecies: this.seenSpecies,
+            caughtSpecies: this.caughtSpecies,
             items: this.items,
             money: this.money,
             badges: this.badges,
             badgeCount: this.badgeCount,
             hasStarterTrain: this.hasStarterTrain,
             metProfessor: this.metProfessor,
-            defeatedGymLeaders: this.defeatedGymLeaders
+            defeatedGymLeaders: this.defeatedGymLeaders,
+            storyFlags: this.storyFlags
         };
     }
 
@@ -194,7 +213,8 @@ class Player {
         player.x = data.x ?? player.x;
         player.y = data.y ?? player.y;
         player.direction = data.direction ?? player.direction;
-        player.currentMap = data.currentMap ?? player.currentMap;
+        const savedMap = data.currentMap ?? player.currentMap;
+        player.currentMap = savedMap === 'piston_town' || savedMap === 'pallet_town' ? 'PistonTown' : savedMap;
 
         // Party: guard against missing/empty and drop any entry that fails to
         // deserialize rather than throwing out the whole save.
@@ -203,6 +223,13 @@ class Player {
                 try { return Train.fromJSON(t); } catch (e) { console.warn('Bad train in save, skipped:', e); return null; }
             }).filter(Boolean)
             : [];
+        player.storage = Array.isArray(data.storage)
+            ? data.storage.map(t => {
+                try { return Train.fromJSON(t); } catch (e) { console.warn('Bad stored train in save, skipped:', e); return null; }
+            }).filter(Boolean)
+            : [];
+        player.seenSpecies = Array.isArray(data.seenSpecies) ? data.seenSpecies : [];
+        player.caughtSpecies = Array.isArray(data.caughtSpecies) ? data.caughtSpecies : [];
 
         // Merge saved items OVER the constructor defaults so keys added in a
         // newer build (future items) are still present after loading an old save.
@@ -214,12 +241,13 @@ class Player {
         player.hasStarterTrain = data.hasStarterTrain || false;
         player.metProfessor = data.metProfessor || false;
         player.defeatedGymLeaders = data.defeatedGymLeaders || [];
+        player.storyFlags = data.storyFlags || {};
         return player;
     }
 }
 
 // Bump when the save shape changes incompatibly so loaders can migrate.
-Player.SAVE_VERSION = 1;
+Player.SAVE_VERSION = 3;
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {

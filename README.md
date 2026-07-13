@@ -1,165 +1,109 @@
-# Train Battle RPG
+# Grand Transit
 
-A pixel-perfect replica of Pokémon Red/Blue, but with trains instead of Pokémon!
+Grand Transit is a zero-dependency browser RPG about collecting, training, and battling 151 train species. The campaign spans eight railway districts, Team Derail's sabotage plot, eight Stationmasters, four Elite Conductors, and the Champion.
 
-**Play in your browser now! No installation required!**
+The game runs in an HTML5 Canvas. It uses procedural pixel art and Web Audio synthesis. It does not fetch images, music, libraries, or game data from external services.
 
-**📱 Works on iPhone, iPad, and all mobile devices!**
+## Start the game
 
-## 🎮 Play Now
-
-Simply open `index.html` in your web browser or visit the GitHub Pages deployment!
-
-The game runs entirely in your browser using HTML5 Canvas and JavaScript. Fully playable on desktop and mobile devices with touch controls!
-
-## Features
-
-- 151 unique train species to collect and battle
-- Classic turn-based battle system with Gen 1 damage calculations
-- Type advantages: Steam, Electric, Diesel, Maglev, Freight, Passenger, Nuclear, Monorail
-- Wild train encounters in tall grass
-- Pokémon-style menu system and UI
-- **Auto-save every 30 seconds** + Manual save/load buttons
-- **Export/Import Save Tokens** - Transfer your save between devices!
-- **Full mobile support** with on-screen touch controls (D-Pad + A/B buttons)
-- **iPhone/iPad compatible** - works in Safari and all mobile browsers
-- Full evolution system
-- Move learning and leveling up
-- Beautiful pixel art style graphics
-- **localStorage support** - saves persist even when you close the browser
-
-## 🚀 Quick Start
-
-### Play Locally
-
-1. Clone this repository
-2. Open `index.html` in your web browser
-3. Start playing!
-
-### Deploy to GitHub Pages
-
-This repository includes automatic GitHub Pages deployment. To enable:
-
-1. Go to your repository Settings
-2. Navigate to Pages
-3. Set Source to "GitHub Actions"
-4. The game will auto-deploy on every push!
-
-### Python Version (Legacy)
-
-There's also a Python/Pygame version in the `game/` directory:
+Serve the repository through a local web server so browsers can load every asset consistently.
 
 ```bash
-pip install -r requirements.txt
-python main.py
+python3 -m http.server 8765
 ```
 
-## 🎯 Controls
+Open `http://127.0.0.1:8765/index.html`.
 
-### Desktop
-- **Arrow Keys**: Move your character
-- **Z / Enter**: Confirm / Interact / Advance text
-- **X / Backspace**: Cancel / Go back
-- **ESC**: Return to title screen
+## Controls
 
-### Mobile (iPhone, Android, Tablet)
-- **On-screen D-Pad**: Move your character
-- **A Button**: Confirm / Interact / Advance text
-- **B Button**: Cancel / Go back
+Desktop controls:
 
-### Save System
-- **Auto-Save**: Game saves every 30 seconds automatically
-- **Manual Save/Load**: Use buttons to save/load anytime
-- **Export Token**: Generate a save token (base64 encoded)
-- **Import Token**: Paste a token to load your game on another device
+- arrow keys move and navigate menus
+- Z or Enter confirms, interacts, and advances dialogue
+- X or Backspace cancels
+- Escape opens the field menu
 
-The game automatically detects if you're on mobile and shows touch controls!
+Touch devices show a directional pad and A and B buttons below the game screen.
 
-## 🎲 How to Play
+## Campaign
 
-1. **Start the Game**: Press Enter on the title screen
-2. **Explore**: Use arrow keys to walk around the map
-3. **Wild Encounters**: Walk through tall grass to encounter wild trains
-4. **Battle**: Choose moves to battle wild trains
-5. **Win Battles**: Defeat wild trains to gain experience
-6. **Level Up**: Your trains will grow stronger and learn new moves
-7. **Evolve**: Some trains evolve when they reach certain levels!
+Choose Steamini, Sparkart, or Diesling in Piston Town. The main line then crosses these districts:
 
-## 🚂 Starter Trains
+1. Coal Harbor
+2. Copper Junction
+3. Ironworks
+4. Verdant Platform
+5. Skybeam
+6. Isotope City
+7. Velocity Terminal
+8. Crown Central
 
-You begin with one of these three starter trains:
+Each district has a route, trainers, wild encounters, a city, and a Stationmaster battle. Team Derail blocks key routes during the middle chapters. Eight badges open Grand Terminus, where the Elite Conductors and Champion wait.
 
-- **Steamini** (Steam Type) - Evolves into Steamore, then Locomotor
-- **Sparkart** (Electric Type) - Evolves into Voltrain, then Thunderail
-- **Diesling** (Diesel Type) - Evolves into Wartorque, then Titanorque
+## Visual direction
 
-## Train Types
+The runtime art is drawn procedurally at a crisp 16-pixel tile scale. Each district has its own material palette, architecture, track furniture, vegetation, signs, platforms, and station details. Battles take place in an iron-and-glass terminal arena, where the eight train types use distinct creature silhouettes and every species receives deterministic body, wheel, cargo, crest, and color variation.
 
-- **Steam**: Strong but slow, weak to Electric
-- **Electric**: Fast and powerful, weak to Diesel
-- **Diesel**: Reliable and sturdy, weak to Steam
-- **Maglev**: Super fast, weak to Freight
-- **Freight**: Heavy hitting, weak to Maglev
-- **Passenger**: Balanced stats, weak to Nuclear
-- **Nuclear**: High power, weak to Monorail
-- **Monorail**: Specialized, weak to Passenger
+The surrounding interface is designed as a railway dispatch cabinet on desktop and a compact handheld control deck on mobile. No runtime artwork depends on a network request.
 
-## 🎨 Technical Details
+## Collection and progression
 
-### Game Engine
-- **Language**: JavaScript (ES6+)
-- **Graphics**: HTML5 Canvas with pixelated rendering
-- **Architecture**: Object-oriented game loop (60 FPS)
-- **Storage**: localStorage for save games (works offline!)
-- **Mobile**: Full touch support with virtual controls
-- **Responsive**: Adapts to any screen size
+The game includes:
 
-### Battle System
-- Gen 1 Pokémon damage formula
-- Type effectiveness chart (8 types)
-- Critical hits (6.25% chance)
-- STAB bonus (1.5x)
-- Individual Values (IVs) for stat variation
-- Move PP (Power Points) system
+- 151 named species with stable types, stats, catch rates, experience yields, and learnsets
+- eight train types and a complete 8 by 8 effectiveness chart
+- 50 physical, special, and status moves
+- wild encounters and four-shake Boxcar capture checks
+- a persistent TrainDex for seen and caught species
+- six active crew slots and persistent Depot storage
+- experience, level-up moves, and evolution
+- 0 to 15 individual values and Gen 1 stat experience
+- shops, field items, battle items, healing depots, money, and blackout penalties
 
-### Code Structure
+## Battle rules
+
+Battles use the Gen 1 base damage structure, 1.5 times same-type attack bonus, a 6.25% base critical rate, and a random damage factor from 217 to 255. The engine also supports stat stages, accuracy, evasion, poison, burn, paralysis, confusion, flinching, recoil, recharge turns, fixed damage, and multi-hit moves.
+
+Trainer AI scores move power, accuracy, same-type bonus, type effectiveness, status value, and the opponent's remaining HP. It adds a small random factor so repeated battles do not use an identical script.
+
+## Saving
+
+The game saves to browser local storage every 30 seconds. The field controls also provide manual save, load, export, and import actions.
+
+Save data includes:
+
+- player position and current map
+- party and Depot trains
+- levels, moves, HP, status, IVs, and stat experience
+- inventory and money
+- badges and defeated trainers
+- story flags and TrainDex records
+
+## Project structure
+
+The main browser runtime lives in `js/`:
+
+- `train-data.js`, `types.js`, and `moves.js` define battle data
+- `npcData.js`, `world-maps.js`, and `story.js` define the campaign
+- `train.js`, `player.js`, and `battle.js` implement progression and combat
+- `game.js` owns the state machine and campaign orchestration
+- `graphics.js` and Canvas drawing methods render the game
+- `audio.js` generates music and effects through Web Audio
+- `main.js` runs the 60 FPS update and render loop
+
+The older Python files are not part of the browser build.
+
+## Validation
+
+Run the dependency-free integrity tests:
+
+```bash
+node tests/core-integrity.test.js
+node tests/starter-selection.test.js
 ```
-js/
-├── constants.js        - Game constants and configuration
-├── utils.js            - Helper functions
-├── train-data.js       - All 151 train species definitions
-├── moves.js            - Move database and damage calculations
-├── train.js            - Train class (stats, leveling, evolution)
-├── battle.js           - Battle system and AI
-├── player.js           - Player state and party management
-├── map.js              - World map and tile system
-├── graphics.js         - Rendering engine
-├── input.js            - Keyboard and touch input handling
-├── mobile-controls.js  - Touch controls for mobile devices
-├── ui.js               - UI components
-├── game.js             - Main game manager
-└── main.js             - Entry point and game loop
-```
 
-## 📱 Mobile/iOS Notes
+The core test verifies species and move counts, unique names, learnsets, types, matchups, NPC rosters, campaign map counts, warp destinations, warp coordinates, EV serialization, Depot serialization, and old-save map migration.
 
-The game is fully optimized for mobile devices:
-- ✅ Works in Safari on iPhone/iPad
-- ✅ Touch controls automatically appear on mobile
-- ✅ Prevents unwanted scrolling and zooming
-- ✅ Can be added to home screen as web app
-- ✅ localStorage works in private browsing (with limitations)
-- ✅ Haptic feedback on supported devices
-- ✅ Responsive design adapts to screen size
+## Original work
 
-## 🙏 Credits
-
-Game inspired by **Pokémon Red/Blue** by Game Freak
-
-## 📝 License
-
-This is a fan project created for educational purposes. All Pokémon-related trademarks are property of Nintendo/Game Freak/Creatures Inc.
-
-## 🤖 Development
-
-This game was created with assistance from Claude Code by Anthropic.
+Grand Transit uses an original railway setting, train species, names, story, graphics, sounds, maps, and dialogue. Its turn-based collection structure draws inspiration from handheld monster-training RPGs.
