@@ -112,7 +112,7 @@ const WORLD_MAPS = {
     name: 'Professor Cypress Lab',
     tileset: 'assets/tiles/interiors-lab.png',
     width: 10, height: 10,
-    tiles: boxed(10, 10, 3, 0),
+    tiles: (() => { const t = boxed(10, 10, 0, 3); t[9][4] = 12; return t; })(),
     warps: [
       // door back to town (Lab entrance)
       { from: rect(4, 9), to: { mapId: 'PistonTown', ...pos(9, 7, 'down') } },
@@ -669,7 +669,8 @@ const WORLD_MAPS = {
   returnTo('CoalHarborGym', 'CoalHarbor', 5, 13);
 })();
 
-// Add collisions to each map (non-walkable tiles: void=0, wall=5, ledge=6, tree=7)
+// Derived collision metadata: void=0, water=4, wall=5, and tree=7 are blocked;
+// rail tile 6 is traversable. Player movement uses each map's isWalkable().
 for (const m of Object.values(WORLD_MAPS)) {
   m.collisions = new Set();
   const { tiles } = m;
@@ -677,7 +678,7 @@ for (const m of Object.values(WORLD_MAPS)) {
     for (let x = 0; x < m.width; x++) {
       const idx = tiles[y][x];
       // Rails are traversable in Grand Transit; void/walls/trees are not.
-      if (idx === 0 || idx === 5 || idx === 7) {
+      if (idx === 0 || idx === 4 || idx === 5 || idx === 7) {
         m.collisions.add(`${x},${y}`);
       }
     }

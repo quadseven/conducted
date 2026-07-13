@@ -362,6 +362,9 @@ class Battle {
                 const damage = Math.max(1, Math.floor((((2 * action.attacker.level / 5 + 2) * 40 * action.attacker.attack / Math.max(1, action.attacker.defense)) / 50) + 2));
                 action.attacker.takeDamage(damage);
                 this.addMessage('It hurt itself in its confusion!');
+                if (action.attacker.fainted) {
+                    this.addMessage(`${prefix}${action.attacker.species.name} fainted!`);
+                }
                 this.animationQueue.push({ callback: () => this.processNextAction() });
                 return;
             }

@@ -289,8 +289,8 @@ for (let i = 27; i <= 151; i++) {
         MAGLEV: ["Levitation", "Signal Jam", "Maglev Rush", "Magnetic Pulse", "Sonic Boom"],
         FREIGHT: ["Cargo Toss", "Boxcar Bash", "Container Crush", "Heavy Haul", "Freight Frenzy"],
         PASSENGER: ["Ram", "Express Shunt", "Passenger Rush", "Express Service", "Coupler Crush"],
-        NUCLEAR: ["Radiation Leak", "Containment Field", "Atomic Flash", "Reactor Meltdown", "Derailment"],
-        MONORAIL: ["Mono-Strike", "Beam Balance", "High Beams", "Multi-Track Drift", "Full Throttle"]
+        NUCLEAR: ["Radiation Leak", "Containment Field", "Atomic Flash", "Reactor Meltdown", "Atomic Flash"],
+        MONORAIL: ["Mono-Strike", "Beam Balance", "Mono-Strike", "Beam Balance", "Mono-Strike"]
     };
     const primaryMoves = typeMoves[types[0]];
     const secondaryMoves = types[1] ? typeMoves[types[1]] : primaryMoves;

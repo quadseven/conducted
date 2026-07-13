@@ -8,9 +8,16 @@ function loadImage(src) {
   if (IMG_CACHE.has(src)) return IMG_CACHE.get(src);
   const promise = new Promise((resolve, reject) => {
     const image = new Image();
-    const timeoutId = setTimeout(() => reject(new Error(`Timeout loading ${src}`)), 4000);
+    const timeoutId = setTimeout(() => {
+      IMG_CACHE.delete(src);
+      reject(new Error(`Timeout loading ${src}`));
+    }, 4000);
     image.onload = () => { clearTimeout(timeoutId); resolve(image); };
-    image.onerror = (error) => { clearTimeout(timeoutId); reject(error); };
+    image.onerror = (error) => {
+      clearTimeout(timeoutId);
+      IMG_CACHE.delete(src);
+      reject(error);
+    };
     image.src = src;
   });
   IMG_CACHE.set(src, promise);

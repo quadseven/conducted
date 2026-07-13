@@ -1,10 +1,3 @@
-@font-face {
-    font-family: "Aurum Pixel";
-    src: url("assets/fonts/PKMN RBYGSC.ttf") format("truetype");
-    font-weight: 400;
-    font-display: swap;
-}
-
 :root {
     --night: #07110f;
     --deep-green: #0d2621;
@@ -20,7 +13,7 @@
     --mint: #7bc7a6;
     --display: #b8d2ac;
     --display-ink: #19352b;
-    --pixel: "Aurum Pixel", "Courier New", monospace;
+    --pixel: "Courier New", ui-monospace, monospace;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -297,7 +290,7 @@ body {
 .save-load-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #08100e; }
 .save-load-btn:focus-visible, .modal-btn:focus-visible, .traindex-link:focus-visible { outline: 3px solid var(--signal); outline-offset: 3px; }
 
-.button-code { display: grid; place-items: center; height: 27px; color: var(--brass-light); border: 1px solid currentColor; font-size: 7px; }
+.button-code { display: grid; place-items: center; height: 27px; color: var(--brass-light); border: 1px solid currentcolor; font-size: 7px; }
 .secondary .button-code { color: #773126; }
 
 #save-status {

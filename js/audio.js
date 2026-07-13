@@ -3,7 +3,9 @@ class AudioManager {
         this.context = null;
         this.master = null;
         this.currentMusic = null;
+        this.pendingMusic = null;
         this.musicTimer = null;
+        this.unlockPromise = null;
         this.muted = false;
     }
 
@@ -17,12 +19,24 @@ class AudioManager {
     }
 
     unlock() {
-        if (this.context && this.context.state === "suspended") this.context.resume();
+        if (!this.context || this.context.state === "running") return Promise.resolve();
+        if (!this.unlockPromise) {
+            this.unlockPromise = this.context.resume().then(() => {
+                this.unlockPromise = null;
+                const pending = this.pendingMusic;
+                this.pendingMusic = null;
+                if (pending) this.playMusic(pending);
+            }).catch(() => { this.unlockPromise = null; });
+        }
+        return this.unlockPromise;
     }
 
     tone(frequency, duration, wave = "square", volume = 0.25, delay = 0) {
         if (!this.context || this.muted) return;
-        this.unlock();
+        if (this.context.state !== "running") {
+            this.unlock().then(() => this.tone(frequency, duration, wave, volume, delay));
+            return;
+        }
         const start = this.context.currentTime + delay;
         const oscillator = this.context.createOscillator();
         const gain = this.context.createGain();
@@ -38,6 +52,10 @@ class AudioManager {
 
     noise(duration = 0.08, volume = 0.2) {
         if (!this.context || this.muted) return;
+        if (this.context.state !== "running") {
+            this.unlock().then(() => this.noise(duration, volume));
+            return;
+        }
         const frames = Math.ceil(this.context.sampleRate * duration);
         const buffer = this.context.createBuffer(1, frames, this.context.sampleRate);
         const channel = buffer.getChannelData(0);
@@ -67,7 +85,12 @@ class AudioManager {
     }
 
     playMusic(name) {
-        if (!this.context || this.muted || this.currentMusic === name) return;
+        if (!this.context || this.muted) return;
+        if (this.context.state !== "running") {
+            this.pendingMusic = name;
+            return;
+        }
+        if (this.currentMusic === name) return;
         this.stopMusic();
         this.currentMusic = name;
         const songs = {
@@ -92,6 +115,7 @@ class AudioManager {
         if (this.musicTimer) clearInterval(this.musicTimer);
         this.musicTimer = null;
         this.currentMusic = null;
+        this.pendingMusic = null;
     }
 
     toggleMute() {

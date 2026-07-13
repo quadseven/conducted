@@ -1465,6 +1465,19 @@ Game.prototype.load = function () {
 
         this.player = Player.fromJSON(data.player);
 
+        // Map NPC objects are runtime singletons and are not serialized with
+        // Player. Rehydrate their defeated state from the canonical flags so
+        // loading cannot reopen completed trainer or Stationmaster battles.
+        for (const map of Object.values(this.maps)) {
+            for (const npc of map.npcs || []) {
+                if (!npc.canBattle || !npc.id) continue;
+                const storyFlag = npc.storyFlag || `defeated_${npc.id}`;
+                npc.defeated = !!this.player.storyFlags[storyFlag] ||
+                    !!(npc.badge && this.player.badges.includes(npc.badge)) ||
+                    this.player.defeatedGymLeaders.includes(npc.id);
+            }
+        }
+
         // Resolve the live map object from the saved map-id key, falling back
         // to the start town if the key is stale/unknown.
         if (this.maps[this.player.currentMap]) {
