@@ -13,8 +13,8 @@ const CONSTANTS = {
     FPS: 60,
 
     // Game info
-    GAME_TITLE: "Train Battle RPG",
-    VERSION: "1.0.16",
+    GAME_TITLE: "Grand Transit",
+    VERSION: "2.0.0",
 
     // Colors (Authentic Game Boy Color palette - Pokemon Red/Blue style)
     // Based on GBC 15-bit RGB palette used in Pokemon games
@@ -168,7 +168,7 @@ const CONSTANTS = {
     PLAYER_START: {
         x: 10,
         y: 10,
-        map: 'pallet_town'
+        map: 'PistonTown'
     }
 };
 

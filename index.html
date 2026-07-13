@@ -6,17 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Train Battle RPG - A Pokemon-Style Train Adventure!</title>
+    <title>Grand Transit - A Train-Collecting Adventure</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
     <div id="game-container">
         <div id="game-header">
-            <h1>Train Battle RPG</h1>
-            <p>Gotta Catch 'Em All... Trains!</p>
-            <p style="font-size: 10px; color: #ffd700; margin-top: 10px;">
-                <strong>VERSION 1.0.17</strong> - Build: 2025-11-06 (Navigation Fix: Tileset Collision) -
+            <span class="route-mark">GT</span>
+            <div><h1>Grand Transit</h1>
+            <p>Every line leads to a legend.</p></div>
+            <p class="build-stamp">
+                <strong>REGIONAL SERVICE 2.0</strong> - Grand Transit Authority -
                 <span id="load-status" style="color: #ff6b6b;">Loading...</span>
             </p>
         </div>
@@ -90,8 +91,8 @@
         </div>
 
         <div id="game-info">
-            <p>A pixel-perfect replica of Pokémon Red/Blue, but with <strong>TRAINS</strong>!</p>
-            <p>Collect all 151 train species and become the ultimate Train Master!</p>
+            <p>Explore eight railway districts, dismantle Team Derail, and challenge the Grand Conductors.</p>
+            <p>Build a crew from <strong>151 train species</strong> and become Champion of the network.</p>
             <p><strong>Auto-saves every 30 seconds!</strong> Use Save/Load buttons above for manual control.</p>
             <p style="margin-top: 15px;">
                 <a href="traindex.html"
@@ -105,7 +106,12 @@
     <!-- Game Scripts -->
     <script src="js/constants.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/types.js"></script>
     <script src="js/train-data.js"></script>
+    <script src="js/trainData.js"></script>
+    <script src="js/npcData.js"></script>
+    <script src="js/maps.js"></script>
+    <script src="js/story.js"></script>
     <script src="js/items.js"></script>
     <script src="js/moves.js"></script>
     <script src="js/train.js"></script>

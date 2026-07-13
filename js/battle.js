@@ -16,15 +16,21 @@ class Battle {
 
         this.playerActive = playerTrains[0];
         this.enemyActive = enemyTrains[0];
+        if (game && game.player) game.player.registerSeen(this.enemyActive.speciesId);
 
         // Gen-1 stat stages live on the battle, per side, not on the Train
         // instance (so they reset when the battle ends and never persist).
         this.stages = {
-            player: { attack: 0, defense: 0, speed: 0, special: 0 },
-            enemy: { attack: 0, defense: 0, speed: 0, special: 0 }
+            player: { attack: 0, defense: 0, speed: 0, special: 0, accuracy: 0, evasion: 0 },
+            enemy: { attack: 0, defense: 0, speed: 0, special: 0, accuracy: 0, evasion: 0 }
         };
         // Per-turn flinch flags (cleared at the start of each turn).
         this.flinch = { player: false, enemy: false };
+        // Volatile conditions are battle-only and clear on switching.
+        this.volatile = {
+            player: { confusedTurns: 0, rechargeTurns: 0 },
+            enemy: { confusedTurns: 0, rechargeTurns: 0 }
+        };
         // Ordered actions for the current turn.
         this.turnActions = [];
 
@@ -205,7 +211,20 @@ class Battle {
         } else if (action === 'right' && this.moveSelection % 2 === 0 && this.moveSelection + 1 < moves.length) {
             this.moveSelection++;
         } else if (action === 'a') {
-            this.executeTurn(moves[this.moveSelection]);
+            const move = moves[this.moveSelection];
+            if ((this.playerActive.movePP[move] || 0) <= 0) {
+                const hasAnyPP = moves.some(name => (this.playerActive.movePP[name] || 0) > 0);
+                if (hasAnyPP) {
+                    this.addMessage(`No PP left for ${move}!`);
+                    this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+                    this.currentMessage = 0;
+                } else {
+                    this.playerActive.movePP.Ram = 1;
+                    this.executeTurn('Ram');
+                }
+            } else {
+                this.executeTurn(move);
+            }
         } else if (action === 'b') {
             this.state = CONSTANTS.BATTLE_STATES.MENU;
         }
@@ -219,7 +238,7 @@ class Battle {
         this.flinch.player = false;
         this.flinch.enemy = false;
 
-        const enemyMoveName = Utils.randomChoice(this.enemyActive.moves) || 'Ram';
+        const enemyMoveName = this.chooseEnemyMove();
         this.turnActions = this.orderActions(playerMoveName, enemyMoveName);
         this.processNextAction();
     }
@@ -257,7 +276,36 @@ class Battle {
     }
 
     resetStages(side) {
-        this.stages[side] = { attack: 0, defense: 0, speed: 0, special: 0 };
+        this.stages[side] = { attack: 0, defense: 0, speed: 0, special: 0, accuracy: 0, evasion: 0 };
+        this.volatile[side] = { confusedTurns: 0, rechargeTurns: 0 };
+    }
+
+    // Trainer AI favours reliable, effective attacks and uses setup/debuffs
+    // early. A little noise keeps battles from becoming deterministic.
+    chooseEnemyMove() {
+        const moves = this.enemyActive.moves.filter(name => MOVES_DB[name] && (this.enemyActive.movePP[name] || 0) > 0);
+        if (moves.length === 0) {
+            this.enemyActive.movePP.Ram = 1;
+            return 'Ram';
+        }
+        let best = moves[0];
+        let bestScore = -Infinity;
+        for (const name of moves) {
+            const move = MOVES_DB[name];
+            let score;
+            if (move.category === 'status') {
+                score = this.isWild ? 18 : 30;
+                if (move.effect && move.effect.status && this.playerActive.status) score = 1;
+            } else {
+                const stab = this.enemyActive.types.includes(move.type) ? 1.5 : 1;
+                const effectiveness = getTypeEffectiveness(move.type, this.playerActive.types);
+                score = move.power * (move.accuracy / 100) * stab * effectiveness;
+                if (this.playerActive.currentHP < this.playerActive.maxHP / 3) score *= 1.15;
+            }
+            score *= 0.9 + Math.random() * 0.2;
+            if (score > bestScore) { bestScore = score; best = name; }
+        }
+        return best;
     }
 
     // Pull the next action off the turn queue and resolve it.
@@ -281,6 +329,14 @@ class Battle {
 
         const prefix = action.side === 'enemy' ? 'Enemy ' : '';
 
+        const volatile = this.volatile[action.side];
+        if (volatile.rechargeTurns > 0) {
+            volatile.rechargeTurns--;
+            this.addMessage(`${prefix}${action.attacker.species.name} must recharge!`);
+            this.animationQueue.push({ callback: () => this.processNextAction() });
+            return;
+        }
+
         // Paralysis full-skip (25%).
         if (action.attacker.status === 'paralyze' && Utils.randomInt(1, 100) <= 25) {
             this.addMessage(`${prefix}${action.attacker.species.name} is paralyzed! It can't move!`);
@@ -295,6 +351,25 @@ class Battle {
             return;
         }
 
+        if (volatile.confusedTurns > 0) {
+            volatile.confusedTurns--;
+            this.addMessage(`${prefix}${action.attacker.species.name} is confused!`);
+            if (Utils.randomInt(1, 100) <= 50) {
+                const damage = Math.max(1, Math.floor((((2 * action.attacker.level / 5 + 2) * 40 * action.attacker.attack / Math.max(1, action.attacker.defense)) / 50) + 2));
+                action.attacker.takeDamage(damage);
+                this.addMessage('It hurt itself in its confusion!');
+                this.animationQueue.push({ callback: () => this.processNextAction() });
+                return;
+            }
+            if (volatile.confusedTurns === 0) this.addMessage(`${prefix}${action.attacker.species.name} snapped out of confusion!`);
+        }
+
+        if ((action.attacker.movePP[action.move] || 0) <= 0) {
+            this.addMessage(`${prefix}${action.attacker.species.name} has no PP left for ${action.move}!`);
+            this.animationQueue.push({ callback: () => this.processNextAction() });
+            return;
+        }
+        action.attacker.movePP[action.move]--;
         this.addMessage(`${prefix}${action.attacker.species.name} used ${action.move}!`);
         this.animationQueue.push({ callback: () => this.performAttack(action) });
     }
@@ -303,11 +378,29 @@ class Battle {
     performAttack(action) {
         const { side, attacker, defender, move } = action;
         const moveData = MOVES_DB[move];
+        if (!moveData) {
+            this.addMessage(`${attacker.species.name} has no usable move!`);
+            this.processNextAction();
+            return;
+        }
         const defenderSide = side === 'player' ? 'enemy' : 'player';
         const physical = moveData.category === 'physical';
 
         if (physical) {
             if (side === 'player') this.playerShake = 3; else this.enemyShake = 3;
+        }
+
+        // Accuracy/evasion stages affect every targeted move, including status.
+        const targetsSelf = moveData.effect && moveData.effect.target === 'self';
+        const accuracyStage = Math.max(-6, Math.min(6,
+            this.stages[side].accuracy - (targetsSelf ? 0 : this.stages[defenderSide].evasion)));
+        const accuracyMultiplier = accuracyStage >= 0
+            ? (3 + accuracyStage) / 3
+            : 3 / (3 - accuracyStage);
+        if (Utils.randomInt(1, 100) > Math.min(100, moveData.accuracy * accuracyMultiplier)) {
+            this.addMessage('Attack missed!');
+            this.processNextAction();
+            return;
         }
 
         // Status moves: apply effect, no damage.
@@ -322,14 +415,19 @@ class Battle {
         if (physical && attacker.status === 'burn') attackStat = Math.floor(attackStat / 2);
         const defenseStat = this.effectiveStat(defenderSide, defender, physical ? 'defense' : 'special');
 
-        const hits = (moveData.effect && moveData.effect.multi_hit) ? Utils.randomInt(2, 5) : 1;
+        const hits = moveData.effect && moveData.effect.hits
+            ? Utils.randomInt(moveData.effect.hits[0], moveData.effect.hits[1])
+            : 1;
         let totalDamage = 0;
         let result = { hit: true, critical: false, effectiveness: 1.0 };
         for (let h = 0; h < hits; h++) {
-            result = calculateDamage(attacker, defender, move, { attackStat, defenseStat });
+            // Accuracy was resolved above so the damage helper gets a guaranteed
+            // hit, avoiding a second independent accuracy roll.
+            result = calculateDamage(attacker, defender, move, { attackStat, defenseStat, skipAccuracy: true });
             if (!result.hit) break;
             if (side === 'player') this.enemyFlash = 1; else this.playerFlash = 1;
             defender.takeDamage(result.damage);
+            if (this.game && this.game.audio) this.game.audio.playSound('hit');
             totalDamage += result.damage;
             if (defender.fainted) break;
         }
@@ -346,10 +444,14 @@ class Battle {
         if (hits > 1) this.addMessage(`Hit ${hits} times!`);
 
         // Recoil to the attacker.
-        if (moveData.effect && moveData.effect.recoil && totalDamage > 0) {
-            const recoil = Math.max(1, Math.floor(totalDamage * moveData.effect.recoil / 100));
+        if (moveData.effect && moveData.effect.recoilPercent && totalDamage > 0) {
+            const recoil = Math.max(1, Math.floor(totalDamage * moveData.effect.recoilPercent / 100));
             attacker.takeDamage(recoil);
             this.addMessage(`${attacker.species.name} is hit with recoil!`);
+        }
+
+        if (moveData.effect && moveData.effect.rechargeTurns && !attacker.fainted) {
+            this.volatile[side].rechargeTurns = moveData.effect.rechargeTurns;
         }
 
         if (defender.fainted) {
@@ -373,20 +475,27 @@ class Battle {
 
         // One status condition at a time.
         if (!defender.status) {
-            if (effect.paralyze === 100 || (effect.paralyze_chance && roll(effect.paralyze_chance))) {
+            if (effect.status === 'paralyzed' && roll(effect.chance || 100)) {
                 defender.status = 'paralyze';
                 this.addMessage(`${defender.species.name} is paralyzed!`);
-            } else if (effect.burn_chance && roll(effect.burn_chance)) {
+            } else if (effect.paralyzeChance && roll(effect.paralyzeChance)) {
+                defender.status = 'paralyze';
+                this.addMessage(`${defender.species.name} is paralyzed!`);
+            } else if (effect.burnChance && roll(effect.burnChance)) {
                 defender.status = 'burn';
                 this.addMessage(`${defender.species.name} was burned!`);
-            } else if (effect.poison_chance && roll(effect.poison_chance)) {
+            } else if (effect.poisonChance && roll(effect.poisonChance)) {
                 defender.status = 'poison';
                 this.addMessage(`${defender.species.name} was poisoned!`);
             }
         }
 
-        if (effect.flinch_chance && roll(effect.flinch_chance)) {
+        if (effect.flinchChance && roll(effect.flinchChance)) {
             this.flinch[defenderSide] = true;
+        }
+        if (effect.confuseChance && roll(effect.confuseChance) && this.volatile[defenderSide].confusedTurns === 0) {
+            this.volatile[defenderSide].confusedTurns = Utils.randomInt(2, 5);
+            this.addMessage(`${defender.species.name} became confused!`);
         }
 
         const bump = (targetSide, stat, delta, label) => {
@@ -398,13 +507,11 @@ class Battle {
                 this.addMessage(`${who.species.name}'s ${label} ${delta > 0 ? 'rose' : 'fell'}!`);
             }
         };
-        if (effect.raise_defense) bump(side, 'defense', effect.raise_defense, 'Defense');
-        if (effect.lower_defense) bump(defenderSide, 'defense', -effect.lower_defense, 'Defense');
-        if (effect.raise_attack) bump(side, 'attack', effect.raise_attack, 'Attack');
-        if (effect.lower_attack) bump(defenderSide, 'attack', -effect.lower_attack, 'Attack');
-        if (effect.lower_speed) bump(defenderSide, 'speed', -effect.lower_speed, 'Speed');
-        if (effect.raise_special && effect.raise_special <= 6) bump(side, 'special', effect.raise_special, 'Special');
-        if (effect.lower_special) bump(defenderSide, 'special', -effect.lower_special, 'Special');
+        if (effect.stat && effect.stages) {
+            const targetSide = effect.target === 'self' ? side : defenderSide;
+            const chance = effect.chance || 100;
+            if (roll(chance)) bump(targetSide, effect.stat, effect.stages, effect.stat[0].toUpperCase() + effect.stat.slice(1));
+        }
     }
 
     // Residual damage (burn/poison) at end of turn, then back to the menu.
@@ -434,7 +541,7 @@ class Battle {
     enemyFreeTurn() {
         this.flinch.player = false;
         this.flinch.enemy = false;
-        const move = Utils.randomChoice(this.enemyActive.moves) || 'Ram';
+        const move = this.chooseEnemyMove();
         this.turnActions = [{ side: 'enemy', attacker: this.enemyActive, defender: this.playerActive, move }];
         this.processNextAction();
     }
@@ -444,6 +551,7 @@ class Battle {
         const expGained = Math.floor(enemyTrain.species.expYield * enemyTrain.level / 7);
         this.addMessage(`${this.playerActive.species.name} gained ${expGained} EXP!`);
         const beforeLevel = this.playerActive.level;
+        this.playerActive.gainStatExp(enemyTrain.species);
         this.playerActive.gainExp(expGained);
         if (this.playerActive.level > beforeLevel) {
             this.addMessage(`${this.playerActive.species.name} grew to Lv${this.playerActive.level}!`);
@@ -511,7 +619,8 @@ class Battle {
             this.awardExp(this.enemyActive);
             const nextTrain = this.enemyTrains.find(t => !t.fainted);
             if (nextTrain) {
-                this.enemyActive = nextTrain;
+            this.enemyActive = nextTrain;
+            if (this.game && this.game.player) this.game.player.registerSeen(nextTrain.speciesId);
                 this.resetStages('enemy');
                 this.addMessage(`Enemy sent out ${this.enemyActive.species.name}!`);
             } else {
@@ -623,21 +732,24 @@ class Battle {
 
         this.playerInventory.boxcar = Math.max(0, (this.playerInventory.boxcar || 0) - 1);
 
-        // Gen 1 capture formula
+        // Gen 3-style four-shake capture check. Low HP and status matter, while
+        // a common full-health train still has a fair (not near-zero) chance.
         const catchRate = this.enemyActive.species.catchRate || 45;
         const maxHP = this.enemyActive.maxHP;
         const currentHP = this.enemyActive.currentHP;
 
         // Formula: ((HPmax * 3 - HP * 2) * CatchRate) / (HPmax * 3)
-        const a = Math.floor(((maxHP * 3 - currentHP * 2) * catchRate) / (maxHP * 3));
+        const statusBonus = this.enemyActive.status ? 1.5 : 1;
+        const a = Math.min(255, Math.floor(((maxHP * 3 - currentHP * 2) * catchRate * statusBonus) / (maxHP * 3)));
 
         this.animationQueue.push({
             callback: () => {
-                // Simplified shake checks (4 checks like Gen 1)
+                const shakeThreshold = a >= 255
+                    ? 65536
+                    : Math.floor(1048560 / Math.sqrt(Math.sqrt(16711680 / Math.max(1, a))));
                 let shakes = 0;
                 for (let i = 0; i < 4; i++) {
-                    const b = Utils.randomInt(0, 255);
-                    if (b < a) {
+                    if (Utils.randomInt(0, 65535) < shakeThreshold) {
                         shakes++;
                     } else {
                         break;
@@ -648,6 +760,7 @@ class Battle {
                     // Caught!
                     this.addMessage(`Got it! ${this.enemyActive.species.name} was caught!`);
                     this.caughtTrain = this.enemyActive;
+                    if (this.game && this.game.audio) this.game.audio.playSound('catch');
                     this.state = CONSTANTS.BATTLE_STATES.VICTORY;
                     this.battleEnded = true;
                     this.playerWon = true;
@@ -839,7 +952,7 @@ class Battle {
         // Move menu - each button tinted by the move's type.
         if (this.state === CONSTANTS.BATTLE_STATES.FIGHT) {
             const moves = this.playerActive.moves;
-            this.drawMenuGrid(ctx, moves.map(m => typeof m === 'string' ? m : m.name), this.moveSelection,
+            this.drawMenuGrid(ctx, moves.map(m => `${m} ${this.playerActive.movePP[m] || 0}`), this.moveSelection,
                 (i) => {
                     const md = MOVES_DB[moves[i]];
                     return (md && CONSTANTS.TYPE_COLORS[md.type]) || CONSTANTS.COLORS.UI_HIGHLIGHT;
@@ -849,26 +962,32 @@ class Battle {
 
     // Stylized locomotive fallback art (steam-engine palette). facing 'front'
     // points the cab/buffer toward the player; 'back' faces away.
-    drawLoco(ctx, x, y, facing) {
+    drawLoco(ctx, x, y, facing, train) {
         const C = CONSTANTS.COLORS;
+        const speciesId = train ? train.speciesId : 1;
+        const types = train ? train.types : ['STEAM'];
+        const hue = (speciesId * 47) % 360;
+        const bodyColor = `hsl(${hue} 42% 38%)`;
+        const bodyDark = `hsl(${hue} 46% 23%)`;
+        const accent = CONSTANTS.TYPE_COLORS[types[0]] || C.LOCO_BRASS;
         const front = facing === 'front';
-        const w = 124, bodyY = y + 36, bodyH = 46;
+        const w = 124, bodyY = y + 36, bodyH = 38 + (speciesId % 3) * 5;
 
         // contact shadow
         ctx.fillStyle = 'rgba(24,24,24,0.22)';
         ctx.beginPath(); ctx.ellipse(x + w / 2, y + 116, 58, 12, 0, 0, Math.PI * 2); ctx.fill();
 
         // boiler body
-        ctx.fillStyle = C.LOCO_BODY;
+        ctx.fillStyle = bodyColor;
         ctx.fillRect(x + 8, bodyY, w - 16, bodyH);
-        ctx.fillStyle = C.LOCO_BODY_DARK;
+        ctx.fillStyle = bodyDark;
         ctx.fillRect(x + 8, bodyY + bodyH - 8, w - 16, 8); // underside shade
         ctx.fillStyle = 'rgba(255,255,255,0.12)';
         ctx.fillRect(x + 8, bodyY, w - 16, 6); // top sheen
 
         // cab (rear)
         const cabX = front ? x + w - 42 : x + 6;
-        ctx.fillStyle = C.LOCO_BODY_DARK;
+        ctx.fillStyle = bodyDark;
         ctx.fillRect(cabX, y + 14, 36, bodyH + 6);
         ctx.fillStyle = '#9CD0E8'; // cab window
         ctx.fillRect(cabX + 7, y + 22, 22, 16);
@@ -877,29 +996,53 @@ class Battle {
         const stackX = front ? x + 20 : x + w - 34;
         ctx.fillStyle = C.LOCO_IRON_DARK;
         ctx.fillRect(stackX, y + 6, 14, 32);
-        ctx.fillStyle = C.LOCO_BRASS;
+        ctx.fillStyle = accent;
         ctx.fillRect(stackX - 2, y + 4, 18, 6); // stack rim
-        ctx.fillStyle = C.LOCO_BRASS;
+        ctx.fillStyle = accent;
         ctx.beginPath(); ctx.arc(x + w / 2, bodyY + 6, 8, Math.PI, 0); ctx.fill(); // steam dome
 
         // front buffer beam + headlight (only when facing us)
         if (front) {
             ctx.fillStyle = C.LOCO_IRON_DARK;
             ctx.fillRect(x, bodyY + 6, 10, bodyH - 6);
-            ctx.fillStyle = C.LOCO_BRASS;
+            ctx.fillStyle = accent;
             ctx.beginPath(); ctx.arc(x + 6, bodyY + bodyH / 2, 6, 0, Math.PI * 2); ctx.fill(); // headlight
-            ctx.fillStyle = C.LOCO_RED;
+            ctx.fillStyle = accent;
             ctx.fillRect(x + 8, bodyY + bodyH - 14, w - 16, 5); // red accent stripe
         }
 
         // wheels
+        const wheelCount = 2 + speciesId % 4;
         ctx.fillStyle = C.LOCO_IRON;
-        for (let i = 0; i < 3; i++) {
-            const wx = x + 24 + i * 34;
+        for (let i = 0; i < wheelCount; i++) {
+            const wx = x + 20 + i * (84 / Math.max(1, wheelCount - 1));
             ctx.beginPath(); ctx.arc(wx, bodyY + bodyH, 11, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = C.LOCO_IRON_DARK;
             ctx.beginPath(); ctx.arc(wx, bodyY + bodyH, 4, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = C.LOCO_IRON;
+        }
+
+        if (types.includes('ELECTRIC') || types.includes('MAGLEV')) {
+            ctx.strokeStyle = accent; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(x + 44, y + 16); ctx.lineTo(x + 60, y - 4); ctx.lineTo(x + 78, y + 16); ctx.stroke();
+            ctx.fillStyle = '#f8f0b0';
+            ctx.fillRect(x + 56 + speciesId % 15, y - 8, 5, 5);
+        }
+        if (types.includes('FREIGHT')) {
+            ctx.fillStyle = bodyDark;
+            const crates = 2 + speciesId % 3;
+            for (let i = 0; i < crates; i++) ctx.fillRect(x + 38 + i * 20, bodyY - 13 - (i % 2) * 5, 17, 15 + (i % 2) * 5);
+        }
+        if (types.includes('NUCLEAR')) {
+            ctx.strokeStyle = '#d8ff58'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x + 64, bodyY + 22, 13, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = '#d8ff58'; ctx.fillRect(x + 61, bodyY + 12, 6, 20); ctx.fillRect(x + 54, bodyY + 19, 20, 6);
+        }
+        if (types.includes('MONORAIL')) {
+            ctx.fillStyle = accent;
+            ctx.fillRect(x + 4, bodyY + bodyH + 9, w - 8, 7);
+            ctx.fillStyle = C.LOCO_IRON_DARK;
+            ctx.fillRect(x + 56, bodyY + bodyH, 12, 20);
         }
 
         // steam puffs from the stack
@@ -917,7 +1060,7 @@ class Battle {
         if (sprite && sprite.complete && sprite.naturalWidth > 0) {
             ctx.drawImage(sprite, x, y, 128, 128);
         } else {
-            this.drawLoco(ctx, x, y, 'front');
+            this.drawLoco(ctx, x, y, 'front', this.enemyActive);
         }
     }
 
@@ -926,7 +1069,7 @@ class Battle {
         if (sprite && sprite.complete && sprite.naturalWidth > 0) {
             ctx.drawImage(sprite, x, y, 128, 128);
         } else {
-            this.drawLoco(ctx, x, y, 'back');
+            this.drawLoco(ctx, x, y, 'back', this.playerActive);
         }
     }
 

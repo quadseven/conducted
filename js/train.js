@@ -24,6 +24,13 @@ class Train {
         this.ivSpeed = Utils.randomInt(0, 15);
         this.ivSpecial = Utils.randomInt(0, 15);
 
+        // Gen 1 stat experience (EVs): each stat grows independently to 65535.
+        this.evHP = 0;
+        this.evAttack = 0;
+        this.evDefense = 0;
+        this.evSpeed = 0;
+        this.evSpecial = 0;
+
         // Calculate actual stats
         this.maxHP = this.calculateStat('hp');
         this.currentHP = this.maxHP;
@@ -34,6 +41,7 @@ class Train {
 
         // Moves
         this.moves = moves || this.getStartingMoves();
+        this.movePP = Object.fromEntries(this.moves.map(move => [move, MOVES_DB[move] ? MOVES_DB[move].pp : 0]));
 
         // Status
         this.status = null;
@@ -46,29 +54,49 @@ class Train {
     }
 
     calculateStat(statName) {
-        let base, iv;
+        let base, iv, ev;
 
         if (statName === 'hp') {
             base = this.baseHP;
             iv = this.ivHP;
-            return Math.floor(((base + iv) * 2 * this.level) / 100) + this.level + 10;
+            ev = this.evHP;
         } else {
             if (statName === 'attack') {
                 base = this.baseAttack;
                 iv = this.ivAttack;
+                ev = this.evAttack;
             } else if (statName === 'defense') {
                 base = this.baseDefense;
                 iv = this.ivDefense;
+                ev = this.evDefense;
             } else if (statName === 'speed') {
                 base = this.baseSpeed;
                 iv = this.ivSpeed;
+                ev = this.evSpeed;
             } else {
                 base = this.baseSpecial;
                 iv = this.ivSpecial;
+                ev = this.evSpecial;
             }
-
-            return Math.floor(((base + iv) * 2 * this.level) / 100) + 5;
         }
+        const statExp = Math.floor(Math.sqrt(ev)) >> 2;
+        const scaled = Math.floor((((base + iv) * 2 + statExp) * this.level) / 100);
+        return statName === 'hp' ? scaled + this.level + 10 : scaled + 5;
+    }
+
+    gainStatExp(defeatedSpecies) {
+        const oldMaxHP = this.maxHP;
+        this.evHP = Math.min(65535, this.evHP + defeatedSpecies.baseStats.hp);
+        this.evAttack = Math.min(65535, this.evAttack + defeatedSpecies.baseStats.attack);
+        this.evDefense = Math.min(65535, this.evDefense + defeatedSpecies.baseStats.defense);
+        this.evSpeed = Math.min(65535, this.evSpeed + defeatedSpecies.baseStats.speed);
+        this.evSpecial = Math.min(65535, this.evSpecial + defeatedSpecies.baseStats.special);
+        this.maxHP = this.calculateStat('hp');
+        this.currentHP = Math.min(this.maxHP, this.currentHP + this.maxHP - oldMaxHP);
+        this.attack = this.calculateStat('attack');
+        this.defense = this.calculateStat('defense');
+        this.speed = this.calculateStat('speed');
+        this.special = this.calculateStat('special');
     }
 
     calculateExpForLevel(level) {
@@ -107,8 +135,12 @@ class Train {
             if (moveData.level === this.level) {
                 if (this.moves.length < CONSTANTS.MAX_MOVES) {
                     this.moves.push(moveData.move);
+                } else {
+                    const forgotten = this.moves.shift();
+                    delete this.movePP[forgotten];
+                    this.moves.push(moveData.move);
                 }
-                // In full game, would trigger move learning dialog
+                this.movePP[moveData.move] = MOVES_DB[moveData.move].pp;
             }
         }
     }
@@ -135,6 +167,10 @@ class Train {
         if (this.currentHP > 0) {
             this.fainted = false;
         }
+    }
+
+    restorePP() {
+        for (const move of this.moves) this.movePP[move] = MOVES_DB[move] ? MOVES_DB[move].pp : 0;
     }
 
     getHPPercentage() {
@@ -198,11 +234,17 @@ class Train {
             exp: this.exp,
             currentHP: this.currentHP,
             moves: this.moves,
+            movePP: this.movePP,
             ivHP: this.ivHP,
             ivAttack: this.ivAttack,
             ivDefense: this.ivDefense,
             ivSpeed: this.ivSpeed,
             ivSpecial: this.ivSpecial,
+            evHP: this.evHP,
+            evAttack: this.evAttack,
+            evDefense: this.evDefense,
+            evSpeed: this.evSpeed,
+            evSpecial: this.evSpecial,
             status: this.status,
             fainted: this.fainted
         };
@@ -218,6 +260,12 @@ class Train {
         train.ivDefense = data.ivDefense;
         train.ivSpeed = data.ivSpeed;
         train.ivSpecial = data.ivSpecial;
+        train.evHP = data.evHP || 0;
+        train.evAttack = data.evAttack || 0;
+        train.evDefense = data.evDefense || 0;
+        train.evSpeed = data.evSpeed || 0;
+        train.evSpecial = data.evSpecial || 0;
+        train.movePP = { ...train.movePP, ...(data.movePP || {}) };
         train.status = data.status;
         train.fainted = data.fainted;
 

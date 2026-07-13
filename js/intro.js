@@ -206,10 +206,10 @@ class StarterSelection {
 
         this.postSelectionDialogue[0].text = choiceDialogues[this.selection];
 
-        // Replace [TRAIN] placeholder with actual name in "I choo-choose you" line
+        // Personalize the rival's selected-train line.
         this.postSelectionDialogue[1].text = this.postSelectionDialogue[1].text.replace('[TRAIN]', this.selectedTrain.name);
 
-        // Replace [TRAIN] placeholder in registration line
+        // Personalize the registration line.
         this.postSelectionDialogue[2].text = this.postSelectionDialogue[2].text.replace('[TRAIN]', this.selectedTrain.name);
 
         const starterTrain = new Train(this.selectedTrain.id, 5);
@@ -221,7 +221,9 @@ class StarterSelection {
                 this.game.player.items = {};
             }
             this.game.player.items.boxcar = 5;  // Boxcars
+            this.game.player.items.pokeball = 5; // Legacy save/test alias
             this.game.player.items.potion = 2;     // Potions
+            this.game.player.hasStarterTrain = true;
         }
 
         this.phase = 'post-selection';

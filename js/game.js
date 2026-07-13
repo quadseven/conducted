@@ -17,6 +17,7 @@ function Game(canvas) {
     this.ui = new UI(this.ctx);
     this.dialogueBox = new DialogueBox();
     this.audio = new AudioManager();
+    this.audio.load();
 
     // Map system
     this.currentMap = null;
@@ -53,7 +54,7 @@ function Game(canvas) {
 
     // Pause menu system
     this.menuSelection = 0;
-    this.menuOptions = ['TRAINS', 'BAG', 'SHOP', 'HEAL', 'SAVE', 'CLOSE'];
+    this.menuOptions = ['TRAINDEX', 'TRAINS', 'DEPOT', 'BAG', 'SHOP', 'HEAL', 'SAVE', 'CLOSE'];
     this.bagSelection = 0;
     this.bagMode = null; // null, 'list', or 'use_on_train'
     this.selectedItem = null;
@@ -103,9 +104,6 @@ Game.prototype.initAssets = async function () {
 
 Game.prototype.setupMaps = function () {
     console.log('🗺️ Setting up maps...');
-    // Create starter map (legacy from map.js)
-    this.maps['pallet_town'] = createStarterMap();
-
     // Add world maps if available - iterate through ALL maps dynamically
     if (typeof WORLD_MAPS !== 'undefined') {
         for (const mapId in WORLD_MAPS) {
@@ -119,9 +117,6 @@ Game.prototype.setupMaps = function () {
     if (this.maps['PistonTown']) {
         this.currentMap = this.maps['PistonTown'];
         console.log('✅ Set initial map to PistonTown');
-    } else {
-        this.currentMap = this.maps['pallet_town'];
-        console.log('⚠️ Set initial map to pallet_town (fallback)');
     }
 };
 
@@ -177,6 +172,13 @@ Game.prototype.preloadAssets = function () {
 // per-state entry setup in one place.
 Game.prototype.setState = function (next) {
     this.state = next;
+    const music = {
+        [CONSTANTS.STATES.TITLE]: 'title',
+        [CONSTANTS.STATES.OVERWORLD]: 'overworld',
+        [CONSTANTS.STATES.BATTLE]: 'battle',
+        [CONSTANTS.STATES.BATTLE_SUMMARY]: 'victory'
+    }[next];
+    if (music) this.audio.playMusic(music);
     if (this.input) this.input.reset();
 
     switch (next) {
@@ -529,8 +531,28 @@ Game.prototype.checkNPCInteraction = function () {
     const npc = this.currentMap.npcs.find(n => n.x === facingX && n.y === facingY);
 
     if (npc) {
+        const flags = this.player.storyFlags || (this.player.storyFlags = {});
+        const requirements = npc.requires || [];
+        const missing = requirements.filter(required => !flags[required] && !this.player.hasBadge(required));
+        if (missing.length) {
+            this.state = CONSTANTS.STATES.DIALOGUE;
+            this.dialogueBox.show([{ speaker: npc.name, text: `This line is closed. Required: ${missing.join(', ')}.` }], () => {
+                this.state = CONSTANTS.STATES.OVERWORLD;
+            });
+            return;
+        }
+        if (npc.type === 'healer') {
+            for (const train of this.player.party) {
+                train.currentHP = train.maxHP;
+                train.status = null;
+                train.fainted = false;
+                train.restorePP();
+            }
+            this.save();
+            this.audio.playSound('heal');
+        }
         // Start trainer battle if applicable
-        if ((npc.type === 'trainer' || npc.type === 'gym_leader') && npc.canBattle && !npc.defeated) {
+        if ((npc.type === 'trainer' || npc.type === 'gym_leader' || npc.type === 'champion') && npc.canBattle && !npc.defeated) {
             // Show dialogue first, then start battle
             if (npc.dialogue && npc.dialogue.length > 0) {
                 this.state = CONSTANTS.STATES.DIALOGUE;
@@ -578,18 +600,23 @@ Game.prototype.startTrainerBattle = function (npc) {
 
     // Create trainer battle
     this.battle = new Battle(this, this.player.party, enemyTrains, false, npc);
+    this.audio.playMusic('battle');
 
     // Set up victory callback for defeat tracking and badges
     const originalOnVictory = this.battle.onVictory;
     this.battle.onVictory = () => {
         // Mark trainer as defeated
         npc.defeated = true;
+        const storyFlag = npc.storyFlag || `defeated_${npc.id}`;
+        this.player.storyFlags[storyFlag] = true;
         console.log(`${npc.name} defeated!`);
 
         // Award badge if gym leader
         if (npc.type === 'gym_leader' && npc.badge) {
             const earned = this.player.earnBadge(npc.badge);
             if (earned) {
+                this.player.storyFlags[npc.badge] = true;
+                if (!this.player.defeatedGymLeaders.includes(npc.id)) this.player.defeatedGymLeaders.push(npc.id);
                 console.log(`🏅 Earned ${npc.badge}!`);
             }
         }
@@ -663,6 +690,7 @@ Game.prototype.startBattle = function (wildTrain, isTrainerBattle = false) {
         this.battle = new Battle(this, this.player.party, [wildTrain], true);
     }
     this.state = CONSTANTS.STATES.BATTLE;
+    this.audio.playMusic('battle');
     console.log('→ BATTLE');
 };
 
@@ -705,9 +733,11 @@ Game.prototype.updateBattle = function (deltaTime) {
             // note that the party was full). Previously caughtTrain was set but
             // never read, so captured trains silently vanished.
             if (this.battle.caughtTrain) {
+                this.player.registerCaught(this.battle.caughtTrain.speciesId);
                 const added = this.player.addTrain(this.battle.caughtTrain);
+                if (!added) this.player.storage.push(this.battle.caughtTrain);
                 this.caughtTrainResult = { name: this.battle.caughtTrain.species.name, added };
-                console.log(added ? 'Caught train added to party' : 'Party full - caught train not added');
+                console.log(added ? 'Caught train added to party' : 'Party full - caught train sent to Depot');
             } else {
                 this.caughtTrainResult = null;
             }
@@ -766,7 +796,7 @@ Game.prototype.renderBattleSummary = function (ctx) {
         ctx.font = '16px monospace';
         const msg = this.caughtTrainResult.added
             ? `Caught ${this.caughtTrainResult.name}!`
-            : `Party full! ${this.caughtTrainResult.name} got away.`;
+            : `${this.caughtTrainResult.name} was sent to the Depot.`;
         ctx.fillText(msg, this.canvas.width / 2, boxY + 140);
     }
 
@@ -897,12 +927,12 @@ Game.prototype.renderTitle = function (ctx) {
     ctx.textAlign = 'center';
     ctx.fillStyle = C.LOCO_RED;
     ctx.font = 'bold 42px monospace';
-    ctx.fillText('TRAIN BATTLE', tx + 3, 128);
+    ctx.fillText('GRAND TRANSIT', tx + 3, 128);
     ctx.fillStyle = C.LOCO_BRASS;
-    ctx.fillText('TRAIN BATTLE', tx, 125);
+    ctx.fillText('GRAND TRANSIT', tx, 125);
     ctx.fillStyle = '#181818';
     ctx.font = 'bold 30px monospace';
-    ctx.fillText('R P G', tx, 168);
+    ctx.fillText('R A I L W A Y', tx, 168);
 
     // Blinking prompt
     if (Math.floor(this.animClock * 2) % 2 === 0) {
@@ -1158,7 +1188,6 @@ Game.prototype.renderOverworld = function (ctx) {
     const playerScreenX = (this.player.x * tileSize) - clampedCameraX;
     const playerScreenY = (this.player.y * tileSize) - clampedCameraY;
 
-    // TODO: Load proper player sprite from assets/sprites/player/
     // For now, draw a Pokemon-style trainer representation
     this.drawPlayer(ctx, playerScreenX, playerScreenY, tileSize, this.player.direction);
 
@@ -1412,9 +1441,6 @@ Game.prototype.importSaveToken = function (token) {
         return false;
     }
 };
-// TEMP FILE: Menu methods to add to game.js before final line
-// Add these methods before the final closing of game.js
-
 Game.prototype.updateMenu = function () {
     // SHOP mode - browse and purchase items (only if shop is actually open, not just highlighted)
     if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode === 'active') {
@@ -1529,6 +1555,38 @@ Game.prototype.updateMenu = function () {
         return;
     }
 
+    if (this.menuOptions[this.menuSelection] === 'DEPOT' && this.bagMode === 'depot') {
+        const total = this.player.party.length + this.player.storage.length;
+        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+            this.trainSelection = Math.max(0, this.trainSelection - 1);
+        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+            this.trainSelection = Math.min(Math.max(0, total - 1), this.trainSelection + 1);
+        } else if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+            if (this.trainSelection < this.player.party.length && this.player.party.length > 1) {
+                this.player.storage.push(this.player.party.splice(this.trainSelection, 1)[0]);
+            } else if (this.player.party.length < CONSTANTS.MAX_PARTY_SIZE) {
+                const storageIndex = this.trainSelection - this.player.party.length;
+                if (storageIndex >= 0 && this.player.storage[storageIndex]) this.player.party.push(this.player.storage.splice(storageIndex, 1)[0]);
+            }
+            this.trainSelection = 0;
+        }
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
+            this.menuSelection = 0;
+            this.bagMode = null;
+        }
+        return;
+    }
+
+    if (this.menuOptions[this.menuSelection] === 'TRAINDEX' && this.bagMode === 'dex') {
+        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) this.trainSelection = Math.max(0, this.trainSelection - 1);
+        else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) this.trainSelection = Math.min(150, this.trainSelection + 1);
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
+            this.menuSelection = 0;
+            this.bagMode = null;
+        }
+        return;
+    }
+
     // Main menu navigation with wrapping
     if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
         this.menuSelection = (this.menuSelection - 1 + this.menuOptions.length) % this.menuOptions.length;
@@ -1540,9 +1598,15 @@ Game.prototype.updateMenu = function () {
     if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
         const option = this.menuOptions[this.menuSelection];
 
-        if (option === 'TRAINS') {
+        if (option === 'TRAINDEX') {
+            this.trainSelection = 0;
+            this.bagMode = 'dex';
+        } else if (option === 'TRAINS') {
             this.trainSelection = 0;
             this.bagMode = 'trains'; // Reuse bagMode for trains view
+        } else if (option === 'DEPOT') {
+            this.trainSelection = 0;
+            this.bagMode = 'depot';
         } else if (option === 'BAG') {
             this.bagSelection = 0;
             this.bagMode = 'list';
@@ -1583,8 +1647,12 @@ Game.prototype.renderMenu = function () {
     // Only show submenus when they're actually open (shopMode/bagMode set), not just highlighted
     if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode === 'active') {
         UI.drawShop(this.ctx, this.shopItems, this.shopSelection, this.player);
+    } else if (this.menuOptions[this.menuSelection] === 'TRAINDEX' && this.bagMode === 'dex') {
+        UI.drawTrainDex(this.ctx, this.player, this.trainSelection);
     } else if (this.menuOptions[this.menuSelection] === 'TRAINS' && this.bagMode === 'trains') {
         UI.drawTrainParty(this.ctx, this.player, this.trainSelection);
+    } else if (this.menuOptions[this.menuSelection] === 'DEPOT' && this.bagMode === 'depot') {
+        UI.drawDepot(this.ctx, this.player, this.trainSelection);
     } else if (this.menuOptions[this.menuSelection] === 'BAG' && this.bagMode) {
         if (this.bagMode === 'use_on_train') {
             UI.drawBagUseOnTrain(this.ctx, this.player, this.trainSelection, this.selectedItem);
