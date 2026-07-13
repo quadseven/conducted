@@ -40,6 +40,12 @@ Choose Steamini, Sparkart, or Diesling in Piston Town. The main line then crosse
 
 Each district has a route, trainers, wild encounters, a city, and a Stationmaster battle. Team Derail blocks key routes during the middle chapters. Eight badges open Grand Terminus, where the Elite Conductors and Champion wait.
 
+## Visual direction
+
+The runtime art is drawn procedurally at a crisp 16-pixel tile scale. Each district has its own material palette, architecture, track furniture, vegetation, signs, platforms, and station details. Battles take place in an iron-and-glass terminal arena, where the eight train types use distinct creature silhouettes and every species receives deterministic body, wheel, cargo, crest, and color variation.
+
+The surrounding interface is designed as a railway dispatch cabinet on desktop and a compact handheld control deck on mobile. No runtime artwork depends on a network request.
+
 ## Collection and progression
 
 The game includes:

@@ -54,6 +54,9 @@ class Battle {
         this.enemyShake = 0;
         this.enemyFlash = 0;
         this.playerFlash = 0;
+        this.visualMoveType = null;
+        this.visualMoveSide = null;
+        this.visualMoveTimer = 0;
 
         // Intro message
         if (this.isWild) {
@@ -79,6 +82,7 @@ class Battle {
         if (this.enemyShake > 0) this.enemyShake -= deltaTime * 10;
         if (this.playerFlash > 0) this.playerFlash -= deltaTime * 3;
         if (this.enemyFlash > 0) this.enemyFlash -= deltaTime * 3;
+        if (this.visualMoveTimer > 0) this.visualMoveTimer -= deltaTime;
 
         // Handle state-based updates
         switch (this.state) {
@@ -384,6 +388,9 @@ class Battle {
             return;
         }
         const defenderSide = side === 'player' ? 'enemy' : 'player';
+        this.visualMoveType = moveData.type;
+        this.visualMoveSide = side;
+        this.visualMoveTimer = 0.7;
         const physical = moveData.category === 'physical';
 
         if (physical) {
@@ -800,53 +807,56 @@ class Battle {
 
     // One combatant's status panel: framed card, name + Lv, HP bar, type chips.
     drawStatusPanel(ctx, train, px, py, pw, showNumbers) {
-        const C = CONSTANTS.COLORS;
-        const ph = 86;
-        // shadow + frame
-        ctx.fillStyle = 'rgba(24,24,24,0.25)';
-        this.rr(ctx, px + 4, py + 4, pw, ph, 12); ctx.fill();
-        ctx.fillStyle = '#181818';
-        this.rr(ctx, px, py, pw, ph, 12); ctx.fill();
-        ctx.fillStyle = C.UI_BG;
-        this.rr(ctx, px + 4, py + 4, pw - 8, ph - 8, 9); ctx.fill();
+        const ph = 92;
+        const primary = CONSTANTS.TYPE_COLORS[train.types[0]] || '#bf8c42';
+        ctx.fillStyle = 'rgba(4, 10, 14, .55)';
+        this.rr(ctx, px + 7, py + 7, pw, ph, 3); ctx.fill();
+        ctx.fillStyle = '#09151b';
+        this.rr(ctx, px, py, pw, ph, 4); ctx.fill();
+        ctx.fillStyle = '#c6923b';
+        this.rr(ctx, px + 3, py + 3, pw - 6, ph - 6, 2); ctx.fill();
+        ctx.fillStyle = '#f0dfb8';
+        this.rr(ctx, px + 6, py + 6, pw - 12, ph - 12, 1); ctx.fill();
+        ctx.fillStyle = '#26363a';
+        ctx.fillRect(px + 6, py + 6, pw - 12, 8);
+        ctx.fillStyle = primary;
+        ctx.fillRect(px + 10, py + 17, 5, 36);
 
-        // name + level
-        ctx.fillStyle = '#181818';
+        ctx.fillStyle = '#142328';
         ctx.font = 'bold 18px monospace';
-        ctx.fillText(train.nickname || train.species.name, px + 16, py + 28);
-        ctx.font = 'bold 14px monospace';
+        ctx.fillText((train.nickname || train.species.name).toUpperCase(), px + 24, py + 36);
+        ctx.font = 'bold 13px monospace';
         ctx.textAlign = 'right';
-        ctx.fillText(`Lv${train.level}`, px + pw - 14, py + 28);
+        ctx.fillText(`LV.${train.level}`, px + pw - 16, py + 35);
         ctx.textAlign = 'left';
 
-        // status badge (PAR/BRN/PSN)
         if (train.status) {
             const tag = { paralyze: 'PAR', burn: 'BRN', poison: 'PSN' }[train.status] || '';
             const col = { paralyze: '#F8C838', burn: '#F83048', poison: '#A040A0' }[train.status] || '#888';
             ctx.fillStyle = col;
-            this.rr(ctx, px + 16, py + 34, 40, 16, 4); ctx.fill();
+            this.rr(ctx, px + 23, py + 42, 35, 14, 2); ctx.fill();
             ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
-            ctx.fillText(tag, px + 22, py + 46);
+            ctx.fillText(tag, px + 30, py + 53);
         }
 
-        // HP bar
-        const barX = px + (train.status ? 64 : 16), barY = py + 38, barW = pw - (barX - px) - 16, barH = 12;
+        const barX = px + (train.status ? 66 : 24), barY = py + 45, barW = pw - (barX - px) - 18, barH = 11;
         const pct = Math.max(0, train.currentHP / train.maxHP);
-        ctx.fillStyle = '#181818';
-        this.rr(ctx, barX - 2, barY - 2, barW + 4, barH + 4, 4); ctx.fill();
-        ctx.fillStyle = C.HP_BG;
-        this.rr(ctx, barX, barY, barW, barH, 3); ctx.fill();
+        ctx.fillStyle = '#152126';
+        this.rr(ctx, barX - 18, barY - 2, barW + 20, barH + 4, 2); ctx.fill();
+        ctx.fillStyle = '#e8c65c'; ctx.font = 'bold 9px monospace';
+        ctx.fillText('HP', barX - 16, barY + 8);
+        ctx.fillStyle = '#4b5553';
+        ctx.fillRect(barX, barY, barW, barH);
         ctx.fillStyle = this.hpColor(pct);
-        if (pct > 0) { this.rr(ctx, barX, barY, barW * pct, barH, 3); ctx.fill(); }
+        if (pct > 0) ctx.fillRect(barX + 2, barY + 2, Math.max(1, (barW - 4) * pct), barH - 4);
 
-        // type chips
-        let chipX = px + 16;
-        const chipY = py + 58;
+        let chipX = px + 24;
+        const chipY = py + 66;
         ctx.font = 'bold 10px monospace';
         for (const t of train.types) {
             const cw = ctx.measureText(t).width + 14;
             ctx.fillStyle = CONSTANTS.TYPE_COLORS[t] || '#888';
-            this.rr(ctx, chipX, chipY, cw, 16, 4); ctx.fill();
+            this.rr(ctx, chipX, chipY, cw, 16, 2); ctx.fill();
             ctx.fillStyle = '#fff';
             ctx.fillText(t, chipX + 7, chipY + 12);
             chipX += cw + 6;
@@ -856,32 +866,32 @@ class Battle {
             ctx.fillStyle = '#181818';
             ctx.font = 'bold 12px monospace';
             ctx.textAlign = 'right';
-            ctx.fillText(`${train.currentHP}/${train.maxHP}`, px + pw - 14, py + 70);
+            ctx.fillText(`${train.currentHP}/${train.maxHP}`, px + pw - 16, py + 79);
             ctx.textAlign = 'left';
         }
     }
 
     drawMenuGrid(ctx, items, selectedIndex, colorFor) {
-        const C = CONSTANTS.COLORS;
-        const menuX = 408, menuY = 566, bw = 162, bh = 40, gap = 6;
+        const menuX = 405, menuY = 565, bw = 166, bh = 42, gap = 5;
         items.forEach((label, index) => {
             if (!label) return;
             const x = menuX + (index % 2) * (bw + gap);
             const y = menuY + Math.floor(index / 2) * (bh + gap);
             const sel = index === selectedIndex;
-            const accent = colorFor ? colorFor(index) : C.UI_HIGHLIGHT;
-            ctx.fillStyle = '#181818';
-            this.rr(ctx, x, y, bw, bh, 8); ctx.fill();
-            ctx.fillStyle = sel ? accent : C.WHITE;
-            this.rr(ctx, x + 3, y + 3, bw - 6, bh - 6, 6); ctx.fill();
-            // selection cursor
+            const accent = colorFor ? colorFor(index) : '#b56c2c';
+            ctx.fillStyle = sel ? '#f1cd68' : '#0c171c';
+            this.rr(ctx, x, y, bw, bh, 3); ctx.fill();
+            ctx.fillStyle = sel ? accent : '#26363a';
+            this.rr(ctx, x + 3, y + 3, bw - 6, bh - 6, 1); ctx.fill();
+            ctx.fillStyle = sel ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.05)';
+            ctx.fillRect(x + 6, y + 6, bw - 12, 5);
             if (sel) {
-                ctx.fillStyle = '#181818';
-                ctx.font = 'bold 16px monospace';
-                ctx.fillText('>', x + 10, y + bh / 2 + 6);
+                ctx.fillStyle = '#fff4bf';
+                ctx.beginPath();
+                ctx.moveTo(x + 10, y + 15); ctx.lineTo(x + 18, y + 21); ctx.lineTo(x + 10, y + 27); ctx.fill();
             }
-            ctx.fillStyle = sel ? '#fff' : '#181818';
-            ctx.font = 'bold 15px monospace';
+            ctx.fillStyle = '#fff7dd';
+            ctx.font = 'bold 13px monospace';
             ctx.textAlign = 'center';
             ctx.fillText(label, x + bw / 2 + 6, y + bh / 2 + 6);
             ctx.textAlign = 'left';
@@ -890,58 +900,48 @@ class Battle {
 
     render(ctx) {
         const canvas = ctx.canvas;
-        const C = CONSTANTS.COLORS;
-
-        // Backdrop: sky gradient + ground band
-        const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        sky.addColorStop(0, C.BATTLE_SKY2);
-        sky.addColorStop(1, C.BATTLE_SKY);
-        ctx.fillStyle = sky;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = C.BATTLE_GROUND;
-        ctx.fillRect(0, 372, canvas.width, canvas.height - 372);
-
-        // Battle platforms (oval pads under each combatant)
-        ctx.fillStyle = C.BATTLE_PLATFORM;
-        ctx.beginPath(); ctx.ellipse(604, 280, 132, 30, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(196, 452, 156, 36, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.imageSmoothingEnabled = false;
+        this.drawStationArena(ctx, canvas.width, canvas.height);
+        this.drawBattlePlatform(ctx, 575, 285, 150, 33, false);
+        this.drawBattlePlatform(ctx, 198, 465, 178, 39, true);
 
         // deltaTime-driven shake (no Date.now())
         const enemyShakeX = this.enemyShake > 0 ? Math.sin(this.animationTimer * 40) * this.enemyShake * 2 : 0;
         const playerShakeX = this.playerShake > 0 ? Math.sin(this.animationTimer * 40) * this.playerShake * 2 : 0;
 
         if (this.enemyActive) {
-            this.drawEnemyTrain(ctx, 540 + enemyShakeX, 150);
+            this.drawEnemyTrain(ctx, 464 + enemyShakeX, 114);
             if (this.enemyFlash > 0) {
-                ctx.globalAlpha = this.enemyFlash * 0.5;
-                ctx.fillStyle = C.HP_RED;
-                ctx.fillRect(540 + enemyShakeX, 150, 128, 128);
-                ctx.globalAlpha = 1.0;
+                this.drawImpactBurst(ctx, 574 + enemyShakeX, 205, this.visualMoveType, this.enemyFlash);
             }
-            this.drawStatusPanel(ctx, this.enemyActive, 36, 40, 320, false);
+            this.drawStatusPanel(ctx, this.enemyActive, 22, 25, 322, false);
         }
 
         if (this.playerActive) {
-            this.drawPlayerTrain(ctx, 132 + playerShakeX, 312);
+            this.drawPlayerTrain(ctx, 67 + playerShakeX, 282);
             if (this.playerFlash > 0) {
-                ctx.globalAlpha = this.playerFlash * 0.5;
-                ctx.fillStyle = C.HP_RED;
-                ctx.fillRect(132 + playerShakeX, 312, 128, 128);
-                ctx.globalAlpha = 1.0;
+                this.drawImpactBurst(ctx, 196 + playerShakeX, 388, this.visualMoveType, this.playerFlash);
             }
-            this.drawStatusPanel(ctx, this.playerActive, canvas.width - 356, 452, 320, true);
+            this.drawStatusPanel(ctx, this.playerActive, canvas.width - 346, 449, 324, true);
         }
 
-        // Message box (framed, bottom full-width)
-        ctx.fillStyle = '#181818';
-        this.rr(ctx, 16, 556, canvas.width - 32, 100, 14); ctx.fill();
-        ctx.fillStyle = C.UI_BG;
-        this.rr(ctx, 22, 562, canvas.width - 44, 88, 10); ctx.fill();
+        if (this.visualMoveTimer > 0) this.drawMoveTrail(ctx);
 
-        ctx.fillStyle = '#181818';
-        ctx.font = '18px monospace';
+        ctx.fillStyle = '#071116';
+        ctx.fillRect(0, 548, canvas.width, 124);
+        ctx.fillStyle = '#c6923b';
+        ctx.fillRect(0, 548, canvas.width, 5);
+        ctx.fillStyle = '#26363a';
+        this.rr(ctx, 14, 560, canvas.width - 28, 100, 4); ctx.fill();
+        ctx.fillStyle = '#f0dfb8';
+        this.rr(ctx, 20, 566, canvas.width - 40, 88, 2); ctx.fill();
+        ctx.fillStyle = '#b56c2c';
+        ctx.fillRect(20, 566, 7, 88);
+
+        ctx.fillStyle = '#142328';
+        ctx.font = 'bold 17px monospace';
         if (this.messages.length > 0 && this.currentMessage < this.messages.length) {
-            this.wrapText(ctx, this.messages[this.currentMessage], 40, 592, canvas.width - 360, 24);
+            this.wrapText(ctx, this.messages[this.currentMessage], 40, 595, canvas.width - 410, 24);
         }
 
         // Action menu (FIGHT/TRAIN/ITEM/RUN)
@@ -952,126 +952,258 @@ class Battle {
         // Move menu - each button tinted by the move's type.
         if (this.state === CONSTANTS.BATTLE_STATES.FIGHT) {
             const moves = this.playerActive.moves;
-            this.drawMenuGrid(ctx, moves.map(m => `${m} ${this.playerActive.movePP[m] || 0}`), this.moveSelection,
+            this.drawMenuGrid(ctx, moves.map(m => `${m}  ${this.playerActive.movePP[m] || 0}PP`), this.moveSelection,
                 (i) => {
                     const md = MOVES_DB[moves[i]];
                     return (md && CONSTANTS.TYPE_COLORS[md.type]) || CONSTANTS.COLORS.UI_HIGHLIGHT;
                 });
         }
+
+        if (this.state === CONSTANTS.BATTLE_STATES.ITEM) {
+            const items = this.getUsableItems();
+            this.drawMenuGrid(ctx, items.slice(0, 4).map(it => `${it.displayName} x${it.quantity}`), this.itemSelection, () => '#75502d');
+        }
     }
 
-    // Stylized locomotive fallback art (steam-engine palette). facing 'front'
-    // points the cab/buffer toward the player; 'back' faces away.
+    drawStationArena(ctx, w) {
+        const wall = ctx.createLinearGradient(0, 0, 0, 548);
+        wall.addColorStop(0, '#07151d'); wall.addColorStop(.58, '#18323a'); wall.addColorStop(1, '#5d4a34');
+        ctx.fillStyle = wall; ctx.fillRect(0, 0, w, 548);
+
+        // Grand iron-and-glass terminal roof.
+        ctx.fillStyle = '#091116'; ctx.fillRect(0, 0, w, 22);
+        ctx.strokeStyle = '#8d642f'; ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.arc(w / 2, 178, 390, Math.PI, 0); ctx.stroke();
+        ctx.strokeStyle = '#263b40'; ctx.lineWidth = 4;
+        for (let x = 18; x < w; x += 70) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(w / 2 + (x - w / 2) * .64, 178); ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(49, 154, 181, .22)';
+        for (let x = 18; x < w - 20; x += 72) ctx.fillRect(x, 25, 55, 88 - Math.abs(x - w / 2) * .06);
+
+        // Repeating station arches and blue night windows.
+        for (let x = 20; x < w; x += 126) {
+            ctx.fillStyle = '#111d21'; ctx.fillRect(x, 115, 96, 182);
+            ctx.fillStyle = '#326b78'; ctx.fillRect(x + 13, 142, 70, 112);
+            ctx.fillStyle = '#73b9c3'; ctx.fillRect(x + 18, 147, 60, 7);
+            ctx.fillStyle = '#142d36';
+            ctx.fillRect(x + 44, 142, 7, 112); ctx.fillRect(x + 13, 190, 70, 7);
+            ctx.strokeStyle = '#b17a35'; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.arc(x + 48, 142, 38, Math.PI, 0); ctx.stroke();
+        }
+        ctx.fillStyle = '#0a1114'; ctx.fillRect(0, 286, w, 16);
+        ctx.fillStyle = '#b27b34'; ctx.fillRect(0, 286, w, 4);
+
+        // Riveted pillars, lamps, and crimson railway banners.
+        for (let x = 8; x < w; x += 188) {
+            ctx.fillStyle = '#111b1e'; ctx.fillRect(x, 62, 18, 286);
+            ctx.fillStyle = '#9e7136'; ctx.fillRect(x + 3, 62, 5, 286);
+            for (let y = 80; y < 340; y += 28) { ctx.fillStyle = '#d1a351'; ctx.fillRect(x + 5, y, 3, 3); }
+            ctx.fillStyle = '#ffd275'; ctx.fillRect(x - 2, 250, 24, 12);
+            ctx.fillStyle = 'rgba(255,204,103,.13)'; ctx.fillRect(x - 14, 262, 48, 55);
+        }
+        for (let x = 112; x < w; x += 250) {
+            ctx.fillStyle = '#6d2428'; ctx.fillRect(x, 76, 36, 100);
+            ctx.fillStyle = '#d6aa52'; ctx.fillRect(x + 4, 76, 4, 100);
+            ctx.fillRect(x + 15, 98, 11, 24);
+        }
+
+        // Converging platform tiles and rails make the arena read in perspective.
+        const floor = ctx.createLinearGradient(0, 300, 0, 548);
+        floor.addColorStop(0, '#3b3e38'); floor.addColorStop(1, '#786544');
+        ctx.fillStyle = floor; ctx.fillRect(0, 302, w, 246);
+        ctx.strokeStyle = 'rgba(239,202,130,.2)'; ctx.lineWidth = 2;
+        for (let y = 320; y < 548; y += 34) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+        for (let x = -120; x < w + 120; x += 70) { ctx.beginPath(); ctx.moveTo(w / 2, 302); ctx.lineTo(x, 548); ctx.stroke(); }
+        ctx.strokeStyle = '#181d1d'; ctx.lineWidth = 10;
+        ctx.beginPath(); ctx.moveTo(342, 302); ctx.lineTo(255, 548); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(426, 302); ctx.lineTo(520, 548); ctx.stroke();
+        ctx.strokeStyle = '#b08850'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(342, 302); ctx.lineTo(255, 548); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(426, 302); ctx.lineTo(520, 548); ctx.stroke();
+    }
+
+    drawBattlePlatform(ctx, x, y, rx, ry, near) {
+        ctx.fillStyle = 'rgba(4,8,10,.55)';
+        ctx.beginPath(); ctx.ellipse(x, y + 9, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#182428'; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#c18a3f'; ctx.lineWidth = near ? 7 : 5; ctx.stroke();
+        ctx.strokeStyle = '#5f4a2b'; ctx.lineWidth = 2;
+        for (let i = -3; i <= 3; i++) {
+            ctx.beginPath(); ctx.moveTo(x - rx * .75, y + i * 6); ctx.lineTo(x + rx * .75, y + i * 6); ctx.stroke();
+        }
+    }
+
+    speciesPalette(train) {
+        const id = train ? train.speciesId : 1;
+        const type = (train && train.types[0]) || 'STEAM';
+        const base = {
+            STEAM: ['#27323a', '#11191e', '#d99b3d', '#ed4a32'], ELECTRIC: ['#164b68', '#0b2738', '#43c9ff', '#ffe45c'],
+            DIESEL: ['#526638', '#27351f', '#d8a943', '#e45d35'], MAGLEV: ['#d9e4e5', '#667a8d', '#7d5ce0', '#49e6ff'],
+            FREIGHT: ['#885329', '#41291d', '#d5913d', '#5fb5c7'], PASSENGER: ['#efe2bd', '#754038', '#d5a535', '#3a9cae'],
+            NUCLEAR: ['#53615d', '#222b2d', '#91e54c', '#e7ff7b'], MONORAIL: ['#d9e3df', '#607172', '#298bb3', '#76d9ef']
+        }[type] || ['#555', '#222', '#c90', '#eee'];
+        const shift = (id % 5) * 7;
+        return { body: base[0], dark: base[1], metal: base[2], glow: base[3], shift };
+    }
+
+    trainSeed(id, n) {
+        let v = (id * 1103515245 + n * 12345) >>> 0;
+        v ^= v >>> 13; return (v >>> 0) / 4294967295;
+    }
+
+    poly(ctx, color, points) {
+        ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(points[0], points[1]);
+        for (let i = 2; i < points.length; i += 2) ctx.lineTo(points[i], points[i + 1]);
+        ctx.closePath(); ctx.fill();
+    }
+
+    wheel(ctx, x, y, r, palette, claw) {
+        ctx.fillStyle = '#0a1114'; ctx.beginPath(); ctx.arc(x, y, r + 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = palette.metal; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = palette.dark; ctx.beginPath(); ctx.arc(x, y, r * .43, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f1c66b'; ctx.fillRect(x - 2, y - r + 2, 4, r * 2 - 4);
+        if (claw) { ctx.fillStyle = '#11191d'; ctx.fillRect(x - 8, y + r, 16, 9); ctx.fillRect(x - 13, y + r + 6, 7, 6); }
+    }
+
     drawLoco(ctx, x, y, facing, train) {
-        const C = CONSTANTS.COLORS;
-        const speciesId = train ? train.speciesId : 1;
-        const types = train ? train.types : ['STEAM'];
-        const hue = (speciesId * 47) % 360;
-        const bodyColor = `hsl(${hue} 42% 38%)`;
-        const bodyDark = `hsl(${hue} 46% 23%)`;
-        const accent = CONSTANTS.TYPE_COLORS[types[0]] || C.LOCO_BRASS;
-        const front = facing === 'front';
-        const w = 124, bodyY = y + 36, bodyH = 38 + (speciesId % 3) * 5;
+        const id = train ? train.speciesId : 1;
+        const types = (train && train.types) || ['STEAM'];
+        const type = types[0];
+        const p = this.speciesPalette(train);
+        const enemy = facing === 'front';
+        const s = enemy ? 1.12 : 1.35;
+        const bob = Math.sin(this.animationTimer * 2.4 + id) * 1.5;
+        ctx.save();
+        ctx.translate(x + (enemy ? 194 : 0), y + bob);
+        ctx.scale(enemy ? -s : s, s);
+        ctx.lineJoin = 'miter';
 
-        // contact shadow
-        ctx.fillStyle = 'rgba(24,24,24,0.22)';
-        ctx.beginPath(); ctx.ellipse(x + w / 2, y + 116, 58, 12, 0, 0, Math.PI * 2); ctx.fill();
+        // Every species gets a stable silhouette recipe from its ID.
+        const long = 142 + Math.floor(this.trainSeed(id, 2) * 18);
+        const tall = 46 + Math.floor(this.trainSeed(id, 3) * 13);
+        const outline = '#081014';
+        ctx.fillStyle = 'rgba(0,0,0,.36)'; ctx.beginPath(); ctx.ellipse(83, 111, 76, 12, 0, 0, Math.PI * 2); ctx.fill();
 
-        // boiler body
-        ctx.fillStyle = bodyColor;
-        ctx.fillRect(x + 8, bodyY, w - 16, bodyH);
-        ctx.fillStyle = bodyDark;
-        ctx.fillRect(x + 8, bodyY + bodyH - 8, w - 16, 8); // underside shade
-        ctx.fillStyle = 'rgba(255,255,255,0.12)';
-        ctx.fillRect(x + 8, bodyY, w - 16, 6); // top sheen
-
-        // cab (rear)
-        const cabX = front ? x + w - 42 : x + 6;
-        ctx.fillStyle = bodyDark;
-        ctx.fillRect(cabX, y + 14, 36, bodyH + 6);
-        ctx.fillStyle = '#9CD0E8'; // cab window
-        ctx.fillRect(cabX + 7, y + 22, 22, 16);
-
-        // smokestack + dome (front)
-        const stackX = front ? x + 20 : x + w - 34;
-        ctx.fillStyle = C.LOCO_IRON_DARK;
-        ctx.fillRect(stackX, y + 6, 14, 32);
-        ctx.fillStyle = accent;
-        ctx.fillRect(stackX - 2, y + 4, 18, 6); // stack rim
-        ctx.fillStyle = accent;
-        ctx.beginPath(); ctx.arc(x + w / 2, bodyY + 6, 8, Math.PI, 0); ctx.fill(); // steam dome
-
-        // front buffer beam + headlight (only when facing us)
-        if (front) {
-            ctx.fillStyle = C.LOCO_IRON_DARK;
-            ctx.fillRect(x, bodyY + 6, 10, bodyH - 6);
-            ctx.fillStyle = accent;
-            ctx.beginPath(); ctx.arc(x + 6, bodyY + bodyH / 2, 6, 0, Math.PI * 2); ctx.fill(); // headlight
-            ctx.fillStyle = accent;
-            ctx.fillRect(x + 8, bodyY + bodyH - 14, w - 16, 5); // red accent stripe
-        }
-
-        // wheels
-        const wheelCount = 2 + speciesId % 4;
-        ctx.fillStyle = C.LOCO_IRON;
-        for (let i = 0; i < wheelCount; i++) {
-            const wx = x + 20 + i * (84 / Math.max(1, wheelCount - 1));
-            ctx.beginPath(); ctx.arc(wx, bodyY + bodyH, 11, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = C.LOCO_IRON_DARK;
-            ctx.beginPath(); ctx.arc(wx, bodyY + bodyH, 4, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = C.LOCO_IRON;
-        }
-
-        if (types.includes('ELECTRIC') || types.includes('MAGLEV')) {
-            ctx.strokeStyle = accent; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(x + 44, y + 16); ctx.lineTo(x + 60, y - 4); ctx.lineTo(x + 78, y + 16); ctx.stroke();
-            ctx.fillStyle = '#f8f0b0';
-            ctx.fillRect(x + 56 + speciesId % 15, y - 8, 5, 5);
-        }
-        if (types.includes('FREIGHT')) {
-            ctx.fillStyle = bodyDark;
-            const crates = 2 + speciesId % 3;
-            for (let i = 0; i < crates; i++) ctx.fillRect(x + 38 + i * 20, bodyY - 13 - (i % 2) * 5, 17, 15 + (i % 2) * 5);
-        }
-        if (types.includes('NUCLEAR')) {
-            ctx.strokeStyle = '#d8ff58'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(x + 64, bodyY + 22, 13, 0, Math.PI * 2); ctx.stroke();
-            ctx.fillStyle = '#d8ff58'; ctx.fillRect(x + 61, bodyY + 12, 6, 20); ctx.fillRect(x + 54, bodyY + 19, 20, 6);
-        }
-        if (types.includes('MONORAIL')) {
-            ctx.fillStyle = accent;
-            ctx.fillRect(x + 4, bodyY + bodyH + 9, w - 8, 7);
-            ctx.fillStyle = C.LOCO_IRON_DARK;
-            ctx.fillRect(x + 56, bodyY + bodyH, 12, 20);
-        }
-
-        // steam puffs from the stack
-        ctx.fillStyle = 'rgba(232,232,232,0.85)';
-        for (let i = 0; i < 3; i++) {
-            const t = this.animationTimer + i;
-            ctx.beginPath();
-            ctx.arc(stackX + 7 + Math.sin(t) * 5, y + 2 - i * 9, 5 + i * 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-
-    drawEnemyTrain(ctx, x, y) {
-        const sprite = this.game.images[`${this.enemyActive.species.name}_front`];
-        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-            ctx.drawImage(sprite, x, y, 128, 128);
+        if (type === 'MAGLEV' || type === 'MONORAIL') {
+            // Sleek hovering beasts: long nose, segmented canopy, luminous lift pads.
+            this.poly(ctx, outline, [7,64, 22,42, 95,28, 142,39, 164,62, 148,88, 35,91]);
+            this.poly(ctx, p.body, [12,64, 27,47, 96,34, 138,43, 157,62, 144,81, 34,84]);
+            this.poly(ctx, p.dark, [13,67, 70,66, 101,82, 34,84]);
+            this.poly(ctx, '#cdebf2', [92,38, 137,46, 151,60, 116,58]);
+            ctx.fillStyle = p.glow; ctx.fillRect(24, 61, 106, 5);
+            for (let i = 0; i < 3; i++) {
+                ctx.fillStyle = outline; ctx.fillRect(31 + i * 43, 88, 25, 12);
+                ctx.fillStyle = p.glow; ctx.fillRect(35 + i * 43, 91, 17, 5);
+            }
+            if (type === 'MONORAIL') {
+                ctx.fillStyle = p.dark; ctx.fillRect(73, 89, 14, 22);
+                ctx.fillStyle = p.metal; ctx.fillRect(10, 108, 151, 7);
+            } else {
+                ctx.strokeStyle = p.glow; ctx.lineWidth = 3;
+                for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(43 + i * 44, 102, 13, .1, Math.PI - .1); ctx.stroke(); }
+            }
+        } else if (type === 'NUCLEAR') {
+            // Reactor-centaur: armored cylindrical core on articulated bogies.
+            this.poly(ctx, outline, [11,51, 31,32, 121,31, 158,52, 160,83, 137,96, 29,93, 8,75]);
+            this.poly(ctx, p.body, [16,53, 34,38, 118,37, 152,55, 153,78, 134,88, 31,86, 15,72]);
+            ctx.fillStyle = p.dark; ctx.fillRect(36, 38, 8, 49); ctx.fillRect(120, 38, 9, 50);
+            ctx.shadowColor = p.glow; ctx.shadowBlur = 12;
+            ctx.fillStyle = p.glow; ctx.beginPath(); ctx.arc(87, 62, 23, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0; ctx.fillStyle = '#20342e'; ctx.beginPath(); ctx.arc(87, 62, 13, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = p.glow; ctx.fillRect(84,49,6,26); ctx.fillRect(74,59,26,6);
+            this.wheel(ctx, 38, 96, 12, p, true); this.wheel(ctx, 132, 96, 12, p, true);
+        } else if (type === 'FREIGHT' || type === 'DIESEL') {
+            // Heavy beetle/tank bodies with cargo armor and mechanical feet.
+            this.poly(ctx, outline, [5,56, 19,36, 119,28, 157,48, 165,77, 149,94, 22,94, 5,78]);
+            this.poly(ctx, p.body, [11,58, 23,42, 116,34, 151,52, 158,75, 144,87, 25,87, 11,75]);
+            ctx.fillStyle = p.dark; ctx.fillRect(25, 47, 89, 36);
+            const crates = 3 + (id % 2);
+            for (let i = 0; i < crates; i++) {
+                const cx = 28 + i * 29; ctx.fillStyle = i % 2 ? p.body : p.metal;
+                ctx.fillRect(cx, 30 - (i % 2) * 7, 25, 41 + (i % 2) * 7);
+                ctx.strokeStyle = outline; ctx.lineWidth = 3; ctx.strokeRect(cx, 30 - (i % 2) * 7, 25, 41 + (i % 2) * 7);
+                ctx.strokeStyle = 'rgba(255,255,255,.24)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx + 3, 34); ctx.lineTo(cx + 22, 65); ctx.stroke();
+            }
+            this.poly(ctx, p.dark, [132,48,154,57,157,72,139,72]);
+            for (let i = 0; i < 3; i++) this.wheel(ctx, 34 + i * 52, 92, 13 + (id % 3), p, type === 'FREIGHT');
+            if (type === 'DIESEL') { ctx.fillStyle = '#182126'; ctx.fillRect(30,20,11,20); ctx.fillStyle = 'rgba(90,90,85,.65)'; ctx.fillRect(28,13,16,9); }
+        } else if (type === 'PASSENGER') {
+            // Regal rail-lion: cream streamliner, observation windows, brass prow.
+            this.poly(ctx, outline, [6,59, 29,34, 118,31, 158,50, 165,77, 143,94, 20,91]);
+            this.poly(ctx, p.body, [12,60, 32,40, 115,37, 152,54, 158,74, 139,86, 23,84]);
+            ctx.fillStyle = p.dark; ctx.fillRect(35,45,91,20);
+            for (let i = 0; i < 4; i++) { ctx.fillStyle = '#85c7d0'; ctx.fillRect(40 + i * 21,49,15,11); ctx.fillStyle = '#dff6ee'; ctx.fillRect(42 + i * 21,50,10,3); }
+            ctx.fillStyle = p.metal; ctx.fillRect(18,68,130,6);
+            this.poly(ctx, p.metal, [147,53,166,63,147,83,151,71]);
+            for (let i = 0; i < 3; i++) this.wheel(ctx, 39 + i * 48, 89, 11, p, false);
         } else {
-            this.drawLoco(ctx, x, y, 'front', this.enemyActive);
+            // Steam and Electric are heroic locomotive beasts: boiler torsos, armored prow, legs/wheels.
+            ctx.fillStyle = outline; ctx.fillRect(20,40,118,52);
+            ctx.fillStyle = p.body; ctx.fillRect(25,45,110,40);
+            ctx.fillStyle = p.dark; ctx.fillRect(30,72,105,14);
+            ctx.fillStyle = outline; ctx.beginPath(); ctx.arc(72,65,34,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = p.body; ctx.beginPath(); ctx.arc(72,65,28,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = p.metal; ctx.beginPath(); ctx.arc(72,65,19,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = p.dark; ctx.beginPath(); ctx.arc(72,65,10,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = outline; ctx.fillRect(21,13,18,40); ctx.fillRect(16,10,28,9);
+            ctx.fillStyle = p.metal; ctx.fillRect(25,15,10,34); ctx.fillRect(19,10,22,5);
+            ctx.fillStyle = outline; ctx.fillRect(112,24,36,62);
+            ctx.fillStyle = p.dark; ctx.fillRect(117,29,26,53);
+            ctx.fillStyle = '#78b9c7'; ctx.fillRect(121,35,18,16);
+            this.poly(ctx, outline, [134,65, 166,72, 151,92, 130,84]);
+            this.poly(ctx, p.glow, [137,70, 160,74, 149,86, 133,81]);
+            const wc = 2 + id % 3;
+            for (let i = 0; i < wc; i++) this.wheel(ctx, 39 + i * (83 / Math.max(1,wc-1)), 91, 12, p, type === 'ELECTRIC');
+            if (type === 'ELECTRIC') {
+                ctx.strokeStyle = p.glow; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(57,39); ctx.lineTo(75,18); ctx.lineTo(95,39); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(54,21); ctx.lineTo(69,13); ctx.lineTo(77,20); ctx.lineTo(92,10); ctx.stroke();
+            } else {
+                ctx.fillStyle = 'rgba(225,235,225,.82)';
+                for (let i = 0; i < 4; i++) { const drift = Math.sin(this.animationTimer * 1.7 + i) * 3; ctx.beginPath(); ctx.arc(29 - i * 7 + drift, 6 - i * 7, 6 + i * 2, 0, Math.PI*2); ctx.fill(); }
+            }
         }
+
+        // Shared creature identity: luminous eye/headlamp, ID-driven crests and markings.
+        const eyeY = type === 'MAGLEV' || type === 'MONORAIL' ? 61 : 59;
+        ctx.shadowColor = p.glow; ctx.shadowBlur = 8; ctx.fillStyle = p.glow;
+        ctx.fillRect(147, eyeY, 9, 7); ctx.shadowBlur = 0; ctx.fillStyle = '#fff8bd'; ctx.fillRect(151, eyeY + 1, 3, 3);
+        if (id % 3 === 0) { ctx.fillStyle = p.metal; this.poly(ctx, p.metal, [101,34, 109,14, 117,35]); }
+        if (id % 5 === 0) { ctx.fillStyle = p.glow; for (let i=0;i<4;i++) ctx.fillRect(45+i*18,76,10,3); }
+        if (types[1]) { ctx.fillStyle = CONSTANTS.TYPE_COLORS[types[1]] || p.glow; ctx.fillRect(87,38,6,46); }
+        ctx.restore();
     }
 
-    drawPlayerTrain(ctx, x, y) {
-        const sprite = this.game.images[`${this.playerActive.species.name}_back`];
-        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-            ctx.drawImage(sprite, x, y, 128, 128);
-        } else {
-            this.drawLoco(ctx, x, y, 'back', this.playerActive);
+    drawImpactBurst(ctx, x, y, type, strength) {
+        const color = CONSTANTS.TYPE_COLORS[type] || '#ffdf69';
+        ctx.save(); ctx.globalAlpha = Math.min(1, strength);
+        ctx.strokeStyle = '#fff8cf'; ctx.lineWidth = 4;
+        for (let i = 0; i < 12; i++) {
+            const a = i * Math.PI / 6; const r = 24 + (i % 3) * 8;
+            ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * 10, y + Math.sin(a) * 10); ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); ctx.stroke();
         }
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x,y,18,0,Math.PI*2); ctx.fill(); ctx.restore();
     }
+
+    drawMoveTrail(ctx) {
+        const fromPlayer = this.visualMoveSide === 'player';
+        const sx = fromPlayer ? 270 : 505, sy = fromPlayer ? 370 : 225;
+        const ex = fromPlayer ? 535 : 235, ey = fromPlayer ? 220 : 390;
+        const progress = 1 - Math.max(0, this.visualMoveTimer) / .7;
+        const color = CONSTANTS.TYPE_COLORS[this.visualMoveType] || '#ffe16a';
+        ctx.save(); ctx.globalAlpha = Math.sin(progress * Math.PI);
+        for (let i = 0; i < 7; i++) {
+            const t = Math.max(0, Math.min(1, progress - i * .045));
+            const x = sx + (ex - sx) * t, y = sy + (ey - sy) * t + Math.sin(i * 2.4) * 9;
+            ctx.fillStyle = i % 2 ? '#fff4b5' : color; ctx.fillRect(Math.round(x), Math.round(y), 9 - i, 9 - i);
+        }
+        ctx.restore();
+    }
+
+    drawEnemyTrain(ctx, x, y) { this.drawLoco(ctx, x, y, 'front', this.enemyActive); }
+
+    drawPlayerTrain(ctx, x, y) { this.drawLoco(ctx, x, y, 'back', this.playerActive); }
 
     wrapText(ctx, text, x, y, maxWidth, lineHeight) {
         const words = text.split(' ');

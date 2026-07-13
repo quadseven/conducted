@@ -897,53 +897,77 @@ Game.prototype.renderLoading = function (ctx) {
 
 Game.prototype.renderTitle = function (ctx) {
     const w = this.canvas.width, h = this.canvas.height;
-    const C = CONSTANTS.COLORS;
+    const px = 6;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
 
-    // Sky gradient backdrop
-    const sky = ctx.createLinearGradient(0, 0, 0, h);
-    sky.addColorStop(0, C.BATTLE_SKY2);
-    sky.addColorStop(1, C.BATTLE_SKY);
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, w, h);
+    // Dawn beyond the Terminus glass: flat stepped bands preserve the pixel
+    // language when the 768x672 canvas is scaled by the browser.
+    ctx.fillStyle = '#78b8c4'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#a8d1c0'; ctx.fillRect(0, 86, w, 214);
+    ctx.fillStyle = '#f1c47c'; ctx.fillRect(0, 176, w, 166);
+    ctx.fillStyle = '#fff0bd'; ctx.fillRect(0, 248, w, 116);
+    ctx.fillStyle = '#e99a57'; ctx.fillRect(0, 330, w, 46);
 
-    // Rolling hills
-    ctx.fillStyle = C.GRASS_ALT;
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.7);
-    ctx.quadraticCurveTo(w * 0.3, h * 0.6, w * 0.6, h * 0.72);
-    ctx.quadraticCurveTo(w * 0.85, h * 0.8, w, h * 0.68);
-    ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
+    // Monumental station silhouette, arched glass and iron ribs.
+    ctx.fillStyle = '#15283a';
+    ctx.fillRect(0, 0, w, 34);
+    ctx.fillRect(0, 34, 34, 472); ctx.fillRect(w - 34, 34, 34, 472);
+    for (let x = 48; x < w; x += 96) ctx.fillRect(x, 36, 12, 330);
+    ctx.fillRect(0, 354, w, 18);
+    ctx.strokeStyle = '#294b5b'; ctx.lineWidth = 10;
+    ctx.beginPath(); ctx.arc(w / 2, 350, 330, Math.PI, 0); ctx.stroke();
+    ctx.strokeStyle = '#d39a3d'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(w / 2, 350, 304, Math.PI, 0); ctx.stroke();
 
-    // A little locomotive riding the hill
-    this.drawTitleTrain(ctx, w * 0.5 - 80, h * 0.55, 2.2);
-
-    // Title logo plate
-    const tx = w / 2;
-    ctx.fillStyle = '#181818';
-    this.roundRect(ctx, tx - 250, 70, 500, 120, 16); ctx.fill();
-    ctx.fillStyle = C.UI_BG;
-    this.roundRect(ctx, tx - 242, 78, 484, 104, 12); ctx.fill();
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = C.LOCO_RED;
-    ctx.font = 'bold 42px monospace';
-    ctx.fillText('GRAND TRANSIT', tx + 3, 128);
-    ctx.fillStyle = C.LOCO_BRASS;
-    ctx.fillText('GRAND TRANSIT', tx, 125);
-    ctx.fillStyle = '#181818';
-    ctx.font = 'bold 30px monospace';
-    ctx.fillText('R A I L W A Y', tx, 168);
-
-    // Blinking prompt
-    if (Math.floor(this.animClock * 2) % 2 === 0) {
-        ctx.fillStyle = '#181818';
-        ctx.font = '20px monospace';
-        ctx.fillText('PRESS ENTER', tx, h - 90);
+    // Distant city and platform details.
+    ctx.fillStyle = '#365a55';
+    for (let x = 0; x < w; x += 30) {
+        const bh = 24 + ((x * 7) % 54);
+        ctx.fillRect(x, 354 - bh, 24, bh);
     }
-    ctx.font = '12px monospace';
-    ctx.fillStyle = C.DARK;
-    ctx.fillText('` or F1 for debug menu', tx, h - 50);
-    ctx.textAlign = 'left';
+    ctx.fillStyle = '#253544'; ctx.fillRect(0, 372, w, 300);
+    ctx.fillStyle = '#596b68'; ctx.fillRect(0, 382, w, 78);
+    ctx.fillStyle = '#d2b46c'; ctx.fillRect(0, 382, w, 8);
+    ctx.fillStyle = '#9a7a3d';
+    for (let x = 0; x < w; x += 48) ctx.fillRect(x, 414, 30, 4);
+
+    // Rails converge into the adventure beyond the station.
+    ctx.fillStyle = '#121c29';
+    ctx.beginPath(); ctx.moveTo(226, h); ctx.lineTo(337, 438); ctx.lineTo(350, 438); ctx.lineTo(316, h); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(452, h); ctx.lineTo(418, 438); ctx.lineTo(431, 438); ctx.lineTo(542, h); ctx.fill();
+    ctx.fillStyle = '#7c6045';
+    for (let y = 462; y < h; y += Math.max(12, Math.floor((y - 410) / 8))) {
+        const spread = (y - 428) * 0.72;
+        ctx.fillRect(w / 2 - spread, y, spread * 2, 8);
+    }
+
+    // Hero locomotive: chunky, shaded, and readable as a creature silhouette.
+    this.drawTitleTrain(ctx, 112, 390, 3.15);
+
+    // Enamel station-name crest.
+    const tx = w / 2;
+    ctx.fillStyle = '#0c1724'; this.roundRect(ctx, 104, 54, 560, 194, 16); ctx.fill();
+    ctx.fillStyle = '#bb7b2c'; this.roundRect(ctx, 112, 62, 544, 178, 12); ctx.fill();
+    ctx.fillStyle = '#173f49'; this.roundRect(ctx, 120, 70, 528, 162, 8); ctx.fill();
+    ctx.fillStyle = '#205a5f'; ctx.fillRect(132, 82, 504, 8);
+    ctx.fillStyle = '#f5d984'; ctx.fillRect(132, 212, 504, 6);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#09141e'; ctx.font = 'bold 52px monospace'; ctx.fillText('GRAND TRANSIT', tx + 4, 146);
+    ctx.fillStyle = '#ffe39a'; ctx.fillText('GRAND TRANSIT', tx, 142);
+    ctx.fillStyle = '#d9f0d3'; ctx.font = 'bold 18px monospace';
+    ctx.fillText('THE IRONLIGHT LEAGUE', tx, 184);
+
+    // Riveted prompt plate stays readable over the rails.
+    ctx.fillStyle = '#101c29'; this.roundRect(ctx, 232, 574, 304, 58, 8); ctx.fill();
+    ctx.fillStyle = '#e9d6a1'; this.roundRect(ctx, 238, 580, 292, 46, 5); ctx.fill();
+    ctx.fillStyle = '#a9792d';
+    for (const [rx, ry] of [[247,589],[515,589],[247,614],[515,614]]) ctx.fillRect(rx, ry, px, px);
+    if (Math.floor(this.animClock * 2) % 2 === 0) {
+        ctx.fillStyle = '#182739'; ctx.font = 'bold 20px monospace'; ctx.fillText('PRESS ENTER', tx, 610);
+    }
+    ctx.fillStyle = '#d9e5d2'; ctx.font = '12px monospace'; ctx.fillText('A GRAND TRANSIT ADVENTURE', tx, 654);
+    ctx.textAlign = 'left'; ctx.restore();
 };
 
 // Rounded-rect path helper (uses native roundRect where available).
@@ -960,30 +984,20 @@ Game.prototype.roundRect = function (ctx, x, y, w, h, r) {
 
 // Decorative locomotive for the title screen.
 Game.prototype.drawTitleTrain = function (ctx, x, y, s) {
-    const C = CONSTANTS.COLORS;
-    ctx.fillStyle = C.LOCO_BODY;
-    ctx.fillRect(x, y, 70 * s, 22 * s);            // boiler
-    ctx.fillStyle = C.LOCO_BODY_DARK;
-    ctx.fillRect(x + 50 * s, y - 14 * s, 20 * s, 16 * s); // cab
-    ctx.fillStyle = C.LOCO_IRON_DARK;
-    ctx.fillRect(x - 4 * s, y - 4 * s, 8 * s, 30 * s);   // front buffer
-    ctx.fillStyle = C.LOCO_BRASS;
-    ctx.fillRect(x + 10 * s, y - 12 * s, 7 * s, 12 * s); // smokestack
-    // wheels
-    ctx.fillStyle = C.LOCO_IRON;
+    const r = (c, xx, yy, ww, hh) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x + xx * s), Math.round(y + yy * s), Math.round(ww * s), Math.round(hh * s)); };
+    r('#0c1520', -5, 18, 84, 5); r('#203342', 0, 2, 70, 20);
+    r('#315361', 5, 5, 45, 10); r('#132535', 49, -13, 23, 31);
+    r('#4b7180', 54, -8, 12, 9); r('#0e1b28', 57, -6, 7, 6);
+    r('#b56830', -4, 0, 8, 23); r('#e0a63d', 9, -14, 8, 17);
+    r('#925128', 7, -17, 12, 4); r('#d95135', 18, 13, 30, 5);
+    r('#e7c568', 2, 7, 7, 7); r('#fff2ae', 4, 9, 3, 3);
     for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        ctx.arc(x + (12 + i * 22) * s, y + 22 * s, 7 * s, 0, Math.PI * 2);
-        ctx.fill();
+        const wx = 12 + i * 22;
+        r('#08111a', wx - 7, 17, 15, 15); r('#5f7180', wx - 4, 20, 9, 9); r('#d09a3f', wx - 1, 23, 3, 3);
     }
-    // steam puffs
-    ctx.fillStyle = 'rgba(232,232,232,0.9)';
-    for (let i = 0; i < 3; i++) {
-        const px = x + (13 * s) + Math.sin(this.animClock + i) * 6 - i * 10 * s;
-        ctx.beginPath();
-        ctx.arc(px, y - (22 + i * 10) * s, (4 + i * 2) * s, 0, Math.PI * 2);
-        ctx.fill();
-    }
+    // Pixel steam puffs drift in discrete steps.
+    const drift = Math.floor((this.animClock * 8) % 10);
+    r('#d9e7df', 10 - drift, -25, 10, 8); r('#edf4df', 0 - drift, -34, 14, 10); r('#b8d3d0', -13 - drift, -42, 18, 12);
 };
 
 Game.prototype.renderDebugMenu = function (ctx) {
@@ -1036,21 +1050,30 @@ Game.prototype.wrapText = function (ctx, text, x, y, maxWidth, lineHeight) {
 
 Game.prototype.renderIntro = function (ctx) {
     if (!this.introScene) return;
-
     const dialogue = this.introScene.getCurrentDialogue();
     if (dialogue) {
-        // Draw professor sprite if available
-        const professorSprite = this.images['professor-cypress-1'];
-        if (professorSprite && professorSprite.complete && dialogue.speaker === 'Professor Cypress') {
-            ctx.drawImage(professorSprite, 50, 200, 128, 128);
-        }
-
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.font = '20px monospace';
-        ctx.fillText(dialogue.speaker, 200, 250);
-        ctx.font = '16px monospace';
-        this.wrapText(ctx, dialogue.text, 200, 280, 550, 25);
-        ctx.fillText('Press ENTER to continue', 250, 600);
+        const w = ctx.canvas.width, h = ctx.canvas.height;
+        ctx.fillStyle = '#132a34'; ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#294d50'; ctx.fillRect(0, 0, w, 170);
+        ctx.fillStyle = '#d9c58e'; ctx.fillRect(0, 170, w, h - 170);
+        ctx.fillStyle = '#4b3425';
+        for (let y = 174; y < h; y += 36) ctx.fillRect(0, y, w, 3);
+        // Lab machinery, map board and specimen tank.
+        ctx.fillStyle = '#10202b'; ctx.fillRect(42, 52, 250, 120);
+        ctx.fillStyle = '#80b3a5'; ctx.fillRect(52, 62, 230, 96);
+        ctx.fillStyle = '#386f62';
+        for (let i = 0; i < 8; i++) ctx.fillRect(62 + i * 26, 76 + ((i * 19) % 54), 18, 8);
+        ctx.fillStyle = '#9a672e'; ctx.fillRect(540, 42, 142, 190);
+        ctx.fillStyle = '#a9d7c7'; ctx.fillRect(552, 54, 118, 132);
+        this.drawTitleTrain(ctx, 570, 106, 1.05);
+        // Cypress portrait built in the same crisp world palette.
+        this.drawCharacter(ctx, 86, 270, 144, '#eef0d8', CONSTANTS.DIRECTIONS.DOWN, false);
+        ctx.fillStyle = '#192633'; ctx.fillRect(220, 238, 506, 268);
+        ctx.fillStyle = '#f1e5bd'; ctx.fillRect(230, 248, 486, 248);
+        ctx.fillStyle = '#b97931'; ctx.fillRect(230, 248, 486, 8);
+        ctx.fillStyle = '#173742'; ctx.font = 'bold 22px monospace'; ctx.fillText(dialogue.speaker.toUpperCase(), 254, 292);
+        ctx.fillStyle = '#25313b'; ctx.font = '18px monospace'; this.wrapText(ctx, dialogue.text, 254, 334, 430, 31);
+        ctx.fillStyle = '#173742'; ctx.font = 'bold 14px monospace'; ctx.fillText('ENTER  CONTINUE', 520, 470);
     }
 };
 
@@ -1059,57 +1082,75 @@ Game.prototype.renderStarterSelection = function (ctx) {
 
     const ss = this.starterSelection;
 
-    ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-    ctx.font = '16px monospace';
+    const w = ctx.canvas.width, h = ctx.canvas.height;
+    ctx.fillStyle = '#10242e'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#315c59'; ctx.fillRect(0, 0, w, 92);
+    ctx.fillStyle = '#d8c58e'; ctx.fillRect(0, 92, w, h - 92);
+    ctx.fillStyle = '#8f683d';
+    for (let y = 98; y < h; y += 32) ctx.fillRect(0, y, w, 3);
+    ctx.fillStyle = '#f5e8bd'; ctx.font = '16px monospace';
 
     if (ss.phase === 'intro') {
         const dialogue = ss.getCurrentIntroDialogue();
         if (dialogue) {
-            ctx.fillText(dialogue.speaker, 50, 100);
-            this.wrapText(ctx, dialogue.text, 50, 150, 600, 25);
-            ctx.fillText('Press ENTER to continue', 50, 600);
+            ctx.fillStyle = '#132733'; this.roundRect(ctx, 56, 150, 656, 340, 10); ctx.fill();
+            ctx.fillStyle = '#f2e5bd'; this.roundRect(ctx, 66, 160, 636, 320, 6); ctx.fill();
+            ctx.fillStyle = '#173d47'; ctx.font = 'bold 24px monospace'; ctx.fillText(dialogue.speaker.toUpperCase(), 94, 214);
+            ctx.fillStyle = '#28343c'; ctx.font = '18px monospace'; this.wrapText(ctx, dialogue.text, 94, 262, 570, 31);
+            ctx.font = 'bold 14px monospace'; ctx.fillText('ENTER  CONTINUE', 492, 444);
         }
     } else if (ss.phase === 'selection') {
-        ctx.fillText('Choose your starter train:', 200, 100);
+        ctx.textAlign = 'center'; ctx.fillStyle = '#f7e8b2'; ctx.font = 'bold 26px monospace';
+        ctx.fillText('CHOOSE YOUR FIRST ENGINE', w / 2, 57);
 
-        // Draw starters
         for (let i = 0; i < ss.starters.length; i++) {
             const starter = ss.starters[i];
-            const x = 100 + i * 200;
-            const y = 200;
-
-            // Highlight selected
+            const x = 30 + i * 246;
+            const y = 124;
             if (i === ss.selection) {
-                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
-                ctx.fillRect(x - 10, y - 10, 180, 200);
+                ctx.fillStyle = '#e0a83d'; this.roundRect(ctx, x - 8, y - 8, 232, 388, 12); ctx.fill();
             }
-
-            // Draw sprite image
-            const spriteImg = this.images[starter.name];
-            if (spriteImg && spriteImg.complete) {
-                ctx.drawImage(spriteImg, x + 10, y + 70, 128, 128);
-            }
-
-            ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-            ctx.fillText(starter.displayName, x, y + 20);
-            ctx.font = '12px monospace';
-            ctx.fillText(`Type: ${starter.types[0]}`, x, y + 50);
-            ctx.font = '16px monospace';
+            ctx.fillStyle = i === ss.selection ? '#173d47' : '#213641'; this.roundRect(ctx, x, y, 216, 372, 7); ctx.fill();
+            ctx.fillStyle = '#e9dfbc'; ctx.fillRect(x + 10, y + 10, 196, 236);
+            ctx.fillStyle = ['#b74b36', '#3a7eb4', '#937043'][i]; ctx.fillRect(x + 10, y + 10, 196, 12);
+            this.drawStarterTrain(ctx, x + 28, y + 82, 2.25, i);
+            ctx.fillStyle = '#f5e8bd'; ctx.font = 'bold 19px monospace'; ctx.fillText(starter.displayName.toUpperCase(), x + 108, y + 286);
+            ctx.fillStyle = ['#e17445', '#70c4e9', '#d6a460'][i]; ctx.font = 'bold 14px monospace';
+            ctx.fillText(starter.types[0].toUpperCase(), x + 108, y + 321);
+            ctx.fillStyle = '#c9d5cb'; ctx.font = '12px monospace'; ctx.fillText(['STEADY & BRAVE', 'QUICK & BRIGHT', 'TOUGH & LOYAL'][i], x + 108, y + 350);
         }
-
-        ctx.fillText('Use ← → to select, ENTER to confirm', 150, 500);
+        ctx.fillStyle = '#172b35'; this.roundRect(ctx, 168, 548, 432, 54, 7); ctx.fill();
+        ctx.fillStyle = '#f5e8bd'; ctx.font = 'bold 15px monospace'; ctx.fillText('← →  SELECT     ENTER  CONFIRM', w / 2, 581);
+        ctx.textAlign = 'left';
     } else if (ss.phase === 'confirmation') {
         const starter = ss.getCurrentStarter();
-        ctx.fillText(`Choose ${starter.displayName}?`, 250, 250);
-        ctx.fillText('ENTER = Yes    B = No', 230, 350);
+        ctx.fillStyle = '#152b36'; this.roundRect(ctx, 128, 190, 512, 230, 10); ctx.fill();
+        ctx.fillStyle = '#f1e4bd'; this.roundRect(ctx, 138, 200, 492, 210, 6); ctx.fill();
+        ctx.textAlign = 'center'; ctx.fillStyle = '#173d47'; ctx.font = 'bold 25px monospace'; ctx.fillText(`BOARD ${starter.displayName.toUpperCase()}?`, w / 2, 280);
+        ctx.font = 'bold 17px monospace'; ctx.fillText('ENTER  YES       B  BACK', w / 2, 355); ctx.textAlign = 'left';
     } else if (ss.phase === 'post-selection') {
         const dialogue = ss.getCurrentPostDialogue();
         if (dialogue) {
-            ctx.fillText(dialogue.speaker, 50, 100);
-            this.wrapText(ctx, dialogue.text, 50, 150, 600, 25);
-            ctx.fillText('Press ENTER to continue', 50, 600);
+            ctx.fillStyle = '#152b36'; this.roundRect(ctx, 64, 160, 640, 330, 10); ctx.fill();
+            ctx.fillStyle = '#f1e4bd'; this.roundRect(ctx, 74, 170, 620, 310, 6); ctx.fill();
+            ctx.fillStyle = '#173d47'; ctx.font = 'bold 23px monospace'; ctx.fillText(dialogue.speaker.toUpperCase(), 100, 220);
+            ctx.fillStyle = '#28343c'; ctx.font = '18px monospace'; this.wrapText(ctx, dialogue.text, 100, 270, 556, 31);
+            ctx.font = 'bold 14px monospace'; ctx.fillText('ENTER  CONTINUE', 486, 448);
         }
     }
+};
+
+Game.prototype.drawStarterTrain = function (ctx, x, y, s, variant) {
+    const body = ['#a84232', '#397ca7', '#8a643d'][variant];
+    const light = ['#e3794d', '#7bd0e7', '#d3a35b'][variant];
+    const r = (c, xx, yy, ww, hh) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x + xx * s), Math.round(y + yy * s), Math.round(ww * s), Math.round(hh * s)); };
+    r('#27323a', 2, 36, 72, 6); r(body, 6, 12, 61, 25); r(light, 12, 16, 39, 9);
+    r('#17232e', 49, 2, 20, 33); r('#b9e1d5', 54, 7, 10, 9);
+    r('#e9bf57', 2, 19, 8, 10); r('#f7edb0', 4, 21, 3, 4);
+    if (variant === 0) { r('#d6a23d', 17, 0, 8, 14); r('#84512a', 14, 0, 14, 4); }
+    if (variant === 1) { r('#d8f2dc', 15, 5, 26, 4); r('#f3d65e', 26, 0, 4, 13); }
+    if (variant === 2) { r('#e0a941', 10, 10, 8, 27); r('#482f25', 23, 21, 24, 4); }
+    for (let i = 0; i < 3; i++) { r('#121a21', 12 + i * 20, 31, 15, 15); r('#8ba0a2', 16 + i * 20, 35, 7, 7); }
 };
 
 Game.prototype.renderOverworld = function (ctx) {
@@ -1124,10 +1165,11 @@ Game.prototype.renderOverworld = function (ctx) {
 
     const tileSize = CONSTANTS.TILE_SIZE * CONSTANTS.SCALE;
     const canvas = ctx.canvas;
+    const displayPosition = this.player.getDisplayPosition ? this.player.getDisplayPosition() : this.player;
 
     // Camera system - center on player
-    const cameraX = Math.floor((this.player.x * tileSize) - (canvas.width / 2) + (tileSize / 2));
-    const cameraY = Math.floor((this.player.y * tileSize) - (canvas.height / 2) + (tileSize / 2));
+    const cameraX = Math.floor((displayPosition.x * tileSize) - (canvas.width / 2) + (tileSize / 2));
+    const cameraY = Math.floor((displayPosition.y * tileSize) - (canvas.height / 2) + (tileSize / 2));
 
     // Clamp camera to map bounds
     const mapPixelWidth = this.currentMap.width * tileSize;
@@ -1141,26 +1183,31 @@ Game.prototype.renderOverworld = function (ctx) {
     const endTileX = Math.min(this.currentMap.width, Math.ceil((clampedCameraX + canvas.width) / tileSize));
     const endTileY = Math.min(this.currentMap.height, Math.ceil((clampedCameraY + canvas.height) / tileSize));
 
-    // Draw visible map tiles
-    if (this.currentMap.tilesetRef) {
-        for (let y = startTileY; y < endTileY; y++) {
-            for (let x = startTileX; x < endTileX; x++) {
-                const tileIndex = this.currentMap.getTile(x, y);
-                const dx = (x * tileSize) - clampedCameraX;
-                const dy = (y * tileSize) - clampedCameraY;
-                drawTile(this.ctx, this.currentMap.tilesetRef, tileIndex, dx, dy, tileSize);
-            }
-        }
-    } else {
-        // Textured fallback tiles (no tileset loaded). No more flat rects with
-        // a harsh grid outline - drawFallbackTile gives each material a surface.
-        for (let y = startTileY; y < endTileY; y++) {
-            for (let x = startTileX; x < endTileX; x++) {
-                const tile = this.currentMap.getTile(x, y);
-                const screenX = (x * tileSize) - clampedCameraX;
-                const screenY = (y * tileSize) - clampedCameraY;
+    // Semantic renderer: every map shares a deliberate material vocabulary.
+    // This avoids the original prototype's stretched per-map atlas textures.
+    for (let y = startTileY; y < endTileY; y++) {
+        for (let x = startTileX; x < endTileX; x++) {
+            const tile = this.currentMap.getTile(x, y);
+            const screenX = (x * tileSize) - clampedCameraX;
+            const screenY = (y * tileSize) - clampedCameraY;
+            if (typeof drawWorldTile === 'function') {
+                drawWorldTile(ctx, tile, screenX, screenY, tileSize, x, y, {
+                    map: this.currentMap,
+                    clock: this.animClock
+                });
+            } else {
                 this.drawFallbackTile(ctx, tile, screenX, screenY, tileSize, x, y);
             }
+        }
+    }
+
+    // Large authored props and building facades sit above the material layer.
+    if (this.currentMap.decorations && typeof drawWorldDecoration === 'function') {
+        for (const decoration of this.currentMap.decorations) {
+            drawWorldDecoration(ctx, decoration, clampedCameraX, clampedCameraY, tileSize, {
+                map: this.currentMap,
+                clock: this.animClock
+            });
         }
     }
     // Draw NPCs
@@ -1173,23 +1220,33 @@ Game.prototype.renderOverworld = function (ctx) {
             if (npcScreenX >= -tileSize && npcScreenX < canvas.width &&
                 npcScreenY >= -tileSize && npcScreenY < canvas.height) {
 
-                // Tint per role/defeated; draw as a little person, not a square.
-                let shirt;
-                if (npc.defeated) shirt = '#8A8A8A';
-                else if (npc.type === 'gym_leader') shirt = CONSTANTS.COLORS.LOCO_BRASS;
-                else if (npc.type === 'trainer') shirt = '#D64545';
-                else shirt = '#5878A8';
-                this.drawCharacter(ctx, npcScreenX, npcScreenY, tileSize, shirt, CONSTANTS.DIRECTIONS.DOWN);
+                if (typeof drawWorldCharacter === 'function') {
+                    drawWorldCharacter(ctx, npc, npcScreenX, npcScreenY, tileSize, {
+                        map: this.currentMap, clock: this.animClock,
+                        direction: npc.direction || CONSTANTS.DIRECTIONS.DOWN
+                    });
+                } else {
+                    const shirt = npc.defeated ? '#8A8A8A' : npc.type === 'trainer' ? '#D64545' : '#5878A8';
+                    this.drawCharacter(ctx, npcScreenX, npcScreenY, tileSize, shirt, npc.direction || CONSTANTS.DIRECTIONS.DOWN);
+                }
             }
         }
     }
 
     // Draw player (centered on screen or clamped to map edges)
-    const playerScreenX = (this.player.x * tileSize) - clampedCameraX;
-    const playerScreenY = (this.player.y * tileSize) - clampedCameraY;
+    const playerScreenX = (displayPosition.x * tileSize) - clampedCameraX;
+    const playerScreenY = (displayPosition.y * tileSize) - clampedCameraY;
 
-    // For now, draw a Pokemon-style trainer representation
-    this.drawPlayer(ctx, playerScreenX, playerScreenY, tileSize, this.player.direction);
+    if (typeof drawWorldCharacter === 'function') {
+        drawWorldCharacter(ctx, {
+            isPlayer: true, type: 'player', direction: this.player.direction
+        }, playerScreenX, playerScreenY, tileSize, {
+            map: this.currentMap, clock: this.animClock,
+            moving: this.player.isMoving, direction: this.player.direction
+        });
+    } else {
+        this.drawPlayer(ctx, playerScreenX, playerScreenY, tileSize, this.player.direction);
+    }
 
     // Developer overlay - off by default (was always-on, cluttering the view).
     if (this.debug) {

@@ -1,109 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#091816">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Grand Transit - A Train-Collecting Adventure</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Grand Transit: a train-collecting railway adventure across the Aurum Region.">
+    <title>Grand Transit | Aurum Regional Railway</title>
+    <link rel="stylesheet" href="styles.css?v=8">
 </head>
-
 <body>
-    <div id="game-container">
-        <div id="game-header">
-            <span class="route-mark">GT</span>
-            <div><h1>Grand Transit</h1>
-            <p>Every line leads to a legend.</p></div>
-            <p class="build-stamp">
-                <strong>REGIONAL SERVICE 2.0</strong> - Grand Transit Authority -
-                <span id="load-status" style="color: #ff6b6b;">Loading...</span>
-            </p>
-        </div>
-
-        <canvas id="gameCanvas" width="768" height="672"></canvas>
-
-        <!-- Mobile Touch Controls -->
-        <div id="mobile-controls" class="mobile-only">
-            <div id="dpad-container">
-                <button class="dpad-btn" id="btn-up" data-key="up">▲</button>
-                <button class="dpad-btn" id="btn-left" data-key="left">◄</button>
-                <button class="dpad-btn" id="btn-center"></button>
-                <button class="dpad-btn" id="btn-right" data-key="right">►</button>
-                <button class="dpad-btn" id="btn-down" data-key="down">▼</button>
+    <div class="ambient-grid" aria-hidden="true"></div>
+    <main id="game-container">
+        <header id="game-header">
+            <div class="authority-seal" aria-hidden="true">
+                <span class="seal-wing seal-wing-left"></span>
+                <span class="route-mark">GT</span>
+                <span class="seal-wing seal-wing-right"></span>
             </div>
-            <div id="action-buttons">
-                <button class="action-btn" id="btn-b" data-key="b">B</button>
-                <button class="action-btn" id="btn-a" data-key="a">A</button>
+            <div class="title-lockup">
+                <p class="eyebrow">Aurum Regional Railway</p>
+                <h1>Grand Transit</h1>
+                <p class="tagline">Every line leads to a legend.</p>
             </div>
-        </div>
+            <div class="service-board" aria-label="Game loading status">
+                <span class="signal-lamp"></span>
+                <div>
+                    <span class="service-label">Regional service</span>
+                    <strong id="load-status">Loading network...</strong>
+                </div>
+            </div>
+        </header>
 
-        <!-- Save/Load Controls -->
-        <div id="save-load-controls">
-            <button id="btn-save" class="save-load-btn">💾 Save</button>
-            <button id="btn-load" class="save-load-btn">📁 Load</button>
-            <button id="btn-export" class="save-load-btn">📤 Export Token</button>
-            <button id="btn-import" class="save-load-btn">📥 Import Token</button>
-            <span id="save-status"></span>
-        </div>
+        <section class="cabinet" aria-label="Grand Transit game console">
+            <div class="cabinet-topline" aria-hidden="true">
+                <span>GTA–03</span>
+                <span>Central dispatch link</span>
+                <span>60 FPS</span>
+            </div>
 
-        <!-- Export/Import Modal -->
-        <div id="token-modal" class="modal hidden">
-            <div class="modal-content">
-                <h2>Save Token</h2>
-                <p>Copy this token to load your game on another device:</p>
-                <textarea id="token-textarea" readonly></textarea>
-                <button id="btn-copy-token" class="modal-btn">📋 Copy to Clipboard</button>
+            <div class="console-layout">
+                <div class="screen-column">
+                    <div class="screen-bezel">
+                        <div class="screen-labels" aria-hidden="true">
+                            <span>Aurum network monitor</span>
+                            <span class="live-indicator"><i></i> Live</span>
+                        </div>
+                        <div class="screen-well">
+                            <canvas id="gameCanvas" width="768" height="672" aria-label="Grand Transit game screen"></canvas>
+                        </div>
+                        <div class="screen-footer" aria-hidden="true">
+                            <span>Liquid crystal route display</span>
+                            <span class="vent-slots"></span>
+                        </div>
+                    </div>
+
+                    <div id="mobile-controls" class="mobile-only" aria-label="Touch game controls">
+                        <div class="control-group">
+                            <span class="control-caption">Movement</span>
+                            <div id="dpad-container">
+                                <button class="dpad-btn" id="btn-up" data-key="up" aria-label="Move up"><span>▲</span></button>
+                                <button class="dpad-btn" id="btn-left" data-key="left" aria-label="Move left"><span>◀</span></button>
+                                <button class="dpad-btn" id="btn-center" tabindex="-1" aria-hidden="true"></button>
+                                <button class="dpad-btn" id="btn-right" data-key="right" aria-label="Move right"><span>▶</span></button>
+                                <button class="dpad-btn" id="btn-down" data-key="down" aria-label="Move down"><span>▼</span></button>
+                            </div>
+                        </div>
+                        <div id="action-buttons">
+                            <button class="action-btn action-b" id="btn-b" data-key="b" aria-label="Cancel or open menu"><b>B</b><small>Menu</small></button>
+                            <button class="action-btn action-a" id="btn-a" data-key="a" aria-label="Confirm or interact"><b>A</b><small>Action</small></button>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="dispatch-panel">
+                    <div class="panel-heading">
+                        <span class="panel-index">01</span>
+                        <div><small>Operator console</small><h2>Dispatch</h2></div>
+                    </div>
+
+                    <div id="save-load-controls">
+                        <button id="btn-save" class="save-load-btn"><span class="button-code">S1</span><span>Save journey</span></button>
+                        <button id="btn-load" class="save-load-btn"><span class="button-code">L1</span><span>Load journey</span></button>
+                        <button id="btn-export" class="save-load-btn secondary"><span class="button-code">TX</span><span>Export token</span></button>
+                        <button id="btn-import" class="save-load-btn secondary"><span class="button-code">RX</span><span>Import token</span></button>
+                        <span id="save-status" role="status" aria-live="polite">Auto-save standing by</span>
+                    </div>
+
+                    <div id="controls-info">
+                        <div class="section-rule"><span>Control notation</span></div>
+                        <div class="desktop-controls key-guide">
+                            <div><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd><span>Navigate</span></div>
+                            <div><kbd>Z</kbd><kbd>↵</kbd><span>Action / confirm</span></div>
+                            <div><kbd>X</kbd><kbd>⌫</kbd><span>Menu / cancel</span></div>
+                            <div><kbd>Esc</kbd><span>Return to title</span></div>
+                        </div>
+                        <div class="mobile-controls-info key-guide">
+                            <div><kbd>+</kbd><span>Navigate</span></div>
+                            <div><kbd>A</kbd><span>Action / confirm</span></div>
+                            <div><kbd>B</kbd><span>Menu / cancel</span></div>
+                        </div>
+                    </div>
+
+                    <div id="game-info">
+                        <div class="section-rule"><span>Service brief</span></div>
+                        <p>Cross <strong>eight railway districts</strong>, dismantle Team Derail, and challenge the Grand Conductors.</p>
+                        <div class="network-stat"><strong>151</strong><span>Train species<br>in the Aurum Traindex</span></div>
+                        <a href="traindex.html" class="traindex-link"><span>Open Traindex</span><span aria-hidden="true">→</span></a>
+                    </div>
+
+                    <div class="hardware-detail" aria-hidden="true">
+                        <span class="screw"></span>
+                        <span class="serial">PROPERTY OF GRAND TRANSIT AUTHORITY<br>UNIT 93–AURUM</span>
+                        <span class="screw"></span>
+                    </div>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <div id="token-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="export-title">
+        <div class="modal-content">
+            <div class="ticket-notch left"></div><div class="ticket-notch right"></div>
+            <p class="modal-kicker">Interregional transfer ticket</p>
+            <h2 id="export-title">Journey Save Token</h2>
+            <p>Copy this encrypted ticket to continue your journey on another device.</p>
+            <textarea id="token-textarea" readonly aria-label="Exported save token"></textarea>
+            <div class="modal-actions">
+                <button id="btn-copy-token" class="modal-btn primary">Copy token</button>
                 <button id="btn-close-modal" class="modal-btn">Close</button>
             </div>
         </div>
+    </div>
 
-        <div id="import-modal" class="modal hidden">
-            <div class="modal-content">
-                <h2>Import Save Token</h2>
-                <p>Paste your save token here:</p>
-                <textarea id="import-textarea" placeholder="Paste your save token here..."></textarea>
-                <button id="btn-import-confirm" class="modal-btn">✅ Import</button>
+    <div id="import-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="import-title">
+        <div class="modal-content">
+            <div class="ticket-notch left"></div><div class="ticket-notch right"></div>
+            <p class="modal-kicker">Interregional arrival ticket</p>
+            <h2 id="import-title">Import Journey</h2>
+            <p>Paste a Grand Transit save token below.</p>
+            <textarea id="import-textarea" placeholder="Paste save token..." aria-label="Save token to import"></textarea>
+            <div class="modal-actions">
+                <button id="btn-import-confirm" class="modal-btn primary">Import journey</button>
                 <button id="btn-close-import-modal" class="modal-btn">Cancel</button>
             </div>
         </div>
-
-        <div id="controls-info">
-            <h3>Controls</h3>
-            <div class="desktop-controls">
-                <p>
-                    <strong>Desktop:</strong><br>
-                    <strong>Arrow Keys:</strong> Move<br>
-                    <strong>Z / Enter:</strong> Confirm / Interact<br>
-                    <strong>X / Backspace:</strong> Cancel / Menu<br>
-                    <strong>ESC:</strong> Return to Title
-                </p>
-            </div>
-            <div class="mobile-controls-info">
-                <p>
-                    <strong>Mobile:</strong><br>
-                    <strong>D-Pad:</strong> Move<br>
-                    <strong>A Button:</strong> Confirm / Interact<br>
-                    <strong>B Button:</strong> Cancel / Menu
-                </p>
-            </div>
-        </div>
-
-        <div id="game-info">
-            <p>Explore eight railway districts, dismantle Team Derail, and challenge the Grand Conductors.</p>
-            <p>Build a crew from <strong>151 train species</strong> and become Champion of the network.</p>
-            <p><strong>Auto-saves every 30 seconds!</strong> Use Save/Load buttons above for manual control.</p>
-            <p style="margin-top: 15px;">
-                <a href="traindex.html"
-                    style="display: inline-block; padding: 10px 20px; background: #ffd700; color: #000; text-decoration: none; border-radius: 10px; font-weight: bold; border: 2px solid #000;">
-                    🚂 View Traindex - All 151 Trains
-                </a>
-            </p>
-        </div>
     </div>
 
-    <!-- Game Scripts -->
     <script src="js/constants.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/types.js"></script>
@@ -115,20 +159,18 @@
     <script src="js/items.js"></script>
     <script src="js/moves.js"></script>
     <script src="js/train.js"></script>
-    <script src="js/battle.js"></script>
+    <script src="js/battle.js?v=8"></script>
     <script src="js/player.js"></script>
     <script src="js/map.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/intro.js"></script>
-    <script src="js/world-maps.js"></script>
+    <script src="js/world-maps.js?v=8"></script>
     <script src="js/professors_lab.js"></script>
-    <!-- coal_harbor_gym.js removed - gym now in world-maps.js -->
     <script src="js/input.js"></script>
-    <script src="js/graphics.js"></script>
+    <script src="js/graphics.js?v=8"></script>
     <script src="js/audio.js"></script>
-    <script src="js/game.js?v=6"></script>
-    <script src="js/mobile-controls.js?v=6"></script>
-    <script src="js/main.js?v=6"></script>
+    <script src="js/game.js?v=8"></script>
+    <script src="js/mobile-controls.js?v=8"></script>
+    <script src="js/main.js?v=8"></script>
 </body>
-
 </html>

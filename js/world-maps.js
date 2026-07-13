@@ -126,7 +126,7 @@ const WORLD_MAPS = {
       const tile = this.getTile(x, y);
       const npcAtPosition = this.npcs.find(npc => npc.x === x && npc.y === y);
       if (npcAtPosition) return false;
-      const walkableTiles = [0, 12]; // Floor and door
+      const walkableTiles = [3, 12]; // Floor and door
       return walkableTiles.includes(tile);
     },
     checkForEncounter: function() {
@@ -530,6 +530,145 @@ const WORLD_MAPS = {
   ]);
 })();
 
+// Art pass: all maps use semantic tiles rendered by Canvas. The original
+// stretched prototype atlases are deliberately disabled.
+(function installWorldArtDirection() {
+  const decorateBuilding = (x, y, w, h, kind, label, doorX) => ({ type: 'building', x, y, w, h, kind, label, doorX });
+  const fillRectTiles = (tiles, x, y, w, h, value) => {
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) tiles[yy][xx] = value;
+  };
+  const frame = (tiles, value = 0) => {
+    const h = tiles.length, w = tiles[0].length;
+    for (let x = 0; x < w; x++) { tiles[0][x] = value; tiles[h - 1][x] = value; }
+    for (let y = 0; y < h; y++) { tiles[y][0] = value; tiles[y][w - 1] = value; }
+  };
+
+  for (const map of Object.values(WORLD_MAPS)) {
+    delete map.tileset;
+    delete map.tilesetRef;
+    map.decorations = map.decorations || [];
+    if (/Route/.test(map.id)) map.theme = ['meadow', 'copper', 'foundry', 'garden', 'sky', 'isotope', 'velocity', 'royal'][map.routeIndex || 0];
+    else if (/Gym|Terminus/.test(map.id)) map.theme = 'grand-station';
+    else if (/House|Depot|Mart|Interior/.test(map.id)) map.theme = map.id.includes('Depot') ? 'depot' : map.id.includes('Mart') ? 'mart' : 'interior';
+    else map.theme = 'rail-town';
+  }
+
+  // Piston Town: a readable station village with three civic buildings,
+  // planted squares, a fountain, and a clear line to Route 1.
+  {
+    const map = WORLD_MAPS.PistonTown, t = grid(20, 15, 1);
+    frame(t, 0);
+    for (let y = 1; y < 15; y++) { t[y][9] = 3; t[y][10] = 3; }
+    for (let x = 1; x < 19; x++) t[7][x] = 3;
+    fillRectTiles(t, 2, 2, 5, 4, 0); t[5][4] = 12;
+    fillRectTiles(t, 8, 1, 5, 5, 0); t[5][10] = 12;
+    fillRectTiles(t, 14, 3, 4, 4, 0); t[6][16] = 12;
+    fillRectTiles(t, 2, 9, 5, 4, 0); t[12][4] = 12;
+    t[14][9] = 6; t[14][10] = 6;
+    map.tiles = t; map.width = 20; map.height = 15;
+    map.decorations = [
+      decorateBuilding(2, 2, 5, 4, 'home', 'ASH HOUSE', 4),
+      decorateBuilding(8, 1, 5, 5, 'lab', 'CYPRESS LAB', 10),
+      decorateBuilding(14, 3, 4, 4, 'depot', 'DEPOT', 16),
+      decorateBuilding(2, 9, 5, 4, 'mart', 'RAIL MART', 4),
+      { type: 'fountain', x: 13, y: 9 }, { type: 'sign', x: 8, y: 8 },
+      { type: 'flowerbed', x: 12, y: 4, w: 2 }, { type: 'flowerbed', x: 15, y: 9, w: 3 }
+    ];
+    map.warps = [
+      { from: rect(4, 5), to: { mapId: 'PlayerHouse', ...pos(3, 6, 'down') } },
+      { from: rect(10, 5), to: { mapId: 'LabInterior', ...pos(4, 7, 'down') } },
+      { from: rect(16, 6), to: { mapId: 'HealingDepot', ...pos(3, 6, 'down') } },
+      { from: rect(4, 12), to: { mapId: 'TrainMart', ...pos(3, 6, 'down') } },
+      { from: rect(9, 14, 2, 1), to: { mapId: 'Route1', ...pos(10, 1, 'down') } }
+    ];
+    map.isWalkable = function (x, y) { return [1, 3, 6, 12].includes(this.getTile(x, y)) && !this.npcs.some(n => n.x === x && n.y === y); };
+  }
+
+  // Route 1: a forest rail cutting with a meandering footpath and wild grass.
+  {
+    const map = WORLD_MAPS.Route1, t = grid(20, 24, 2);
+    frame(t, 0);
+    const centers = [10, 10, 9, 9, 8, 8, 9, 10, 10, 11, 11, 10, 9, 9, 8, 8, 9, 10, 10, 11, 11, 10, 10, 10];
+    for (let y = 0; y < 24; y++) for (let x = centers[y] - 2; x <= centers[y] + 2; x++) t[y][x] = 3;
+    for (let y = 3; y < 21; y++) { t[y][14] = 6; t[y][15] = 6; }
+    for (let y = 4; y < 22; y += 5) { t[y][4] = 1; t[y][5] = 1; t[y][6] = 1; }
+    map.tiles = t; map.width = 20; map.height = 24; map.routeIndex = 0;
+    map.decorations = [
+      { type: 'bridge', x: 13, y: 10, w: 3 }, { type: 'sign', x: 7, y: 4 },
+      { type: 'signal', x: 13, y: 7 }, { type: 'signal', x: 16, y: 17 },
+      { type: 'flowers', x: 5, y: 8 }, { type: 'stump', x: 4, y: 15 }
+    ];
+    map.warps = [
+      { from: rect(8, 0, 5, 1), to: { mapId: 'PistonTown', ...pos(10, 13, 'up') } },
+      { from: rect(8, 23, 5, 1), to: { mapId: 'CoalHarbor', ...pos(10, 1, 'down') } }
+    ];
+    map.isWalkable = function (x, y) { return [1, 2, 3, 6].includes(this.getTile(x, y)) && !this.npcs.some(n => n.x === x && n.y === y); };
+  }
+
+  // Coal Harbor: copper-roofed port terminus with a strong central promenade,
+  // visible harbor water, and distinct destinations around the civic square.
+  {
+    const map = WORLD_MAPS.CoalHarbor, t = grid(20, 15, 1);
+    frame(t, 0);
+    for (let y = 0; y < 15; y++) { t[y][9] = 3; t[y][10] = 3; }
+    for (let x = 1; x < 19; x++) t[7][x] = 3;
+    fillRectTiles(t, 2, 2, 5, 4, 0); t[5][4] = 12;
+    fillRectTiles(t, 14, 2, 4, 4, 0); t[5][16] = 12;
+    fillRectTiles(t, 2, 9, 6, 4, 0); t[12][5] = 12;
+    fillRectTiles(t, 13, 9, 5, 4, 0); t[12][15] = 12;
+    for (let y = 8; y < 14; y++) t[y][18] = 4;
+    t[0][9] = 3; t[0][10] = 3; t[14][9] = 6; t[14][10] = 6;
+    map.tiles = t; map.width = 20; map.height = 15; map.theme = 'copper';
+    map.decorations = [
+      decorateBuilding(2, 2, 5, 4, 'home', 'HARBOR HOUSE', 4),
+      decorateBuilding(14, 2, 4, 4, 'depot', 'COAL DEPOT', 16),
+      decorateBuilding(2, 9, 6, 4, 'gym', 'BRASSWORK GYM', 5),
+      decorateBuilding(13, 9, 5, 4, 'mart', 'CARGO MART', 15),
+      { type: 'clock', x: 12, y: 4 }, { type: 'signal', x: 8, y: 4 },
+      { type: 'fountain', x: 11, y: 9 }, { type: 'sign', x: 8, y: 8 },
+      { type: 'flowers', x: 6, y: 7 }, { type: 'platform', x: 17, y: 8, h: 6 }
+    ];
+    map.warps = [
+      { from: rect(4, 5), to: { mapId: 'CoalHouse', ...pos(3, 6, 'down') } },
+      { from: rect(16, 5), to: { mapId: 'CoalDepot', ...pos(3, 6, 'down') } },
+      { from: rect(5, 12), to: { mapId: 'CoalHarborGym', ...pos(7, 13, 'up') } },
+      { from: rect(15, 12), to: { mapId: 'CoalMart', ...pos(3, 6, 'down') } },
+      { from: rect(9, 0, 2, 1), to: { mapId: 'Route1', ...pos(10, 22, 'up') } },
+      { from: rect(9, 14, 2, 1), to: { mapId: 'Route2', ...pos(10, 1, 'down') } }
+    ];
+    map.isWalkable = function (x, y) { return [1, 2, 3, 6, 12].includes(this.getTile(x, y)) && !this.npcs.some(n => n.x === x && n.y === y); };
+  }
+
+  // Semantic decorations for generated cities and interiors.
+  for (let n = 2; n <= 8; n++) {
+    const city = WORLD_MAPS[`City${n}`];
+    city.decorations.push(
+      decorateBuilding(3, 2, 4, 4, n % 2 ? 'depot' : 'station', city.name.toUpperCase(), 5),
+      { type: 'clock', x: 15, y: 4 }, { type: 'sign', x: 11, y: 8 },
+      { type: 'flowerbed', x: 13, y: 10, w: 3 }
+    );
+  }
+  for (const map of Object.values(WORLD_MAPS)) {
+    if (map.theme === 'interior' || map.theme === 'depot' || map.theme === 'mart') {
+      map.decorations.push({ type: 'counter', x: 2, y: 1, w: Math.max(3, map.width - 4) });
+    }
+  }
+
+  // Interior exits land just outside the authored exterior doorways.
+  const returnTo = (id, mapId, x, y) => {
+    const map = WORLD_MAPS[id];
+    if (map && map.warps && map.warps[0]) map.warps[0].to = { mapId, ...pos(x, y, 'down') };
+  };
+  returnTo('PlayerHouse', 'PistonTown', 4, 6);
+  returnTo('LabInterior', 'PistonTown', 10, 6);
+  returnTo('HealingDepot', 'PistonTown', 16, 7);
+  returnTo('TrainMart', 'PistonTown', 4, 13);
+  returnTo('CoalHouse', 'CoalHarbor', 4, 6);
+  returnTo('CoalDepot', 'CoalHarbor', 16, 6);
+  returnTo('CoalMart', 'CoalHarbor', 15, 13);
+  returnTo('CoalHarborGym', 'CoalHarbor', 5, 13);
+})();
+
 // Add collisions to each map (non-walkable tiles: void=0, wall=5, ledge=6, tree=7)
 for (const m of Object.values(WORLD_MAPS)) {
   m.collisions = new Set();
@@ -537,8 +676,8 @@ for (const m of Object.values(WORLD_MAPS)) {
   for (let y = 0; y < m.height; y++) {
     for (let x = 0; x < m.width; x++) {
       const idx = tiles[y][x];
-      // Add walls (5), void (0), ledges (6), and trees (7) as collisions
-      if (idx === 0 || idx === 5 || idx === 6 || idx === 7) {
+      // Rails are traversable in Grand Transit; void/walls/trees are not.
+      if (idx === 0 || idx === 5 || idx === 7) {
         m.collisions.add(`${x},${y}`);
       }
     }
