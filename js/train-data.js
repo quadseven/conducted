@@ -262,7 +262,7 @@ function seededRng(seed) {
     };
 }
 
-for (let i = 27; i <= 151; i++) {
+for (let i = 27; i <= 149; i++) {
     // Seed offset keeps the stream clear of small-int collisions.
     const rand = seededRng(i * 2654435761);
     const randInt = (min, max) => Math.floor(rand() * (max - min + 1)) + min;
@@ -320,6 +320,47 @@ for (let i = 27; i <= 151; i++) {
         expYield: randInt(50, 250)
     };
 }
+
+// Legendary trains - explicitly defined (not randomly generated!)
+// #150 Adamantrain - The unbreakable defensive legendary
+TRAIN_SPECIES[150] = {
+    id: 150,
+    name: "Adamantrain",
+    types: ["STEAM", "FREIGHT"],
+    baseStats: { hp: 110, attack: 130, defense: 160, speed: 45, special: 95 },
+    learnset: [
+        { level: 1, move: "Ram" },
+        { level: 8, move: "Steam Jet" },
+        { level: 16, move: "Container Crush" },
+        { level: 25, move: "Pressure Blast" },
+        { level: 35, move: "Mega Steam" },
+        { level: 48, move: "Heavy Haul" },
+        { level: 65, move: "Adamant Shield" }
+    ],
+    evolution: null,
+    catchRate: 45,
+    expYield: 270
+};
+
+// #151 MEGALOCOMOTIVE - The ultimate offensive legendary
+TRAIN_SPECIES[151] = {
+    id: 151,
+    name: "MEGALOCOMOTIVE",
+    types: ["STEAM"],
+    baseStats: { hp: 90, attack: 160, defense: 85, speed: 130, special: 140 },
+    learnset: [
+        { level: 1, move: "Ram" },
+        { level: 8, move: "Steam Jet" },
+        { level: 16, move: "Boiler Burst" },
+        { level: 25, move: "Pressure Blast" },
+        { level: 35, move: "Mega Steam" },
+        { level: 48, move: "Container Crush" },
+        { level: 65, move: "Ultimate Express" }
+    ],
+    evolution: null,
+    catchRate: 45,
+    expYield: 270
+};
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {
