@@ -239,7 +239,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - ✅ Live site verified working
 - ✅ Cache invalidated with query parameter
 
-**Live URL:** https://githumps.github.io/conducted/
+**Live URL:** https://quadseven.github.io/conducted/
 
 ---
 

@@ -171,7 +171,7 @@
 - **Status:** ✅ Pushed to origin/main
 
 ### GitHub Pages:
-- **URL:** https://githumps.github.io/conducted/
+- **URL:** https://quadseven.github.io/conducted/
 - **Status:** ✅ Deployed
 - **Build Time:** ~60 seconds
 - **Cache:** May need hard refresh (Ctrl+Shift+R)
@@ -336,7 +336,7 @@ Missing features are **additions**, not **fixes**. The foundation is solid.
 **Playtesting:** Claude (AI Playtester)
 **Bug Fixes:** Claude Code Agents
 **Documentation:** Claude Code
-**Project:** CONDUCTED by githumps
+**Project:** CONDUCTED by quadseven
 **Inspiration:** Pokémon Red/Blue by Game Freak
 
 **Tools:**

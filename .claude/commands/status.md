@@ -16,7 +16,7 @@ Get a quick overview of project health and next steps.
 ## CONDUCTED Project Status
 **Date**: 2025-10-30
 **Version**: 1.0.8
-**Live URL**: https://githumps.github.io/conducted/
+**Live URL**: https://quadseven.github.io/conducted/
 
 ### Current Sprint: Milestone 1 - Core Gameplay Loop
 **Progress**: 4/18 issues complete (22%)
@@ -36,7 +36,7 @@ Get a quick overview of project health and next steps.
 ### Build Status
 - 🟢 **GitHub Pages**: Deployed successfully
 - 🟢 **Last Deploy**: 2025-10-30 14:10 UTC
-- 🟢 **Demo Works**: https://githumps.github.io/conducted/
+- 🟢 **Demo Works**: https://quadseven.github.io/conducted/
 
 ### Next Recommended Action
 👉 **Work on #52 (Fix map transitions)**

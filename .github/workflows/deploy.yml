@@ -17,6 +17,6 @@ permissions:
 
 jobs:
   deploy:
-    uses: githumps/infra-public/.github/workflows/deploy.pages.yml@cd83e5727c0a7b904f780960664a51b3a3a0c685
+    uses: quadseven/infra-public/.github/workflows/deploy.pages.yml@cd83e5727c0a7b904f780960664a51b3a3a0c685
     with:
       artifact_path: "."

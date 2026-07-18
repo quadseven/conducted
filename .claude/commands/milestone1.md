@@ -41,4 +41,4 @@ Assign to: World Engineer
 Estimated: 1-2 hours
 ```
 
-Reference: https://github.com/githumps/conducted/milestone/1
+Reference: https://github.com/quadseven/conducted/milestone/1
