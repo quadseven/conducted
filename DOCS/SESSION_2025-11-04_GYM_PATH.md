@@ -150,7 +150,7 @@ const WORLD_MAPS = {
 **Branch:** `main`
 **Remote:** Pushed to origin/main
 **GitHub Pages:** Deploying (~1-2 minutes)
-**Live URL:** https://githumps.github.io/conducted/
+**Live URL:** https://quadseven.github.io/conducted/
 
 ---
 
@@ -313,7 +313,7 @@ Players can now:
 ## 🙏 Acknowledgments
 
 **Development:** Claude Code Agents (Parallel Execution)
-**Project:** CONDUCTED by githumps
+**Project:** CONDUCTED by quadseven
 **Inspiration:** Pokémon Red/Blue by Game Freak
 **Previous Session:** Bug fixes & Route 1 redesign (2025-11-03)
 

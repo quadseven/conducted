@@ -177,7 +177,7 @@ checkForEncounter(x, y) {
 **Branch:** `main`
 **Remote:** Pushed to GitHub
 **GitHub Pages:** Deploying (1-2 minutes)
-**Live URL:** https://githumps.github.io/conducted/
+**Live URL:** https://quadseven.github.io/conducted/
 
 ---
 

@@ -35,7 +35,7 @@ Create a save state with:
 
 ### Phase 1: Navigate to Battle Start
 ```
-1. Open browser and navigate to https://githumps.github.io/conducted/
+1. Open browser and navigate to https://quadseven.github.io/conducted/
 2. Wait for game to load (check for canvas element and "Load" button)
 3. Click "Load" button to load prepared save file
 4. Verify player position (should NOT be in Piston Town)
@@ -143,7 +143,7 @@ Create a save state with:
 ### Setup Phase
 ```javascript
 // Navigate to game
-mcp__playwright__browser_navigate({ url: "https://githumps.github.io/conducted/" })
+mcp__playwright__browser_navigate({ url: "https://quadseven.github.io/conducted/" })
 
 // Wait for load
 mcp__playwright__browser_wait_for({ time: 3 })

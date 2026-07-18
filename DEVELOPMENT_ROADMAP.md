@@ -541,8 +541,8 @@ Goal: Prevent regressions in core loops
 - **Audio Specs:** `AUDIO_SPECIFICATIONS.md` (music/SFX requirements)
 
 ### External Resources
-- **GitHub Issues:** https://github.com/githumps/conducted/issues
-- **Milestones:** https://github.com/githumps/conducted/milestones
+- **GitHub Issues:** https://github.com/quadseven/conducted/issues
+- **Milestones:** https://github.com/quadseven/conducted/milestones
 - **Gen 1 Pokemon Mechanics:** https://bulbapedia.bulbagarden.net/wiki/Generation_I
 
 ---

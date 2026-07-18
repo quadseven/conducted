@@ -15,7 +15,7 @@ After the defeat fix is implemented, verify that losing a battle correctly:
 ## Minimal Test Steps (Fast Version)
 
 ### Setup
-1. Load game at https://githumps.github.io/conducted/
+1. Load game at https://quadseven.github.io/conducted/
 2. Press **F1** to open debug menu
 3. Select **Wild Battle** to start a battle
 

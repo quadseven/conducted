@@ -251,9 +251,9 @@ These 12 issues fill critical gaps in the Pokemon Red/Blue feature set that were
 - **Audio Specs:** `AUDIO_SPECIFICATIONS.md`
 
 ### Links
-- **GitHub Issues:** https://github.com/githumps/conducted/issues
-- **Milestones:** https://github.com/githumps/conducted/milestones
-- **Project Board:** https://github.com/githumps/conducted/projects
+- **GitHub Issues:** https://github.com/quadseven/conducted/issues
+- **Milestones:** https://github.com/quadseven/conducted/milestones
+- **Project Board:** https://github.com/quadseven/conducted/projects
 
 ---
 
