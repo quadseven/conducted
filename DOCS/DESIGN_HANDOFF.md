@@ -1,6 +1,6 @@
 # Design Hand-off Brief (for Claude Design)
 
-Hand-off point: after the M1 core-systems rewrite + temper SDD bootstrap +
+Hand-off point: after the M1 core-systems rewrite + the spec bootstrap +
 in-engine renderer overhaul landed on `main` (PR #89). This brief tells the
 design loop what state the visuals are in, what to work on, the hard
 constraints, and how design changes flow back into the verified spec layer.
@@ -36,8 +36,8 @@ pipeline, see §5):
   priority implementation order. **This is the design north star.**
 - `WORLDBUILDING.md`, `STORY.md` - world/narrative tone (serious adventure,
   subtle absurdity). Names/locations must match these.
-- `specs/DESIGN.md` + `specs/000N-*/` - the BEHAVIOURAL contracts, kernel-
-  verified by temper. Design must not violate these (see §3).
+- `specs/DESIGN.md` - the BEHAVIOURAL contracts. Design must not violate
+  these (see §3).
 
 ## 3. Hard constraints
 
@@ -46,7 +46,7 @@ pipeline, see §5):
    `js/{battle,game,player,train,moves,items,train-data,main}.js`; touch only
    rendering paths. If you need new state, add visual-only fields (e.g. another
    `game.*` animation clock), never gameplay state.
-2. **Do not break the temper contracts.** `specs/` encodes 7 behavioural
+2. **Do not break the behavioural contracts.** `specs/DESIGN.md` encodes 7
    invariants (battle single-resolution, capture, party<=6, progression,
    save/load, map-warp, economy). They are currently behavioural, not visual,
    so design has wide freedom - BUT if you introduce a *load-bearing* visual
@@ -72,7 +72,6 @@ python3 -m http.server 8080        # from repo root
   `g=DEBUG_GAME; g.player.party=[new Train(1,12)];
    g.battle=new Battle(g,g.player.party,[new Train(10,8)],true);
    g.battle.state=CONSTANTS.BATTLE_STATES.MENU; g.state=CONSTANTS.STATES.BATTLE`
-- Spec layer (only if you touch `specs/`): `bash <temper>/scripts/verify-all.sh`.
 
 ## 5. Asset pipeline (the GPU items)
 

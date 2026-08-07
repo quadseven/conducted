@@ -1,9 +1,9 @@
 # Conducted - Game Systems Design (Spec Source of Truth)
 
 This is the authoritative contract document for the Conducted core game systems.
-Every temper IOA spec under `specs/NNNN-*/` cites a section number (`§N`) here in
-its action `hint`s. If code and this doc disagree, align code to the doc (or
-amend the doc in the same change and note why).
+Sections are `§N`-numbered so code and other docs can cite them precisely. If
+code and this doc disagree, align code to the doc (or amend the doc in the same
+change and note why).
 
 Narrative/world/art truth lives in `WORLDBUILDING.md`, `STORY.md`, and
 `ART_DIRECTION_SPECS.md`. This doc governs *behavioural* contracts only.
