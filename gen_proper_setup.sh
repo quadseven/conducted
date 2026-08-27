@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /Users/evan/Documents/GitHub/conducted
+cd "$(dirname "$0")"
 
 echo "🚂 GENERATING WITH PROPER SETUP!"
 echo "Base: pixelArtDiffusionXL_spriteShaper"
@@ -8,7 +8,7 @@ echo ""
 
 # Steamini - cute baby steam locomotive
 echo "🎨 Generating Steamini (steam train)..."
-curl -s -X POST "http://100.68.225.122:7860/sdapi/v1/txt2img" \
+curl -s -X POST "${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}/sdapi/v1/txt2img" \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "cute steam train, <lora:fesba:0.8>, <lora:chibi:0.6>, <lora:| |:0.5>",
@@ -33,7 +33,7 @@ echo "✅ Steamini (10 variations)"
 
 # Sparkart - cute electric train
 echo "🎨 Generating Sparkart (electric train)..."
-curl -s -X POST "http://100.68.225.122:7860/sdapi/v1/txt2img" \
+curl -s -X POST "${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}/sdapi/v1/txt2img" \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "cute electric train, <lora:fesba:0.8>, <lora:chibi:0.6>, <lora:| |:0.5>",
@@ -58,7 +58,7 @@ echo "✅ Sparkart (10 variations)"
 
 # Diesling - cute diesel locomotive
 echo "🎨 Generating Diesling (diesel train)..."
-curl -s -X POST "http://100.68.225.122:7860/sdapi/v1/txt2img" \
+curl -s -X POST "${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}/sdapi/v1/txt2img" \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "cute diesel locomotive train, <lora:fesba:0.8>, <lora:chibi:0.6>, <lora:| |:0.5>",

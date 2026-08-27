@@ -75,7 +75,7 @@ game.update(0.016);
 
 Since Playwright keyboard doesn't work, test manually in browser:
 
-1. Open `file:///Users/evan/Documents/GitHub/conducted/index.html`
+1. Open `file://<repo-root>/index.html`
 2. Press ESC in overworld
 3. Verify:
    - ✅ Menu shows TRAINS highlighted (NOT BAG submenu)

@@ -138,7 +138,7 @@ This project uses **automatic1111 Stable Diffusion WebUI** with the **pixelArtDi
 
 ### API Endpoint
 ```
-http://100.68.225.122:7860/sdapi/v1/txt2img
+http://<your-a1111-host>:7860/sdapi/v1/txt2img
 ```
 
 ---
@@ -225,7 +225,7 @@ convert input.png -scale 64x64 output.png
 ## 🔧 Troubleshooting
 
 ### "Connection refused" error
-- Check automatic1111 is running: `http://100.68.225.122:7860`
+- Check automatic1111 is running: `http://<your-a1111-host>:7860`
 - Verify API is enabled in WebUI settings
 
 ### "No images generated"

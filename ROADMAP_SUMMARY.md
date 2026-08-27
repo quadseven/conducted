@@ -242,7 +242,7 @@ These 12 issues fill critical gaps in the Pokemon Red/Blue feature set that were
 ## Resources
 
 ### Documentation
-- **Full Roadmap:** `/Users/evan/Documents/GitHub/conducted/DEVELOPMENT_ROADMAP.md`
+- **Full Roadmap:** `<repo-root>/DEVELOPMENT_ROADMAP.md`
 - **Story Content:** `STORY.md` - Complete campaign outline
 - **Character Dialogue:** `WORLDBUILDING.md` - All NPC scripts ready
 - **Train Data:** `js/train-data.js` - All 151 trains defined

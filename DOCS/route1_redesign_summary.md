@@ -31,14 +31,14 @@ Tile Index | Type          | Walkable | Encounters | Description
 ```
 
 ### Tileset Information
-- **File:** `/Users/evan/Documents/GitHub/conducted/assets/tiles/route-grass.png`
+- **File:** `<repo-root>/assets/tiles/route-grass.png`
 - **Dimensions:** 512x512 pixels
 - **Tile Size:** 16x16 pixels
 - **Grid:** 32 columns x 32 rows (1024 total tiles)
 
 ## Code Changes
 
-### 1. `/Users/evan/Documents/GitHub/conducted/js/world-maps.js`
+### 1. `<repo-root>/js/world-maps.js`
 
 #### Route1 Tilemap
 Replaced `boxed(20, 15, 5, 2)` with explicit 15-row tilemap array featuring:
@@ -71,7 +71,7 @@ if (idx === 0 || idx === 5 || idx === 6 || idx === 7) {
 }
 ```
 
-### 2. `/Users/evan/Documents/GitHub/conducted/js/game.js`
+### 2. `<repo-root>/js/game.js`
 
 #### Encounter Check (Line 392-398)
 Updated encounter trigger to pass player position:
@@ -125,10 +125,10 @@ Based on tileset analysis, these tile types may need creation:
 - [ ] Visual appearance matches Pokemon route aesthetic
 
 ## Related Files
-- `/Users/evan/Documents/GitHub/conducted/js/world-maps.js` - Route data
-- `/Users/evan/Documents/GitHub/conducted/js/game.js` - Encounter logic
-- `/Users/evan/Documents/GitHub/conducted/assets/tiles/route-grass.png` - Tileset
-- `/Users/evan/Documents/GitHub/conducted/js/graphics.js` - Rendering
+- `<repo-root>/js/world-maps.js` - Route data
+- `<repo-root>/js/game.js` - Encounter logic
+- `<repo-root>/assets/tiles/route-grass.png` - Tileset
+- `<repo-root>/js/graphics.js` - Rendering
 
 ## Next Steps
 1. Test in-game to verify visual appearance

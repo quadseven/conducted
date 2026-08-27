@@ -5,7 +5,7 @@
 You don't need a watcher script! Here's the simple manual workflow:
 
 ### Step 1: Open AUTOMATIC1111 Web UI
-1. Open your browser to: **http://100.68.225.122:7860**
+1. Open your browser to: **http://<your-a1111-host>:7860**
 2. Go to the **txt2img** tab
 
 ### Step 2: For Each Prompt File

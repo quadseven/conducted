@@ -4,7 +4,7 @@
 ## 📍 Quick Context
 CONDUCTED = Browser-based train battle RPG (Pokémon Red/Blue feel, but with original trains).
 - Pure JS + Canvas, no framework, mobile-optimized
-- Repo: /Users/evan/Documents/GitHub/conducted
+- Repo: wherever you cloned it (this file no longer assumes a fixed path)
 - Live: https://quadseven.github.io/conducted/
 - Status: Milestone 1 (M1) → MVP rebuild in progress
 Critical Path: #52 (map transitions) → #51 (items & catching) → #53 (money & mart) → #49 (trainer battles)

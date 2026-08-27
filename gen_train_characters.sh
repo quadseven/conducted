@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /Users/evan/Documents/GitHub/conducted
+cd "$(dirname "$0")"
 
 echo "🚂 GENERATING TRAIN CHARACTERS (NO TRACKS!)"
 echo "Style: Cute chibi characters, centered, like cat+train"
@@ -7,7 +7,7 @@ echo ""
 
 # Steamini - cute steam train CHARACTER
 echo "🎨 Steamini (steam train character)..."
-curl -s -X POST "http://100.68.225.122:7860/sdapi/v1/txt2img" \
+curl -s -X POST "${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}/sdapi/v1/txt2img" \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "cute chibi steam train character, centered sprite, <lora:fesba:0.8>, <lora:chibi:0.7>, <lora:| |:0.5>",
@@ -32,7 +32,7 @@ echo "✅ Steamini characters (12)"
 
 # Sparkart - cute electric train CHARACTER
 echo "🎨 Sparkart (electric train character)..."
-curl -s -X POST "http://100.68.225.122:7860/sdapi/v1/txt2img" \
+curl -s -X POST "${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}/sdapi/v1/txt2img" \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "cute chibi electric train character, centered sprite, <lora:fesba:0.8>, <lora:chibi:0.7>, <lora:| |:0.5>",
@@ -57,7 +57,7 @@ echo "✅ Sparkart characters (12)"
 
 # Diesling - cute diesel train CHARACTER
 echo "🎨 Diesling (diesel train character)..."
-curl -s -X POST "http://100.68.225.122:7860/sdapi/v1/txt2img" \
+curl -s -X POST "${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}/sdapi/v1/txt2img" \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "cute chibi diesel locomotive character, centered sprite, <lora:fesba:0.8>, <lora:chibi:0.7>, <lora:| |:0.5>",
