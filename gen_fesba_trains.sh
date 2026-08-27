@@ -1,10 +1,10 @@
 #!/bin/bash
-cd /Users/evan/Documents/GitHub/conducted
+cd "$(dirname "$0")"
 
 echo "🎮 Generating REAL pixel art trains with fesba RPG Maker model!"
 
 # Steamini - baby steam locomotive
-curl -s -X POST "http://100.68.225.122:7860/sdapi/v1/txt2img" \
+curl -s -X POST "${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}/sdapi/v1/txt2img" \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "pixel art baby steam locomotive train, rpg sprite, game asset, centered",
@@ -28,7 +28,7 @@ done
 echo "✅ Steamini (8 variations)"
 
 # Sparkart - electric train
-curl -s -X POST "http://100.68.225.122:7860/sdapi/v1/txt2img" \
+curl -s -X POST "${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}/sdapi/v1/txt2img" \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "pixel art electric train, rpg sprite, game asset, centered",
@@ -52,7 +52,7 @@ done
 echo "✅ Sparkart (8 variations)"
 
 # Diesling - diesel locomotive
-curl -s -X POST "http://100.68.225.122:7860/sdapi/v1/txt2img" \
+curl -s -X POST "${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}/sdapi/v1/txt2img" \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "pixel art diesel locomotive train, rpg sprite, game asset, centered",

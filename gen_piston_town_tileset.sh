@@ -2,7 +2,7 @@
 # Generate PISTON TOWN specific tilesets
 # Focus on fleshing out the starter town
 
-API_URL="http://100.68.225.122:7860/sdapi/v1/txt2img"
+API_URL="${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}/sdapi/v1/txt2img"
 OUTPUT_DIR="assets/tiles/piston-town"
 mkdir -p "$OUTPUT_DIR"
 

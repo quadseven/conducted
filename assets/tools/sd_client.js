@@ -2,7 +2,10 @@
 // Node 18+ required (global fetch). Simple TXT2IMG client for A1111 API.
 import fs from 'node:fs/promises';
 
-const API = process.env.SD_API || 'http://100.68.225.122:7860';
+const API = process.env.SD_API || process.env.A1111_URL;
+if (!API) {
+  throw new Error('Set SD_API or A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example');
+}
 
 function nowStamp() {
   return new Date().toISOString().replaceAll(':', '-').slice(0, 19);

@@ -1,7 +1,7 @@
 #!/bin/bash
 # 🚂 CHOO CHOO! GENERATE PIXEL ART TRAINS! 🚂
 
-A1111_URL="http://100.68.225.122:7860"
+A1111_URL="${A1111_URL:?Set A1111_URL to your local Stable Diffusion (A1111) endpoint, e.g. http://127.0.0.1:7860 - see .env.example}"
 QUEUE_DIR="assets/prompts/queue"
 OUTPUT_DIR="assets/out"
 
