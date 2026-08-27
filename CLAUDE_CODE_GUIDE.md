@@ -24,7 +24,7 @@ This guide explains how to use the hooks, skills, agents, and commands you now h
 ### 1. Open Claude Code in the CONDUCTED Repository
 
 ```bash
-cd /Users/evan/Documents/GitHub/conducted
+cd <repo-root>
 # Claude Code should auto-load .claude/CLAUDE.md
 ```
 
@@ -113,7 +113,7 @@ Hooks run automatically when certain thresholds are hit:
 ### Session Workflow
 
 ```
-1. Open Claude Code in /Users/evan/Documents/GitHub/conducted
+1. Open Claude Code in <repo-root>
 2. Say: "Load Enforcer PM agent and run /status"
 3. Review the status output
 4. Say: "I want to work on #52" (or whatever issue)

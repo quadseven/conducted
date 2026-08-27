@@ -23,7 +23,7 @@
 
 ## Expected Outputs
 
-Remote watcher at **http://100.68.225.122:7860** should render to:
+Remote watcher at **http://<your-a1111-host>:7860** should render to:
 ```
 assets/out/piston-town-tiles_*.png
 assets/out/route1-grass-tiles_*.png

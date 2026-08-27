@@ -9,7 +9,7 @@ Verify that when a player loses a battle (all trains faint), the game correctly:
 5. Returns to overworld state
 
 ## System Under Test
-- **Files**: `/Users/evan/Documents/GitHub/conducted/js/battle.js`, `/Users/evan/Documents/GitHub/conducted/js/game.js`
+- **Files**: `<repo-root>/js/battle.js`, `<repo-root>/js/game.js`
 - **Battle State Flow**: INTRO → MENU → FIGHT → ANIMATION → MESSAGE → DEFEAT
 - **Defeat Handler**: `Game.prototype.handleDefeat()` (lines 417-437 in game.js)
 - **Battle Defeat Logic**: `Battle.prototype.handleDefeat()` (lines 330-336 in battle.js)

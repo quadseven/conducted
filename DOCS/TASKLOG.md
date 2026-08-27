@@ -145,7 +145,7 @@ Created DOCS/ART_WORKFLOW_SIMPLE.md with:
 
 ### User Action Required
 Generate 9 PNG files using A1111:
-1. Open http://100.68.225.122:7860
+1. Open http://<your-a1111-host>:7860
 2. For each JSON in assets/prompts/queue/:
    - Copy prompt/negative_prompt into web UI
    - Set width/height/steps/cfg_scale from JSON

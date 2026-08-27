@@ -5,7 +5,7 @@
 Run through this entire checklist manually using Playwright MCP.
 
 ### Setup
-- [ ] Navigate to file:///Users/evan/Documents/GitHub/conducted/index.html
+- [ ] Navigate to file://<repo-root>/index.html
 - [ ] Skip through intro/starter selection to reach overworld
 - [ ] Verify state is 'overworld'
 
