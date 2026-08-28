@@ -675,4 +675,4 @@ A: Defer to post-launch. This is explicitly a Gen 1 replica.
 
 **Last Updated:** October 30, 2025
 **Next Review:** November 15, 2025 (after M1 deadline)
-**Maintained By:** Evan + Contributors
+**Maintained By:** the maintainer + Contributors
