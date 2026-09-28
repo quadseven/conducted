@@ -25,3 +25,7 @@ jobs:
         run: node tests/starter-selection.test.js
       - name: Runaway Junction logic, art and music
         run: node tests/dispatch-logic.test.js
+      - name: Copper Version syntax check
+        run: find copper/src -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Copper Version tests (the whole game runs headless in Node)
+        run: for t in copper/tests/*.test.js; do echo "== $t"; node "$t" || exit 1; done
