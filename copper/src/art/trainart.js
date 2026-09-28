@@ -384,6 +384,7 @@
       if (b.x0 >= 2 && b.x1 <= SZ - 3 && b.y0 >= 2) break;
       k *= 0.94;
     }
+    if (b.x1 < 0) throw new Error('train art "' + art.body + '" painted nothing');
     const s = compose(cv, art.outline || P.ink);
     if (art.faceless !== true) face(s, Math.round(fc.fx), Math.round(fc.fy), art, Math.max(0.7, Math.min(1.4, fc.fs)));
     const dx = Math.round((SZ - 1 - b.x1 - b.x0) / 2);

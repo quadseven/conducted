@@ -10,7 +10,8 @@
   const QUAL = { '': [0, 4, 7], m: [0, 3, 7], '7': [0, 4, 7, 10], m7: [0, 3, 7, 10], dim: [0, 3, 6], sus4: [0, 5, 7], aug: [0, 4, 8], maj7: [0, 4, 7, 11] };
   function parse(ch) {
     const m = /^([A-G][#b]?)(.*)$/.exec(ch);
-    return { root: ROOT[m[1]], iv: QUAL[m[2]] || QUAL[''] };
+    if (!m || !(m[2] in QUAL)) throw new Error('unknown chord ' + ch);   // fail at load, never mid-song
+    return { root: ROOT[m[1]], iv: QUAL[m[2]] };
   }
   // absolute note (octave, semitone) -> MML token with explicit octave
   function n(oct, semi, len) { const o = oct + Math.floor(semi / 12); return 'o' + o + NAMES[((semi % 12) + 12) % 12] + (len || ''); }

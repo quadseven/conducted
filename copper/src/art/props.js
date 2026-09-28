@@ -244,7 +244,7 @@
     if (kind === 'empty') return s;
     const col = { steam: P.copper, electric: '#c8ccd8', diesel: '#9a6a44' }[kind] || P.copper;
     for (let y = -6; y <= 5; y++) for (let x = -5; x <= 5; x++) {
-      const d = Math.hypot(x / 4.5, (y + (y < 0 ? 0 : 0)) / (y < 0 ? 6.5 : 5)); if (d > 1) continue;
+      const d = Math.hypot(x / 4.5, y / (y < 0 ? 6.5 : 5)); if (d > 1) continue;   // egg: taller above the waist
       const lit = (-x - y) / 8 + (1 - d) * 0.5;
       s.px(8 + x, 7 + y, lit > 0.6 ? shade(col, 0.4) : lit > 0.1 ? col : shade(col, -0.3));
     }

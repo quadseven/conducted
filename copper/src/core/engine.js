@@ -11,8 +11,9 @@
   const scenes = [];
   const tasks = [];
   let frame = 0;
+  let current = null;   // the task running right now, so pushed scenes know their owner
 
-  function push(scene) { scene.bornAt = frame; scenes.push(scene); if (scene.enter) scene.enter(); return scene; }
+  function push(scene) { scene.bornAt = frame; scene.owner = current; scenes.push(scene); if (scene.enter) scene.enter(); return scene; }
   function remove(scene) {
     const i = scenes.lastIndexOf(scene);
     if (i >= 0) { scenes.splice(i, 1); if (scene.exit) scene.exit(); }
@@ -55,13 +56,16 @@
     for (let i = 0; i < tasks.length; i++) {
       const t = tasks[i];
       if (t.done) continue;
+      current = t;
       try {
         const r = t.gen.next();
         if (r.done) { t.done = true; t.value = r.value; }
       } catch (e) {
         t.done = true;
+        // a failed script must not leave its menus or text boxes blocking the game
+        for (let j = scenes.length - 1; j >= 0; j--) if (scenes[j].owner === t) remove(scenes[j]);
         if (CD.onError) CD.onError(e, t.name); else throw e;
-      }
+      } finally { current = null; }
     }
     for (let i = tasks.length - 1; i >= 0; i--) if (tasks[i].done) tasks.splice(i, 1);
     const s = top();
