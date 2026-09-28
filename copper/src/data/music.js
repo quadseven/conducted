@@ -191,6 +191,18 @@
     'v12 @3 q7 o3 c4 g4 f4 g4 c2 r2',
   ] });
 
+
+  song('evolve', {
+    bpm: 112, arp: 'roll8', arpOct: 4, arpVol: 5, arpDuty: 0, bass: 'long', bassOct: 2, drum: 'soft', drumVol: 3,
+    lead: `v10 @0 q7 o5 | e2 a2  f2 >c2<  g2 e2  d2 g2`,
+    chart: ['Am', 'F', 'C', 'G'],
+  });
+  CD.audio.define('evolved', { bpm: 128, loop: false, ch: [
+    'v11 @1 q7 o5 g8 >c8 e8 g4 e8 g8 >c2<',
+    'v7 @0 q7 o5 e8 g8 >c8 e4 c8 e8 g2<',
+    'v12 @3 q7 o3 c4 g4 e4 g4 c2',
+  ] });
+
   // ---------------------------------------------------------------- Jingles (no loop)
   CD.audio.define('heal', { bpm: 120, loop: false, ch: [
     'v11 @1 q7 o5 c8 e8 g8 >c4< g8 >c4 e4 c2',

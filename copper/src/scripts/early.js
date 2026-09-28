@@ -222,6 +222,9 @@
     CD.state.bag.potion = (CD.state.bag.potion || 0) + 2;
     CD.audio.jingle('item');
     yield* say('Professor Cypress handed you 5 TRAINBALLS and 2 POTIONS!');
+    set('gotDex');
+    CD.audio.jingle('item');
+    yield* say('{PLAYER} received the TRAINDEX! Every train you meet is recorded in it automatically.');
     yield* say('Trainballs are used to catch wild trains. Throw one when a wild train is weakened in battle! Potions heal your trains when they\'re hurt.', CY);
     if (CD.story.rivalBattle) yield* CD.story.rivalBattle(rv);
     else {
