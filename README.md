@@ -93,6 +93,29 @@ The code lives in `js/dispatch/`: `logic.js` (track graph, switching, signals, t
 node tests/dispatch-logic.test.js
 ```
 
+## Copper Version (in development)
+
+`copper/` is a ground-up rebuild of the train-collecting RPG as a handheld-style
+adventure, with Steamini as the starter. It renders into a 240x160 framebuffer and
+draws every tile, building, character and train from code; every song is written
+as note text and synthesized with Web Audio. There are no image or audio files.
+
+Play it at `copper/index.html` through the local server above. Keyboard: arrows or
+WASD move, Z confirms, X cancels (hold to run), Enter opens the menu. Phones get an
+on-screen pad.
+
+Layout: `copper/src/core` (framebuffer, font, input, scene loop, synthesizer),
+`copper/src/art` (terrain, buildings, props, characters, train creatures),
+`copper/src/data` (maps, species, moves, types, items, music), `copper/src/game`
+(overworld, UI, menus, saves) and `copper/src/scripts` (story events).
+
+Because nothing touches the DOM outside `main.js`, the whole game runs headless in
+Node. The tests drive it with button presses:
+
+```bash
+for t in copper/tests/*.test.js; do node "$t"; done
+```
+
 ## Project structure
 
 The main browser runtime lives in `js/`:
