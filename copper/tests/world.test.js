@@ -74,3 +74,13 @@ assert(W.canStep(st, pt, 4, 5, 'up', 'player').ok, 'house door is walkable');
 // NPCs never walk through doors or off their map
 assert(!W.canStep(st, pt, 4, 5, 'up', 'npc').ok, 'npcs do not enter doors');
 console.log('world.test: ok (' + ids.length + ' maps)');
+// the site's main page runs the same scripts as copper/index.html, in the same order
+{
+  const fs = require('fs'), path = require('path');
+  const root = fs.readFileSync(path.join(__dirname, '..', '..', 'index.html'), 'utf8');
+  const own = H.scripts().map(s => 'copper/' + s);
+  const main = [];
+  let i = 0;
+  while ((i = root.indexOf('<script', i)) >= 0) { const e = root.indexOf('>', i), tag = root.slice(i, e), a = tag.indexOf('src="'); if (a >= 0) main.push(tag.slice(a + 5, tag.indexOf('"', a + 5))); i = e; }
+  assert.strictEqual(main.join('\n'), own.join('\n'), 'index.html and copper/index.html load the same scripts');
+}

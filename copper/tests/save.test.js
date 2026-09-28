@@ -35,4 +35,25 @@ assert.strictEqual(CD.state.name, 'RUBY');
 assert.strictEqual(CD.state.x, 9); assert.strictEqual(CD.state.y, 20);
 assert.throws(() => CD.save.deserialize('{"v":999,"state":{}}'), /newer/, 'refuses saves from the future');
 assert.throws(() => CD.save.deserialize('nonsense'), 'refuses garbage');
+// the title screen offers CONTINUE and drops you back where you saved
+{
+  const g = H.load({ seed: 4 });
+  const G = g.CD;
+  G.newState(); G.state.name = 'JUNE'; G.state.party.push(G.train.make(1, 7));
+  G.overworld.enterMap('CoalHarbor', 12, 20, 'left', { quiet: true });
+  assert(G.save.save().ok);
+  G.newState();
+  G.engine.spawn(G.main.flow(), 'flow');
+  g.step(10); g.press('start', 30);
+  assert.strictEqual(g.top().constructor.name, 'Choice');
+  assert.strictEqual(g.top().items[0], 'CONTINUE');
+  g.press('a', 30);                 // CONTINUE
+  g.until(() => g.top().constructor.name === 'Choice', 300);
+  g.press('a', 60);                 // YES
+  assert(g.until(() => g.top() === G.overworld.scene, 600));
+  assert.strictEqual(G.state.name, 'JUNE');
+  assert.strictEqual(G.state.map, 'CoalHarbor');
+  assert.strictEqual(G.ow.player.x, 12); assert.strictEqual(G.ow.player.y, 20);
+  assert.strictEqual(G.state.party[0].level, 7);
+}
 console.log('save.test: ok');

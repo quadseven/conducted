@@ -209,6 +209,12 @@
     'v7 @0 q7 o4 e8 g8 >c8 e4< e8 g4 >c4< e2',
     'v12 @3 q7 o3 c4 g4 c4 g4 c2',
   ] });
+  CD.audio.define('badge', { bpm: 120, loop: false, ch: [
+    'v11 @1 q7 o5 c8 c8 c8 g4 e8 g8 >c2 r8 < a8 b8 >c4 e4 c2',
+    'v7 @0 q7 o4 e8 e8 e8 >c4< g8 >c8 e2 r8 < f8 g8 a4 >c4 e2',
+    'v12 @3 q7 o3 c4 c4 g4 c4 f4 g4 c2',
+    'v6 k8 h8 s8 h8 k8 h8 s8 h8 k8 h8 s8 h8 x2',
+  ] });
   CD.audio.define('item', { bpm: 132, loop: false, ch: [
     'v11 @1 q6 o5 g8 a8 b8 >d4 < b8 >d8 g4 r4',
     'v7 @0 q6 o4 b8 >c8 d8 g4 d8 g8 b4 r4',
