@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#091816">
+    <meta name="description" content="Runaway Junction: a Grand Transit signal-box arcade game. Throw points, close gates and catch a runaway freight car.">
+    <title>Runaway Junction | Grand Transit</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d2621'/%3E%3Crect x='7' y='9' width='18' height='12' rx='2' fill='%23b0432f'/%3E%3Crect x='13' y='4' width='6' height='4' fill='%23f4c95d'/%3E%3Cpath d='M4 25h24' stroke='%23f1e8cc' stroke-width='2'/%3E%3C/svg%3E">
+    <style>
+        :root {
+            --night: #07110f; --deep: #0d2621; --cabinet: #29473f; --cabinet-light: #3c5f55;
+            --cream: #f1e8cc; --paper: #d9cda7; --brass: #d99c35; --brass-light: #f4c95d;
+            --signal: #dd4735; --mint: #7bc7a6; --amber: #f2a93b;
+            --mono: "Courier New", ui-monospace, monospace;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { background: var(--night); }
+        body {
+            min-height: 100vh; color: var(--cream); font-family: var(--mono);
+            background: radial-gradient(circle at 50% -10%, rgba(119, 175, 147, .2), transparent 45%), linear-gradient(180deg, #10251f, #050b0a 70%);
+            padding: 16px; overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        main { max-width: 1000px; margin: 0 auto; display: grid; gap: 12px; }
+        header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        h1 { font-size: clamp(22px, 5vw, 34px); letter-spacing: .06em; color: var(--brass-light); text-shadow: 0 2px 0 #000; }
+        header p { color: var(--paper); font-size: 13px; }
+        header a { color: var(--mint); }
+        .bezel { background: linear-gradient(180deg, var(--cabinet-light), var(--cabinet)); border: 2px solid #0b1a16; border-radius: 12px; padding: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12); }
+        .screen { background: #000; border-radius: 6px; overflow: hidden; line-height: 0; }
+        canvas { width: 100%; height: auto; aspect-ratio: 20 / 12; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; display: block; }
+        .hud { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; font-size: 12px; }
+        .hud div { background: #0f2520; border: 1px solid #0b1a16; border-radius: 6px; padding: 6px 8px; min-width: 0; }
+        .hud small { display: block; color: var(--paper); opacity: .8; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+        .hud strong { font-size: 16px; color: var(--cream); white-space: nowrap; }
+        .meter { height: 5px; background: #06100d; border-radius: 3px; margin-top: 4px; overflow: hidden; }
+        .meter i { display: block; height: 100%; width: 0; background: var(--mint); transition: width .1s linear; }
+        .meter.hot i { background: var(--signal); }
+        #rj-msg { margin-top: 8px; min-height: 1.4em; color: var(--brass-light); font-size: 13px; }
+        .controls { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+        .drive, .panel { display: grid; gap: 8px; }
+        .drive { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .panel { grid-template-columns: repeat(6, minmax(44px, 1fr)); }
+        button {
+            font: inherit; color: var(--cream); background: linear-gradient(180deg, #33574d, #1e3a33); border: 2px solid #0b1a16;
+            border-radius: 10px; min-height: 48px; padding: 6px 8px; cursor: pointer; user-select: none; -webkit-user-select: none;
+            touch-action: manipulation; box-shadow: 0 3px 0 #0b1a16; font-size: 14px;
+        }
+        button:active, button.down { transform: translateY(2px); box-shadow: 0 1px 0 #0b1a16; }
+        button small { display: block; font-size: 10px; opacity: .75; }
+        button:focus-visible { outline: 2px solid var(--brass-light); outline-offset: 2px; }
+        .power { background: linear-gradient(180deg, #3f8f68, #25603f); }
+        .brake { background: linear-gradient(180deg, #9a4336, #6b2a22); }
+        .panel button.red { background: linear-gradient(180deg, #b8412f, #7d211d); }
+        .panel button.warn { animation: warn .5s steps(2) infinite; }
+        .panel button.diverge { background: linear-gradient(180deg, #c98a2c, #8a5a17); }
+        @keyframes warn { 50% { background: var(--amber); color: #10151c; } }
+        .guide { background: #0f2520; border: 1px solid #0b1a16; border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.55; color: var(--paper); }
+        .guide h2 { font-size: 14px; color: var(--brass-light); margin-bottom: 6px; letter-spacing: .06em; }
+        .guide kbd { background: #1e3a33; border: 1px solid #0b1a16; border-radius: 4px; padding: 0 5px; color: var(--cream); font-family: inherit; }
+        .guide ul { padding-left: 18px; }
+        .utility { display: flex; gap: 8px; }
+        .utility button { min-height: 36px; font-size: 12px; }
+        @media (max-width: 720px) {
+            body { padding: 10px; }
+            .controls { grid-template-columns: 1fr; }
+            .hud { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .bezel { padding: 6px; }
+        }
+        @media (hover: hover) and (pointer: fine) { .touch-note { display: none; } }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <h1>RUNAWAY JUNCTION</h1>
+        <p>A Grand Transit signal-box game. <a href="index.html">Back to the main line</a></p>
+    </header>
+
+    <section class="bezel" aria-label="Runaway Junction game">
+        <div class="screen"><canvas id="rj-canvas" width="320" height="192" aria-label="Rail yard. Tap points or gates to operate them."></canvas></div>
+        <div class="hud" aria-live="off">
+            <div><small>Round</small><strong id="rj-round">-</strong></div>
+            <div><small>Score / best</small><strong><span id="rj-score">0</span> / <span id="rj-best">0</span></strong></div>
+            <div><small>Your engine</small><strong id="rj-engine">0 km/h</strong><div class="meter"><i id="rj-engine-bar"></i></div></div>
+            <div><small>Runaway</small><strong id="rj-runaway">-</strong><div class="meter hot"><i id="rj-runaway-bar"></i></div></div>
+        </div>
+        <p id="rj-msg" role="status" aria-live="polite"></p>
+        <p style="font-size:11px;color:var(--paper);margin-top:4px">Passenger trains on time: <span id="rj-ontime">0 / 0</span></p>
+    </section>
+
+    <section class="controls" aria-label="Controls">
+        <div class="drive">
+            <button class="brake" data-hold="brake" aria-label="Brake (hold)">BRAKE<small>hold</small></button>
+            <button class="power" data-hold="power" aria-label="Power (hold)">POWER<small>hold</small></button>
+            <button data-act="next" aria-label="Throw the next points ahead">POINTS<small>next ahead</small></button>
+            <button data-act="reverse" aria-label="Reverse when stopped">REVERSE<small>when stopped</small></button>
+        </div>
+        <div class="panel">
+            <button data-act="points-1" aria-label="Points 1">1</button>
+            <button data-act="points-2" aria-label="Points 2">2</button>
+            <button data-act="points-3" aria-label="Points 3">3</button>
+            <button data-act="gate-A" aria-label="Gate A">A</button>
+            <button data-act="gate-B" aria-label="Gate B">B</button>
+            <button data-act="gate-C" aria-label="Gate C">C</button>
+        </div>
+    </section>
+
+    <section class="guide">
+        <h2>HOW TO PLAY</h2>
+        <ul>
+            <li>A red freight car is loose on the loop and picking up speed. Drive your green engine up behind it, match its speed, and touch gently to couple. Then hold brake until both stop.</li>
+            <li>Passenger trains cross the loop at gates A, B and C. Close a gate (red) and they wait at the signal. A runaway in a crossing with a passenger train ends the game.</li>
+            <li>Points 1, 2 and 3 steer trains. Points 3 can send the runaway into the sand drag siding, which stops it for a smaller bonus. Hit any buffer stop too fast and it is a wreck.</li>
+            <li>Passenger trains that leave on time score 100. Keep gates closed too long and they run late.</li>
+        </ul>
+        <p style="margin-top:8px">Keyboard: <kbd>Up</kbd>/<kbd>W</kbd> power, <kbd>Down</kbd>/<kbd>S</kbd> brake, <kbd>Space</kbd> next points ahead, <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> points, <kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> gates, <kbd>R</kbd> reverse, <kbd>P</kbd> pause, <kbd>M</kbd> mute.</p>
+        <p class="touch-note" style="margin-top:6px">Touch: tap a gate or set of points on the map, or use the buttons.</p>
+        <div class="utility" style="margin-top:10px">
+            <button data-act="start">Start / retry</button>
+            <button data-act="pause">Pause</button>
+            <button data-act="mute" id="rj-mute" aria-pressed="false">Sound on</button>
+        </div>
+    </section>
+</main>
+<script src="js/dispatch/logic.js?v=1"></script>
+<script src="js/dispatch/art.js?v=1"></script>
+<script src="js/dispatch/sound.js?v=1"></script>
+<script src="js/dispatch/main.js?v=1"></script>
+</body>
+</html>

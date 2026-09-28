@@ -1,0 +1,27 @@
+name: check.tests
+
+# Runs the dependency-free Node test suites on every pull request. They need
+# nothing beyond the Node that ships on the hosted runner image.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Syntax check the browser modules
+        run: for f in js/dispatch/*.js; do node --check "$f"; done
+      - name: Core integrity
+        run: node tests/core-integrity.test.js
+      - name: Starter selection
+        run: node tests/starter-selection.test.js
+      - name: Runaway Junction logic, art and music
+        run: node tests/dispatch-logic.test.js

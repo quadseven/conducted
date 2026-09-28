@@ -79,6 +79,20 @@ Save data includes:
 - badges and defeated trainers
 - story flags and TrainDex records
 
+## Runaway Junction
+
+`runaway.html` is a standalone signal-box arcade game set on the same railway. A red freight car has broken loose on a yard loop and gathers speed. Drive your engine up behind it, match speed to couple gently, and brake both to a stand. Passenger trains cross the loop at three level crossings on their own timetable; close gates A, B and C to hold them at the signal, and throw points 1, 2 and 3 to steer. Points 3 can divert the runaway into a sand drag siding for a smaller bonus. Each round the runaway starts faster and the timetable tightens.
+
+Like the main game, it has no image or audio files. Rails, sleepers, trees, roofs, trains and smoke are computed pixel by pixel into a 320 by 192 frame buffer, and the chiptune score and sound effects are composed and synthesized at run time with Web Audio.
+
+Run it with the same local server and open `http://127.0.0.1:8765/runaway.html`. Keyboard: Up/W power, Down/S brake, Space throws the next points ahead, 1 to 3 points, A to C gates, R reverse, P pause, M mute. On touch screens, tap a gate or points on the map or use the buttons.
+
+The code lives in `js/dispatch/`: `logic.js` (track graph, switching, signals, timetable, collisions, coupling; no DOM), `art.js` (renderer), `sound.js` (composer and synthesizer) and `main.js` (loop and input). The tests run in Node:
+
+```bash
+node tests/dispatch-logic.test.js
+```
+
 ## Project structure
 
 The main browser runtime lives in `js/`:
@@ -100,7 +114,10 @@ Run the dependency-free integrity tests:
 ```bash
 node tests/core-integrity.test.js
 node tests/starter-selection.test.js
+node tests/dispatch-logic.test.js
 ```
+
+CI runs these on every pull request (`.github/workflows/check.tests.yml`).
 
 The core test verifies species and move counts, unique names, learnsets, types, matchups, NPC rosters, campaign map counts, warp destinations, warp coordinates, EV serialization, Depot serialization, and old-save map migration.
 
