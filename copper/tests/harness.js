@@ -10,9 +10,18 @@ const zlib = require('zlib');
 const ROOT = path.join(__dirname, '..');
 
 function scripts() {
+  // our own page: collect the src attribute of each <script> tag with a plain scan
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  // our own page, so a simple scan of src attributes is enough; tolerate any end-tag spacing
-  return [...html.matchAll(/<script\s+src="([^"]+)"[^>]*>\s*<\/script[^>]*>/gi)].map(m => m[1]);
+  const out = [];
+  let i = 0;
+  while ((i = html.indexOf('<script', i)) >= 0) {
+    const end = html.indexOf('>', i);
+    const tag = html.slice(i, end);
+    const at = tag.indexOf('src="');
+    if (at >= 0) out.push(tag.slice(at + 5, tag.indexOf('"', at + 5)));
+    i = end;
+  }
+  return out;
 }
 
 function load(opts) {
