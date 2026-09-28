@@ -523,7 +523,7 @@
     E.remove(sc);
     for (const t of party) { t.expGiven = undefined; }
     for (const t of opts.enemy) delete t.expGiven;
-    if (CD.evolution) for (const i of evolving) { const t = party[i]; const into = T.evolveTarget(t); if (into && t.hp > 0) yield* CD.evolution.run(t, into); }
+    if (CD.evolution) for (const i of evolving) { const t = party[i]; if (!t) continue; const into = T.evolveTarget(t); if (into && t.hp > 0) yield* CD.evolution.run(t, into); }
     return result;
   }
 
