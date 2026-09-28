@@ -11,7 +11,8 @@ const ROOT = path.join(__dirname, '..');
 
 function scripts() {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  return [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m => m[1]);
+  // our own page, so a simple scan of src attributes is enough; tolerate any end-tag spacing
+  return [...html.matchAll(/<script\s+src="([^"]+)"[^>]*>\s*<\/script[^>]*>/gi)].map(m => m[1]);
 }
 
 function load(opts) {
