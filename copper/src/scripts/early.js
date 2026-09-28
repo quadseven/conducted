@@ -134,6 +134,7 @@
     { id: 'cypress', sprite: 'cypress', x: 5, y: 2, dir: 'down', move: 'still', cond: s => s.flags.escorted, talk: function* () {
       if (!flag('gotStarter')) yield* say('Go on, take a look at the eggs. Choose the partner who calls to you!', CY);
       else if (!flag('beatRival1') && CD.battle) yield* say('Your train is eager to stretch its wheels. Why not test it against ' + RIVAL() + '?', CY);
+      else if (CD.state.badges.includes('harbor')) yield* say("Remarkable! You've earned the Harbor Badge already! You're a natural Conductor, just like your grandfather!", CY);
       else yield* say('Head north on Route 1 to Coal Harbor. Captain Marina will be waiting to test you. May your rails always run true!', CY);
     } },
     { id: 'rivalLab', sprite: 'rival', x: 9, y: 4, dir: 'left', move: 'still', cond: s => s.flags.escorted && !s.flags.rivalLeftLab, talk: function* () {

@@ -40,6 +40,7 @@ function load(opts) {
     vm.runInContext(code, ctx, { filename: src });
   }
   const CD = ctx.CD;
+  CD.clock.fixed = opts.hour === undefined ? 12 : opts.hour;   // tests run at noon unless asked
   if (opts.seed !== undefined) {
     let a = opts.seed >>> 0;
     CD.rng = () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };

@@ -285,6 +285,9 @@
       if (r && r.cell.egg && CD.state.flags['egg' + r.cell.egg]) prop = 'eggEmpty';
       if (prop) list.push([(ty + 1) * TS - 0.5, () => CD.props.draw(s, prop, tx, ty, camX, camY, Math.floor(CD.gfx.hash2(tx, ty, 2) * 6))]);
     }
+    // outdoor light follows the local clock: day, dusk, night
+    const light = m.indoor ? { tint: 0 } : CD.clock.light();
+    const glows = [];
     // buildings of this map and any connected maps
     const origins = [[m, 0, 0]];
     const con = m.connections || {};
@@ -296,7 +299,9 @@
     for (const [mm, ox, oy] of origins) for (const b of mm.buildings || []) {
       const bb = Object.assign({}, b, { x: b.x + ox, y: b.y + oy });
       if ((bb.x + bb.w) * TS < camX || bb.x * TS > camX + SW || (bb.y + bb.h) * TS < camY || (bb.y - 1) * TS > camY + SH) continue;
+      if (light.windows) bb.lit = true;
       list.push([(bb.y + bb.h) * TS - 1, () => CD.buildings.draw(s, bb, camX, camY)]);
+      if (light.windows) glows.push([bb.x * TS - camX + bb.w * 8, (bb.y + bb.h) * TS - camY - 12, bb.w * 7, 9]);
     }
     for (const n of ow.npcs) if (!n.hidden) list.push([pixel(n).py + TS, () => drawWalker(s, n, camX, camY)]);
     if (!p.hidden) list.push([pp.py + TS + 0.25, () => drawWalker(s, p, camX, camY)]);
@@ -312,7 +317,18 @@
       CD.ui.frame(s, x - 1, y, 12, 13, {});
       CD.font.draw(s, e.kind === '?' ? '?' : '!', x + 4, y + 3, e.kind === '?' ? P.blue : P.red);
     }
-    if (m.night || m.dim) s.fillA(0, 0, SW, SH, P.night, m.dim || 0.35);
+    if (light.tint) {
+      const c = CD.gfx.hex(light.color);
+      for (let i = 0; i < s.data.length; i++) s.data[i] = CD.gfx.mix(s.data[i], c, light.tint);
+      // lamps and lit windows glow through the dark
+      if (light.windows) {
+        for (let ty = y0 - 1; ty < y0 + rows + 2; ty++) for (let tx = x0 - 1; tx < x0 + cols + 1; tx++) {
+          const r = W.cellAt(m, tx, ty);
+          if (r && r.cell.prop === 'lamp') { const gx = tx * TS + 8 - camX, gy = ty * TS - 10 - camY; s.ellipseA(gx, gy, 14, 12, '#f8d888', 0.18); s.ellipseA(gx, gy, 6, 5, '#fff0b8', 0.35); s.ellipseA(gx, gy + 24, 12, 4, '#f8d888', 0.16); }
+        }
+        for (const [gx, gy, rx, ry] of glows) s.ellipseA(gx, gy, rx, ry, '#f8c868', 0.12);
+      }
+    }
     if (ow.banner) drawBanner(s, ow.banner);
   }
   function drawWalker(s, w, camX, camY) {

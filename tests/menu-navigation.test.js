@@ -27,7 +27,7 @@ async function runTests() {
 
     // Helper to get to overworld quickly
     async function getToOverworld() {
-        await page.goto('file://' + __dirname + '/../index.html');
+        await page.goto('file://' + __dirname + '/../grand-transit.html');
         await page.waitForTimeout(1000);
 
         // Skip through intro

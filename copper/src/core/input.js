@@ -67,6 +67,9 @@
 
   function bindKeyboard(target) {
     target.addEventListener('keydown', e => {
+      if (e.code === 'KeyM' && !e.repeat && CD.state && CD.audio) {   // M toggles sound
+        CD.state.options.sound = !CD.state.options.sound; CD.audio.setMuted(!CD.state.options.sound); return;
+      }
       const b = KEYMAP[e.code] || KEYMAP[e.key];
       if (!b) return;
       if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
@@ -102,6 +105,8 @@
       return Math.abs(dx) > Math.abs(dy) ? [dx < 0 ? 'left' : 'right'] : [dy < 0 ? 'up' : 'down'];
     }
     function down(e) {
+      // a tap on the game screen itself acts as A: handy for reading text on a phone
+      if (e.target.id === 'screen') { e.preventDefault(); if (CD.audio) CD.audio.unlock(); pointers.set(e.pointerId, { el: e.target, btns: ['a'] }); recompute(); return; }
       const el = e.target.closest('[data-btn], #dpad');
       if (!el) return;
       e.preventDefault();

@@ -1,10 +1,46 @@
-# Grand Transit
+# Conducted: Copper Version
+
+A handheld-style train-collecting adventure that runs in the browser. Choose Steamini, Sparkart or Diesling in Piston Town, cross Route 1 to Coal Harbor, battle and couple on wild trains in the tall grass and the weedy rail yards, and take the Harbor Badge from Captain Marina.
+
+Every tile, building, character, train and effect is drawn from code into a 240x160 framebuffer, and every song is written as note text and synthesized with Web Audio. The game loads no image or audio files.
+
+Play it at `index.html` through a local server:
+
+```bash
+python3 -m http.server 8765
+```
+
+Then open `http://127.0.0.1:8765/`. Keyboard: arrows or WASD move, Z confirms, X cancels (hold to run), Enter opens the menu. Phones and tablets get an on-screen pad.
+
+## What is in it
+
+- 151 train species built from locomotive anatomy (boilers, hoods, bogies, face plates), with types, stats, learnsets, evolutions and Traindex entries
+- eight train types and conducted's 8 by 8 matchup chart, 70 moves, stat stages, and burn, paralysis, poison, sleep, confusion and flinching
+- wild encounters in tall grass and yards, trainers who spot you, rival and gym battles, and a trainer AI that weighs power, type and accuracy
+- catching with TRAINBALLS, a party of six, depot storage, EXP, level-ups, move learning and evolution (B cancels it)
+- Piston Town, Route 1 and Coal Harbor with seamless map edges, level crossings where freight trains pass, eight interiors, the depot, the mart and the gym
+- a soundtrack of looping town, route, battle and gym themes plus jingles
+- save and load in browser storage
+
+## How it is built
+
+`copper/src/core` holds the framebuffer, font, input, scene loop and synthesizer; `copper/src/art` the terrain, buildings, props, characters, train creatures and battle effects; `copper/src/data` the maps, species, moves, types, items and music; `copper/src/game` the overworld, battles, menus and saves; `copper/src/scripts` the story, trainers and town services. The root `index.html` and `copper/index.html` load the same scripts.
+
+Nothing outside `main.js` touches the DOM, so the whole game runs headless in Node. The tests drive it with button presses, from the title screen to the Harbor Badge:
+
+```bash
+for t in copper/tests/*.test.js; do node "$t"; done
+```
+
+## Grand Transit (earlier prototype)
+
+The earlier Grand Transit prototype is still playable at `grand-transit.html`.
 
 Grand Transit is a zero-dependency browser RPG about collecting, training, and battling 151 train species. The campaign spans eight railway districts, Team Derail's sabotage plot, eight Stationmasters, four Elite Conductors, and the Champion.
 
 The game runs in an HTML5 Canvas. It uses procedural pixel art and Web Audio synthesis. It does not fetch images, music, libraries, or game data from external services.
 
-## Start the game
+### Start the game
 
 Serve the repository through a local web server so browsers can load every asset consistently.
 
@@ -12,9 +48,9 @@ Serve the repository through a local web server so browsers can load every asset
 python3 -m http.server 8765
 ```
 
-Open `http://127.0.0.1:8765/index.html`.
+Open `http://127.0.0.1:8765/grand-transit.html`.
 
-## Controls
+### Controls
 
 Desktop controls:
 
@@ -25,7 +61,7 @@ Desktop controls:
 
 Touch devices show a directional pad and A and B buttons below the game screen.
 
-## Campaign
+### Campaign
 
 Choose Steamini, Sparkart, or Diesling in Piston Town. The main line then crosses these districts:
 
@@ -40,13 +76,13 @@ Choose Steamini, Sparkart, or Diesling in Piston Town. The main line then crosse
 
 Each district has a route, trainers, wild encounters, a city, and a Stationmaster battle. Team Derail blocks key routes during the middle chapters. Eight badges open Grand Terminus, where the Elite Conductors and Champion wait.
 
-## Visual direction
+### Visual direction
 
 The runtime art is drawn procedurally at a crisp 16-pixel tile scale. Each district has its own material palette, architecture, track furniture, vegetation, signs, platforms, and station details. Battles take place in an iron-and-glass terminal arena, where the eight train types use distinct creature silhouettes and every species receives deterministic body, wheel, cargo, crest, and color variation.
 
 The surrounding interface is designed as a railway dispatch cabinet on desktop and a compact handheld control deck on mobile. No runtime artwork depends on a network request.
 
-## Collection and progression
+### Collection and progression
 
 The game includes:
 
@@ -60,13 +96,13 @@ The game includes:
 - 0 to 15 individual values and Gen 1 stat experience
 - shops, field items, battle items, healing depots, money, and blackout penalties
 
-## Battle rules
+### Battle rules
 
 Battles use the Gen 1 base damage structure, 1.5 times same-type attack bonus, a 6.25% base critical rate, and a random damage factor from 217 to 255. The engine also supports stat stages, accuracy, evasion, poison, burn, paralysis, confusion, flinching, recoil, recharge turns, fixed damage, and multi-hit moves.
 
 Trainer AI scores move power, accuracy, same-type bonus, type effectiveness, status value, and the opponent's remaining HP. It adds a small random factor so repeated battles do not use an identical script.
 
-## Saving
+### Saving
 
 The game saves to browser local storage every 30 seconds. The field controls also provide manual save, load, export, and import actions.
 
@@ -93,30 +129,7 @@ The code lives in `js/dispatch/`: `logic.js` (track graph, switching, signals, t
 node tests/dispatch-logic.test.js
 ```
 
-## Copper Version (in development)
-
-`copper/` is a ground-up rebuild of the train-collecting RPG as a handheld-style
-adventure, with Steamini as the starter. It renders into a 240x160 framebuffer and
-draws every tile, building, character and train from code; every song is written
-as note text and synthesized with Web Audio. There are no image or audio files.
-
-Play it at `copper/index.html` through the local server above. Keyboard: arrows or
-WASD move, Z confirms, X cancels (hold to run), Enter opens the menu. Phones get an
-on-screen pad.
-
-Layout: `copper/src/core` (framebuffer, font, input, scene loop, synthesizer),
-`copper/src/art` (terrain, buildings, props, characters, train creatures),
-`copper/src/data` (maps, species, moves, types, items, music), `copper/src/game`
-(overworld, UI, menus, saves) and `copper/src/scripts` (story events).
-
-Because nothing touches the DOM outside `main.js`, the whole game runs headless in
-Node. The tests drive it with button presses:
-
-```bash
-for t in copper/tests/*.test.js; do node "$t"; done
-```
-
-## Project structure
+## Grand Transit project structure
 
 The main browser runtime lives in `js/`:
 
