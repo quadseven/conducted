@@ -361,7 +361,15 @@
   // Extras shared by all plans: spikes, horns, wings, crest, sparks
   function extras(cv, s, k, fc) {
     if (s.horn) poly(cv, [fc.fx - 2, fc.fy - 6 * k, fc.fx - 12 * k, fc.fy - 12 * k, fc.fx + 2, fc.fy - 10 * k], s.hornCol || '#e8e4dc');
-    if (s.spikes) { for (let i = 0; i < s.spikes; i++) { const x = 32 - (s.len * k) / 2 + (s.len * k) * (0.3 + i * 0.5 / s.spikes); const y = s.spikeY !== undefined ? s.spikeY : 22; poly(cv, [x, y + 6, x + 3 * k, y - 4 * k, x + 6 * k, y + 6], s.spikeCol || shade(s.col, -0.2)); } }
+    if (s.spikes) {
+      // each spike sits on the body's top edge at its column
+      const top = x => { x = Math.round(x); for (let y = 0; y < SZ; y++) if (cv.tone[y * SZ + x] >= 0) return y; return 30; };
+      for (let i = 0; i < s.spikes; i++) {
+        const x = 32 - (s.len * k) / 2 + (s.len * k) * (0.3 + i * 0.5 / s.spikes);
+        const y = top(x + 3 * k) + 2;
+        poly(cv, [x, y + 1, x + 3 * k, y - 6 * k, x + 6 * k, y + 1], s.spikeCol || shade(s.col, -0.2));
+      }
+    }
     if (s.wings) { poly(cv, [36, 30, 58, 14, 60, 22, 52, 32, 40, 36], s.wingCol || '#e8e4f0'); poly(cv, [40, 34, 62, 28, 56, 38, 42, 40], shade(s.wingCol || '#e8e4f0', -0.1)); }
     if (s.crest) poly(cv, [fc.fx + 4, fc.fy - 10 * k, fc.fx + 10 * k, fc.fy - 20 * k, fc.fx + 14 * k, fc.fy - 10 * k], s.crest);
   }

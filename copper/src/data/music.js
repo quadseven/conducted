@@ -124,6 +124,73 @@
     chart: ['Em', 'C', 'D', 'B', 'Em', 'C', 'Am', 'B'],
   });
 
+
+  // ---------------------------------------------------------------- Battles
+  song('wild', {
+    bpm: 160, arp: 'sixteenths', arpOct: 4, arpVol: 5, arpDuty: 0, bass: 'pump', bassOct: 2, drum: 'drive', drumVol: 7, fill: 'march',
+    intro: ['E', 'B'],
+    lead: `v11 @1 q7 o5 r1 r2 b8 >d8 e8 f+8< |
+      e8 g8 b8 >e4 d8< b8 g8  e8 g8 >c4< b8 g8 e4  f+8 a8 >d4 c8< a8 f+8 d8  d+8 f+8 b4 a8 f+8 d+4
+      e4 b4 >e8 d8 c8< b8  >c4 e4 d8 c8< b8 a8  a4 >c4 e8 d8 c8< a8  b2 >d+4 f+4<
+      >c4< g4 e8 f+8 g8 a8  b4 a8 g8 f+4 d4  f+4 b4 >d8 c+8< b8 a8  g4 e4 b2
+      >c8< b8 a8 g8 e4 g4  a8 g8 f+8 e8 d4 f+4  d+4 f+4 a4 >c4<  b2 r4 b4`,
+    chart: ['Em', 'C', 'D', 'B', 'Em', 'C', 'Am', 'B', 'C', 'D', 'Bm', 'Em', 'C', 'D', 'B', 'B'],
+  });
+  song('trainer', {
+    bpm: 152, arp: 'sixteenths', arpOct: 4, arpVol: 5, arpDuty: 0, bass: 'pump', bassOct: 2, drum: 'drive', drumVol: 7, fill: 'march',
+    intro: ['Am', 'E'],
+    lead: `v11 @1 q7 o5 r1 r2 e8 g+8 b8 >d8< |
+      a8 >c8 e8 a4 g8 e8 c8<  a8 >c8 f4 e8 c8< a4  b8 >d8 g4 f8 d8< b4  g+8 b8 >e4 d8< b8 g+4
+      a4 e4 a8 b8 >c8 d8<  >e4 d8 c8< a4 f4  f4 a4 >d8 c8< a8 f8  e2 g+4 b4
+      >c4< a8 >c8 f4 e4<  >d4< b8 >d8 g4 f4<  e4 g4 b8 a8 g8 e8  a2 >c4 e4<
+      >d8 c8< a8 f8 d4 f4  e8 f8 g+8 a8 b4 >d4<  >c4< a4 e4 c4  <b2 >e4 g+4`,
+    chart: ['Am', 'F', 'G', 'E', 'Am', 'F', 'Dm', 'E', 'F', 'G', 'Em', 'Am', 'Dm', 'E', 'Am', 'E'],
+  });
+  song('leader', {
+    bpm: 164, arp: 'sixteenths', arpOct: 4, arpVol: 5, arpDuty: 0, bass: 'pump', bassOct: 2, drum: 'drive', drumVol: 8, fill: 'march',
+    intro: ['Cm', 'G'],
+    lead: `v11 @1 q7 o5 r1 r2 g8 a-8 b8 >d8< |
+      c8 e-8 g8 >c4< g8 e-8 c8  c8 e-8 a-4 g8 e-8 c4  d8 f8 b-4 a-8 f8 d4  b8 >d8 g4 f8 d8< b4
+      >c4< g4 e-8 f8 g8 a-8  g4 e-4 c8 d8 e-8 c8  f4 a-4 >c8< b-8 a-8 f8  g2 b4 >d4<
+      >e-4 c8< a-8 >c4< a-4  >f4 d8< b-8 >d4< b-4  g4 b-4 >d8 c8< b-8 g8  >c2< g4 e-4
+      a-8 b-8 >c8 e-8 d4 c4<  b-8 >c8 d8 f8 e-4 d4<  b4 >d4 g4 f4<  g2 r4 g4`,
+    chart: ['Cm', 'Ab', 'Bb', 'G', 'Cm', 'Ab', 'Fm', 'G', 'Ab', 'Bb', 'Gm', 'Cm', 'Ab', 'Bb', 'G', 'G'],
+  });
+  song('rival', {
+    bpm: 136, arp: 'stab', arpOct: 4, arpVol: 6, bass: 'pump', bassOct: 2, drum: 'drive', drumVol: 6,
+    lead: `v11 @1 q7 o5 |
+      g8 b8 >d8< b8 >g4 d4<  e8 g8 >c8< g8 >e4 c4<  f+8 a8 >d8< a8 >f+4 d4<  >g8 f+8 e8 d8< b4 g4
+      e8 g8 b8 >e8 d4< b4  >c8< b8 a8 g8 e4 c4  d8 e8 f+8 g8 a8 b8 >c8 d8<  d4 a4 f+4 d4`,
+    chart: ['G', 'C', 'D', 'G', 'Em', 'C', 'D', 'D'],
+  });
+  song('spotted', {
+    bpm: 140, arp: 'stab', arpOct: 4, arpVol: 5, bass: 'pump', bassOct: 2, drum: 'drive', drumVol: 6,
+    lead: `v11 @1 q6 o5 | a8 >c8 e8 c8< a8 >c8 e8 c8<  g+8 b8 >e8< b8 g+8 b8 >e8< b8`,
+    chart: ['Am', 'E'],
+  });
+  song('victoryWild', {
+    bpm: 120, arp: 'up8', arpOct: 4, arpVol: 5, bass: 'root5', bassOct: 3, drum: 'soft', drumVol: 4,
+    intro: ['C', 'G'],
+    lead: `v11 @1 q7 o5 g8 g8 g8 >c2 r8 < e4 d4 c2 | e4 g4 >c4< g4  a4 >c4< a4 f4  f4 a4 g4 f4  e4 d4 c2`,
+    chart: ['C', 'Am', 'F', 'G'],
+  });
+  song('victoryTrainer', {
+    bpm: 124, arp: 'up8', arpOct: 4, arpVol: 5, bass: 'root5', bassOct: 3, drum: 'soft', drumVol: 4,
+    intro: ['F', 'C'],
+    lead: `v11 @1 q7 o5 c8 c8 c8 f2 r8  a4 g4 f2 | a4 >c4 f4 c4<  d4 f4 a4 f4  d4 f4 e4 d4  c4 e4 f2`,
+    chart: ['F', 'Dm', 'Bb', 'C'],
+  });
+  CD.audio.define('levelup', { bpm: 140, loop: false, ch: [
+    'v11 @1 q7 o5 c8 e8 g8 >c4< g8 >c4',
+    'v7 @0 q7 o4 e8 g8 >c8 e4< e8 g4',
+    'v12 @3 q7 o3 c4 g4 c4 c4',
+  ] });
+  CD.audio.define('caught', { bpm: 132, loop: false, ch: [
+    'v11 @1 q7 o5 g8 a8 b8 >c4< b8 >c8 e8 g2 r2',
+    'v7 @0 q7 o4 e8 f8 g8 a4 g8 a8 >c8 e2 r2',
+    'v12 @3 q7 o3 c4 g4 f4 g4 c2 r2',
+  ] });
+
   // ---------------------------------------------------------------- Jingles (no loop)
   CD.audio.define('heal', { bpm: 120, loop: false, ch: [
     'v11 @1 q7 o5 c8 e8 g8 >c4< g8 >c4 e4 c2',

@@ -356,7 +356,9 @@
     CD.font.draw(s, b.text, 18, y + 6, P.ink);
   }
 
+  // Back from a battle or menu: restore the map's music without re-running its enter script
+  function resume() { const m = map(); if (m.music) CD.audio.music(typeof m.music === 'function' ? m.music(CD.state) : m.music); }
   function emote(who, kind, frames) { ow.emotes.push({ who, kind: kind || '!', t: frames || 50 }); }
 
-  CD.overworld = { scene, enterMap, walk, face, faceToward, npc, script, emote, pixel, map, doWarp, interact, drawWorld, startStep };
+  CD.overworld = { scene, enterMap, resume, walk, face, faceToward, npc, script, emote, pixel, map, doWarp, interact, drawWorld, startStep };
 })(window.CD);
