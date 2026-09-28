@@ -43,7 +43,7 @@
         F.draw(s, 'L' + t.level, 108, y + 6, P.ink);
         if (t.status) { const tag = { brn: 'BRN', par: 'PAR', psn: 'PSN', slp: 'SLP' }[t.status]; F.draw(s, tag, 128, y + 6, P.red); }
         if (t.hp <= 0) F.draw(s, 'STALL', 128, y + 6, P.red);
-        hpBar(s, 152, y + 7, 44, t.hp / t.stats.hp);
+        hpBar(s, 162, y + 7, 36, t.hp / t.stats.hp);
         F.drawRight(s, t.hp + '/' + t.stats.hp, 230, y + 6, P.ink);
         if (this.opts.note) { const n = this.opts.note(t); if (n) F.drawRight(s, n, 230, y + 6, n === 'ABLE' ? P.blueD : P.red); }
       });
