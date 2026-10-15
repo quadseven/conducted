@@ -35,6 +35,25 @@ assert.strictEqual(CD.state.name, 'RUBY');
 assert.strictEqual(CD.state.x, 9); assert.strictEqual(CD.state.y, 20);
 assert.throws(() => CD.save.deserialize('{"v":999,"state":{}}'), /newer/, 'refuses saves from the future');
 assert.throws(() => CD.save.deserialize('nonsense'), 'refuses garbage');
+// Saves are validated before storage is replaced and can live in separate slots.
+const originalSlot = CD.save.serialize(CD.state);
+assert(CD.save.save(2).ok, 'second slot saves');
+CD.state.name = 'CHANGED';
+assert(CD.save.save(3).ok, 'third slot saves');
+assert.deepStrictEqual(CD.save.slots().map(s => s.slot), [1, 2, 3]);
+assert(CD.save.load(2).ok);
+assert.strictEqual(CD.state.name, 'RUBY');
+assert(CD.save.remove(3).ok);
+assert(!CD.save.slotExists(3));
+assert(CD.save.save(2).ok, 'replacement save succeeds');
+h.store.set(CD.save.slotKey(2), '{broken');
+assert(CD.save.load(2).ok, 'damaged current save recovers from backup');
+assert.strictEqual(CD.state.name, 'RUBY');
+const stable = h.store.get(CD.save.slotKey(2));
+CD.state.party = null;
+assert(!CD.save.save(2).ok, 'invalid state is rejected');
+assert.strictEqual(h.store.get(CD.save.slotKey(2)), stable, 'failed save leaves prior data intact');
+CD.state = CD.save.deserialize(originalSlot);
 // the title screen offers CONTINUE and drops you back where you saved
 {
   const g = H.load({ seed: 4 });
