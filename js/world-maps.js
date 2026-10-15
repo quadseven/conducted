@@ -926,6 +926,194 @@ for (const m of Object.values(WORLD_MAPS)) {
 
 console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
 
+// conducted#124: Diesel Den and Maglev Heights - handcrafted mid-game towns.
+// They occupy the City5/City6 slots of the Grand Transit chain:
+//   City4 -Route5-> DieselDen -Route6-> MaglevHeights -Route7-> City7
+// STORY.md sections 5/6: Diesel Den = "The Industrial Heart" (grimy factory
+// city, Diesel gym, train mod shop, underground fighting ring); Maglev Heights
+// = "Touching the Sky" (futuristic floating city, Maglev gym, space station,
+// weather research institute). The art-pass theme slot carries the
+// ART_DIRECTION_SPECS.md palette cues: 'foundry' (dark metal/soot/ember) and
+// 'sky' (cyan glow/maglev field). City5/City6 stay registered as aliases so
+// existing Grand Transit references keep resolving.
+(function installDieselDenMaglevHeights() {
+  const fillRectTiles = (tiles, x, y, w, h, value) => {
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) tiles[yy][xx] = value;
+  };
+  const frame = (tiles, value = 0) => {
+    const h = tiles.length, w = tiles[0].length;
+    for (let x = 0; x < w; x++) { tiles[0][x] = value; tiles[h - 1][x] = value; }
+    for (let y = 0; y < h; y++) { tiles[y][0] = value; tiles[y][w - 1] = value; }
+  };
+  const decorateBuilding = (x, y, w, h, kind, label, doorX) => ({ type: 'building', x, y, w, h, kind, label, doorX });
+  const computeCollisions = map => {
+    map.collisions = new Set();
+    for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
+      const idx = map.tiles[y][x];
+      if (idx === 0 || idx === 4 || idx === 5 || idx === 7) map.collisions.add(`${x},${y}`);
+    }
+  };
+  const say = (speaker, text) => [{ speaker, text }];
+
+  // Handcrafted town: north-south walkable corridor, east-west connector,
+  // blocked building rects with door tiles (12) carrying door metadata.
+  function townMap(id, name, theme, buildings, npcs, warps) {
+    const w = 20, h = 15, t = grid(w, h, 1);
+    frame(t, 0);
+    for (let y = 1; y < h - 1; y++) { t[y][9] = 3; t[y][10] = 3; }
+    t[0][9] = 3; t[0][10] = 3; t[h - 1][9] = 3; t[h - 1][10] = 3;
+    for (let x = 1; x < w - 1; x++) t[7][x] = 3;
+    const decorations = [];
+    for (const b of buildings) {
+      fillRectTiles(t, b.x, b.y, b.w, b.hh, 0);
+      if (b.door) {
+        const [dx, dy] = b.door;
+        t[dy][dx] = 12;
+        t[dy + 1][dx] = 3;
+      }
+      decorations.push(decorateBuilding(b.x, b.y, b.w, b.hh, b.kind, b.label, b.door ? b.door[0] : b.x));
+    }
+    const map = {
+      id, name, theme, decorations, npcs: npcs || [], warps: warps || [],
+      width: w, height: h, tiles: t,
+      getTile(x, y) { return x < 0 || y < 0 || x >= this.width || y >= this.height ? 0 : this.tiles[y][x]; },
+      isWalkable(x, y) {
+        if (this.npcs.some(n => n.x === x && n.y === y && !n.hidden)) return false;
+        return [1, 2, 3, 6, 12].includes(this.getTile(x, y));
+      },
+      checkForEncounter() { return false; }
+    };
+    computeCollisions(map);
+    return map;
+  }
+
+  function stubInterior(id, name, returnMapId, returnX, returnY, attendant, line) {
+    const t = boxed(8, 8, 0, 1);
+    t[7][4] = 12;
+    const map = {
+      id, name, theme: 'interior', decorations: [],
+      npcs: attendant ? [{
+        id: `${id}_attendant`, name: attendant, x: 4, y: 2, type: 'npc',
+        dialogue: say(attendant, line)
+      }] : [],
+      warps: [{ from: rect(4, 7), to: { mapId: returnMapId, ...pos(returnX, returnY, 'down') } }],
+      width: 8, height: 8, tiles: t,
+      getTile(x, y) { return x < 0 || y < 0 || x >= this.width || y >= this.height ? 0 : this.tiles[y][x]; },
+      isWalkable(x, y) {
+        if (this.npcs.some(n => n.x === x && n.y === y && !n.hidden)) return false;
+        return [1, 12].includes(this.getTile(x, y));
+      },
+      checkForEncounter() { return false; }
+    };
+    computeCollisions(map);
+    return map;
+  }
+
+  function gymLeader(id, name, x, y, badge, party, intro) {
+    return {
+      id, name, x, y, type: 'gym_leader', canBattle: true, defeated: false,
+      badge, baseReward: 150, party,
+      dialogue: say(name, intro),
+      defeatDialogue: say(name, 'You kept your timetable. The badge is yours!')
+    };
+  }
+
+  // --- Diesel Den: "The Industrial Heart" ---
+  WORLD_MAPS.DieselDen = townMap('DieselDen', 'Diesel Den', 'foundry', [
+    { x: 2, y: 2, w: 4, hh: 3, kind: 'shop', label: 'DIESEL MOD SHOP', door: [3, 4] },
+    { x: 13, y: 2, w: 4, hh: 3, kind: 'arena', label: 'UNDERGROUND FIGHTING RING', door: [15, 4] },
+    { x: 2, y: 9, w: 4, hh: 3, kind: 'depot', label: 'SCRAP BUNKER' },
+    { x: 13, y: 9, w: 4, hh: 3, kind: 'gym', label: 'DIESEL GYM', door: [15, 11] }
+  ], [
+    gymLeader('gym_leader_torque', 'Boss Torque', 14, 12, 'Piston Badge',
+      [{ speciesId: 64, level: 30 }, { speciesId: 66, level: 32 }, { speciesId: 69, level: 34 }],
+      'Hah! My diesel freighters will grind you into scrap!'),
+    {
+      id: 'dieselden_mechanic', name: 'Mod Mechanic', x: 3, y: 6, type: 'npc',
+      dialogue: say('Mod Mechanic', 'We bolt, weld, and overclock every engine that rolls through.')
+    },
+    {
+      id: 'dieselden_brawler', name: 'Ring Brawler', x: 15, y: 6, type: 'npc',
+      dialogue: say('Ring Brawler', 'The fighting ring runs all night. Bring your toughest train.')
+    }
+  ], [
+    { from: rect(3, 4), to: { mapId: 'DieselModShop', ...pos(4, 6, 'down') } },
+    { from: rect(15, 4), to: { mapId: 'FightingRing', ...pos(4, 6, 'down') } },
+    { from: rect(15, 11), to: { mapId: 'Gym5', ...pos(6, 10, 'up') } },
+    { from: rect(9, 0, 2, 1), to: { mapId: 'Route5', ...pos(10, 22, 'up') } },
+    { from: rect(9, 14, 2, 1), to: { mapId: 'Route6', ...pos(10, 1, 'down') } }
+  ]);
+  WORLD_MAPS.DieselDen.decorations.push({ type: 'sign', x: 8, y: 8 });
+  WORLD_MAPS.DieselModShop = stubInterior('DieselModShop', 'Diesel Mod Shop', 'DieselDen', 3, 5,
+    'Shopkeeper Wrench', 'Custom boilers, reinforced cowcatchers - name your upgrade.');
+  WORLD_MAPS.FightingRing = stubInterior('FightingRing', 'Underground Fighting Ring', 'DieselDen', 15, 5,
+    'Ring Announcer', 'Winner takes the scrap purse. Loser takes the walk of shame.');
+
+  // --- Maglev Heights: "Touching the Sky" ---
+  WORLD_MAPS.MaglevHeights = townMap('MaglevHeights', 'Maglev Heights', 'sky', [
+    { x: 2, y: 2, w: 4, hh: 3, kind: 'station', label: 'SPACE STATION', door: [3, 4] },
+    { x: 13, y: 2, w: 4, hh: 3, kind: 'lab', label: 'WEATHER RESEARCH INSTITUTE', door: [15, 4] },
+    { x: 2, y: 9, w: 4, hh: 3, kind: 'dock', label: 'SKY DOCK' },
+    { x: 13, y: 9, w: 4, hh: 3, kind: 'gym', label: 'MAGLEV GYM', door: [15, 11] }
+  ], [
+    gymLeader('gym_leader_aria', 'Sky Captain Aria', 14, 12, 'Levitation Badge',
+      [{ speciesId: 82, level: 36 }, { speciesId: 85, level: 38 }, { speciesId: 88, level: 40 }],
+      'Catch me if you can - my maglevs ride the wind itself!'),
+    {
+      id: 'maglevheights_scientist', name: 'Institute Scientist', x: 15, y: 6, type: 'npc',
+      dialogue: say('Institute Scientist', 'Our weather models predict clear rails for weeks.')
+    },
+    {
+      id: 'maglevheights_watcher', name: 'Star Watcher', x: 3, y: 6, type: 'npc',
+      dialogue: say('Star Watcher', 'Rare trains descend near the space station at night.')
+    }
+  ], [
+    { from: rect(3, 4), to: { mapId: 'SpaceStation', ...pos(4, 6, 'down') } },
+    { from: rect(15, 4), to: { mapId: 'WeatherInstitute', ...pos(4, 6, 'down') } },
+    { from: rect(15, 11), to: { mapId: 'Gym6', ...pos(6, 10, 'up') } },
+    { from: rect(9, 0, 2, 1), to: { mapId: 'Route6', ...pos(10, 22, 'up') } },
+    { from: rect(9, 14, 2, 1), to: { mapId: 'Route7', ...pos(10, 1, 'down') } }
+  ]);
+  WORLD_MAPS.MaglevHeights.decorations.push({ type: 'sign', x: 11, y: 8 });
+  WORLD_MAPS.SpaceStation = stubInterior('SpaceStation', 'Space Station', 'MaglevHeights', 3, 5,
+    'Station Chief Nova', 'Rare trains pass through the orbital dock. Keep your tickets ready.');
+  WORLD_MAPS.WeatherInstitute = stubInterior('WeatherInstitute', 'Weather Research Institute', 'MaglevHeights', 15, 5,
+    'Researcher Gale', 'We seed clouds so your rails never flood.');
+
+  // City5/City6 slots now resolve to the handcrafted towns.
+  WORLD_MAPS.City5 = WORLD_MAPS.DieselDen;
+  WORLD_MAPS.City6 = WORLD_MAPS.MaglevHeights;
+
+  // Rewire the chain through the new towns (standardized edge-warp connections).
+  const retarget = (mapId, oldTarget, newTarget, x, y, dir) => {
+    for (const w of (WORLD_MAPS[mapId].warps || [])) {
+      if (w.to.mapId === oldTarget) { w.to.mapId = newTarget; w.to.x = x; w.to.y = y; w.to.dir = dir; }
+    }
+  };
+  retarget('Route5', 'City5', 'DieselDen', 10, 0, 'down');
+  retarget('Route6', 'City5', 'DieselDen', 10, 13, 'down');
+  retarget('Route6', 'City6', 'MaglevHeights', 10, 0, 'down');
+  retarget('Route7', 'City6', 'MaglevHeights', 10, 13, 'down');
+  // Gym5/Gym6 keep their return warps, retargeted to the handcrafted towns.
+  retarget('Gym5', 'City5', 'DieselDen', 15, 12, 'down');
+  retarget('Gym6', 'City6', 'MaglevHeights', 15, 12, 'down');
+
+  // Encounter-range metadata the engine reads from the map registry.
+  const encounterRanges = [[1, 20], [16, 38], [31, 56], [45, 72], [64, 94], [82, 116], [103, 139], [124, 151]];
+  for (let n = 1; n <= 8; n++) WORLD_MAPS[`Route${n}`].encounterRange = encounterRanges[n - 1];
+
+  // Obstacles reserved for future track techniques (Surf/Cut analogs):
+  // water (5) and tree (7) tiles, kept clear of the rail path and NPCs.
+  const stamp = (mapId, waters, trees) => {
+    const map = WORLD_MAPS[mapId];
+    for (const [x, y, w, h] of waters) fillRectTiles(map.tiles, x, y, w, h, 5);
+    for (const [x, y, w, h] of trees) fillRectTiles(map.tiles, x, y, w, h, 7);
+    computeCollisions(map);
+  };
+  stamp('Route5', [[2, 5, 3, 3]], [[15, 15, 3, 3]]);
+  stamp('Route6', [[15, 10, 3, 3]], [[2, 5, 3, 3]]);
+})();
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { WORLD_MAPS, createRivalBlakeNPC, getRivalStarterId };
 }
