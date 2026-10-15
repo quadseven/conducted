@@ -8,42 +8,12 @@
     <div id="errors"></div>
     <div id="console-log"></div>
 
+    <!-- Capture all errors and console output. js/error-capture.js holds the
+         capture code so tests/error-page-escaping.test.js can drive the same
+         code the page runs, instead of a copy of it. -->
+    <script src="js/error-capture.js"></script>
     <script>
-        // Add one captured line to a panel. The text goes in through
-        // textContent, never by pasting it into innerHTML: an error message or a
-        // logged value is runtime input, and anything in it that looked like
-        // markup would otherwise be run as markup instead of shown.
-        function capture(panel, color, text) {
-            const line = document.createElement('p');
-            if (color) line.style.color = color;
-            line.textContent = text;
-            document.getElementById(panel).appendChild(line);
-        }
-
-        // Capture all errors
-        window.addEventListener('error', (e) => {
-            capture('errors', 'red', `ERROR: ${e.message} at ${e.filename}:${e.lineno}`);
-            console.error('Caught error:', e);
-        });
-
-        // Override console.log to display on page
-        const originalLog = console.log;
-        console.log = function(...args) {
-            originalLog.apply(console, args);
-            capture('console-log', null, args.join(' '));
-        };
-
-        const originalError = console.error;
-        console.error = function(...args) {
-            originalError.apply(console, args);
-            capture('errors', 'red', 'CONSOLE ERROR: ' + args.join(' '));
-        };
-
-        const originalWarn = console.warn;
-        console.warn = function(...args) {
-            originalWarn.apply(console, args);
-            capture('errors', 'orange', 'WARNING: ' + args.join(' '));
-        };
+        ErrorCapture.install(document, console, handler => window.addEventListener('error', handler));
     </script>
 
     <!-- Load scripts in order -->
