@@ -122,25 +122,31 @@ function createTestGame() {
     return game;
 }
 
+// Release before pressing so a held virtual key registers as a fresh press
+function pressKey(game, key) {
+    game.input.simulateKeyRelease(key);
+    game.input.simulateKeyPress(key);
+}
+
 // Test 1: Start button and mobile menu button open 4-core options menu
 function testMenuOpen() {
     const game = createTestGame();
     assert.equal(game.state, CONSTANTS.STATES.OVERWORLD);
 
     // Simulate pressing start on mobile
-    game.input.simulateKeyPress('start');
+    pressKey(game, 'start');
     game.updateOverworld(0.016);
     assert.equal(game.state, CONSTANTS.STATES.MENU, 'start button opens menu');
     assert.deepEqual([...game.menuOptions], ['BAG', 'TRAINS', 'SAVE', 'OPTIONS'], 'four core menu options');
     assert.equal(game.menuOverlay, null, 'no overlay open initially');
 
     // Dismiss menu
-    game.input.simulateKeyPress('b');
+    pressKey(game, 'b');
     game.updateMenu();
     assert.equal(game.state, CONSTANTS.STATES.OVERWORLD, 'B button dismisses menu');
 
     // Simulate pressing menu on mobile
-    game.input.simulateKeyPress('menu');
+    pressKey(game, 'menu');
     game.updateOverworld(0.016);
     assert.equal(game.state, CONSTANTS.STATES.MENU, 'menu button opens menu');
 
@@ -148,6 +154,15 @@ function testMenuOpen() {
     game.input.keyJustPressed['Escape'] = true;
     game.updateMenu();
     assert.equal(game.state, CONSTANTS.STATES.OVERWORLD, 'Escape dismisses menu');
+
+    // Start pressed again dismisses the menu
+    pressKey(game, 'start');
+    game.updateOverworld(0.016);
+    assert.equal(game.state, CONSTANTS.STATES.MENU, 'start reopens menu');
+    pressKey(game, 'start');
+    game.updateMenu();
+    assert.equal(game.state, CONSTANTS.STATES.OVERWORLD, 'start again dismisses menu');
+    assert.equal(game.menuOverlay, null, 'overlay state is reset after dismissal');
 }
 
 // Test 2: Selecting each of the four core options opens its respective overlay
@@ -157,53 +172,53 @@ function testOverlayNavigation() {
 
     // Option 0: BAG
     assert.equal(game.menuSelection, 0);
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.equal(game.menuOverlay, 'BAG', 'BAG overlay opens');
     assert.equal(game.bagMode, 'list');
 
     // Dismiss BAG overlay back to main menu
-    game.input.simulateKeyPress('b');
+    pressKey(game, 'b');
     game.updateMenu();
     assert.equal(game.menuOverlay, null, 'BAG overlay dismisses to menu');
     assert.equal(game.state, CONSTANTS.STATES.MENU);
 
     // Option 1: TRAINS
-    game.input.simulateKeyPress('down');
+    pressKey(game, 'down');
     game.updateMenu();
     assert.equal(game.menuSelection, 1);
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.equal(game.menuOverlay, 'TRAINS', 'TRAINS overlay opens');
 
     // Dismiss TRAINS overlay
-    game.input.simulateKeyPress('b');
+    pressKey(game, 'b');
     game.updateMenu();
     assert.equal(game.menuOverlay, null, 'TRAINS overlay dismisses to menu');
 
     // Option 2: SAVE
-    game.input.simulateKeyPress('down');
+    pressKey(game, 'down');
     game.updateMenu();
     assert.equal(game.menuSelection, 2);
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.equal(game.menuOverlay, 'SAVE', 'SAVE overlay opens');
 
     // Dismiss SAVE overlay
-    game.input.simulateKeyPress('b');
+    pressKey(game, 'b');
     game.updateMenu();
     assert.equal(game.menuOverlay, null, 'SAVE overlay dismisses to menu');
 
     // Option 3: OPTIONS
-    game.input.simulateKeyPress('down');
+    pressKey(game, 'down');
     game.updateMenu();
     assert.equal(game.menuSelection, 3);
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.equal(game.menuOverlay, 'OPTIONS', 'OPTIONS overlay opens');
 
     // Dismiss OPTIONS overlay
-    game.input.simulateKeyPress('b');
+    pressKey(game, 'b');
     game.updateMenu();
     assert.equal(game.menuOverlay, null, 'OPTIONS overlay dismisses to menu');
 }
@@ -216,18 +231,18 @@ function testBagUseItem() {
     game.player.items.potion = 2;
 
     game.setState(CONSTANTS.STATES.MENU);
-    game.input.simulateKeyPress('a'); // Open BAG
+    pressKey(game, 'a'); // Open BAG
     game.updateMenu();
     assert.equal(game.menuOverlay, 'BAG');
     assert.equal(game.bagMode, 'list');
 
     // Select potion (index 0)
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.equal(game.bagMode, 'use_on_train', 'enters train selection for item');
 
     // Use on party member 0
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.ok(train.currentHP > 10, 'train is healed by potion');
     assert.equal(game.player.items.potion, 1, 'potion count decremented');
@@ -246,7 +261,7 @@ function testTrainsMenuStatsAndMoves() {
 
     game.setState(CONSTANTS.STATES.MENU);
     game.menuSelection = 1; // TRAINS
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.equal(game.menuOverlay, 'TRAINS');
     assert.equal(game.trainSelection, 0);
@@ -263,12 +278,12 @@ function testSaveMenu() {
     const game = createTestGame();
     game.setState(CONSTANTS.STATES.MENU);
     game.menuSelection = 2; // SAVE
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.equal(game.menuOverlay, 'SAVE');
 
     // Confirm YES (selection 0)
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.ok(game.saveMessage.includes('saved'), 'save confirmation message shown');
 
@@ -282,23 +297,23 @@ function testOptionsMenu() {
     const game = createTestGame();
     game.setState(CONSTANTS.STATES.MENU);
     game.menuSelection = 3; // OPTIONS
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.equal(game.menuOverlay, 'OPTIONS');
 
     // Option 0: Audio toggle
     assert.equal(game.optionsSelection, 0);
     const initialMuted = game.audio.muted;
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.equal(game.audio.muted, !initialMuted, 'audio toggle switches muted state');
 
     // Option 1: Text speed toggle
-    game.input.simulateKeyPress('down');
+    pressKey(game, 'down');
     game.updateMenu();
     assert.equal(game.optionsSelection, 1);
     const initialSpeed = game.textSpeedSetting;
-    game.input.simulateKeyPress('a');
+    pressKey(game, 'a');
     game.updateMenu();
     assert.notEqual(game.textSpeedSetting, initialSpeed, 'text speed toggled');
 }
@@ -308,24 +323,24 @@ function testCleanDismissal() {
     const game = createTestGame();
     game.setState(CONSTANTS.STATES.MENU);
     game.menuSelection = 0;
-    game.input.simulateKeyPress('a'); // Open BAG
+    pressKey(game, 'a'); // Open BAG
     game.updateMenu();
     assert.equal(game.menuOverlay, 'BAG');
 
     // Cancel back to main menu
-    game.input.simulateKeyPress('b');
+    pressKey(game, 'b');
     game.updateMenu();
     assert.equal(game.menuOverlay, null);
     assert.equal(game.state, CONSTANTS.STATES.MENU);
 
     // Cancel back to overworld
-    game.input.simulateKeyPress('b');
+    pressKey(game, 'b');
     game.updateMenu();
     assert.equal(game.state, CONSTANTS.STATES.OVERWORLD);
     assert.equal(game.player.isMoving, false);
 
     // Overworld movement works cleanly afterwards
-    game.input.simulateKeyPress('right');
+    pressKey(game, 'right');
     game.updateOverworld(0.016);
     assert.equal(game.player.direction, CONSTANTS.DIRECTIONS.RIGHT);
 }
