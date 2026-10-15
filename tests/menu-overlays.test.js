@@ -352,7 +352,7 @@ function testOverlaysSkipEmptySlots() {
     game.player.party = [null, new Train(1, 10)];
     assert.doesNotThrow(() => UI.drawTrainsOverlay(ctx, game.player, 0), 'trains overlay skips null slot');
     assert.doesNotThrow(() => UI.drawTrainsOverlay(ctx, game.player, 5), 'trains overlay handles bad selection');
-    assert.doesNotThrow(() => UI.drawItemTargetOverlay(ctx, game.player, 'potion', 1), 'item target skips null slot');
+    assert.doesNotThrow(() => UI.drawBagUseOnTrain(ctx, game.player, 1, 'potion'), 'item target skips null slot');
 }
 
 testMenuOpen();
