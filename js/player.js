@@ -134,6 +134,24 @@ class Player {
         return false;
     }
 
+    depositTrain(index) {
+        const train = this.party[index];
+        if (!train) return 'Select a train to deposit.';
+        if (this.party.filter((member, memberIndex) => memberIndex !== index && !member.fainted).length === 0) {
+            return 'Keep at least one healthy train in your crew.';
+        }
+        this.storage.push(this.party.splice(index, 1)[0]);
+        return 'Train deposited.';
+    }
+
+    withdrawTrain(index) {
+        const train = this.storage[index];
+        if (!train) return 'Select a stored train to withdraw.';
+        if (this.party.length >= CONSTANTS.MAX_PARTY_SIZE) return 'Your crew is full.';
+        this.party.push(this.storage.splice(index, 1)[0]);
+        return 'Train withdrawn.';
+    }
+
     registerSeen(speciesId) {
         if (!this.seenSpecies.includes(speciesId)) this.seenSpecies.push(speciesId);
     }

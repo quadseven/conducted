@@ -23,6 +23,8 @@ jobs:
         run: node tests/core-integrity.test.js
       - name: Starter selection
         run: node tests/starter-selection.test.js
+      - name: Train storage
+        run: node tests/train-storage.test.js
       - name: Runaway Junction logic, art and music
         run: node tests/dispatch-logic.test.js
       - name: Copper Version syntax check
