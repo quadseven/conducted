@@ -134,6 +134,37 @@ assert.strictEqual(B.stageMult(2), 2); assert.strictEqual(B.stageMult(-2), 0.5);
   assert.strictEqual(move.name, 'Struggle');
 }
 
+// ---- party switching, forced replacements and trainer post-faint swaps ----
+{
+  const lead = mk(1, 12, ['Ram']), reserve = mk(58, 12, ['Ram']);
+  const foe = mk(10, 12, ['Ram']);
+  reserve.status = 'psn';
+  const b = B.create([lead, reserve], [foe]);
+  const switched = B.runTurn(b, { kind: 'switch', i: 1 }, { kind: 'move', i: 0 });
+  assert.strictEqual(B.act(b.sides[0]), reserve, 'player can switch to a living party member');
+  assert(switched.some(e => e.t === 'hp' && e.side === 0), 'enemy takes its turn after a voluntary switch');
+
+  reserve.hp = 0;
+  const faint = B.runTurn(b, { kind: 'move', i: 0 }, { kind: 'move', i: 0 });
+  assert(faint.some(e => e.t === 'faint' && e.side === 0), 'active train faint is reported');
+  assert.strictEqual(b.needPlayerSwitch, true, 'living reserve requires player replacement');
+  assert.strictEqual(b.over, false, 'battle continues while a living reserve remains');
+  const replacement = B.replace(b, 0, 0);
+  assert.strictEqual(B.act(b.sides[0]), lead, 'replacement becomes active');
+  assert.strictEqual(b.needPlayerSwitch, false, 'replacement clears forced switch state');
+  assert(replacement.some(e => e.t === 'send' && e.side === 0), 'replacement sends out selected train');
+
+  const trainer = B.create([mk(1, 30, ['Pressure Blast'])], [mk(10, 3, ['Ram']), mk(58, 3, ['Ram'])], {
+    kind: 'trainer', trainer: { name: 'TRAINER' }
+  });
+  while (trainer.sides[1].party[0].hp > 0) B.runTurn(trainer, { kind: 'move', i: 0 }, { kind: 'move', i: 0 });
+  assert.strictEqual(trainer.needEnemySwitch, true, 'trainer faints prompt a post-faint swap');
+  assert.strictEqual(B.nextEnemy(trainer), 1, 'next enemy is next available train');
+  B.replace(trainer, 1, B.nextEnemy(trainer));
+  assert.strictEqual(B.act(trainer.sides[1]), trainer.sides[1].party[1], 'trainer replacement is active');
+  assert.strictEqual(trainer.needEnemySwitch, false, 'trainer replacement clears pending state');
+}
+
 // ---- a whole wild battle through the scene, driven by buttons ----
 {
   const g = H.load({ seed: 21 });
@@ -152,6 +183,31 @@ assert.strictEqual(B.stageMult(2), 2); assert.strictEqual(B.stageMult(-2), 0.5);
   assert(star.exp > C.train.expAt('mslow', 12), 'the starter earned EXP');
   assert.strictEqual(C.state.dex.seen[10], true, 'wild train registered as seen');
   assert.strictEqual(C.audio.current, 'route1', 'route music resumes');
+}
+// ---- trainer party replacement completes through the battle scene ----
+{
+  const g = H.load({ seed: 31 });
+  const C = g.CD;
+  C.newState();
+  C.state.party.push(C.train.make(1, 20, { moves: ['Pressure Blast'] }));
+  C.overworld.enterMap('Route1', 4, 3, 'down', { quiet: true });
+  C.engine.push(C.overworld.scene);
+  g.step(2);
+  const enemies = [C.train.make(10, 3), C.train.make(58, 3)];
+  let result = null;
+  C.overworld.script(function* () {
+    result = yield* C.battleScene.battle({ kind: 'trainer', enemy: enemies,
+      trainer: { name: 'TRAINER', cls: '', prize: 1 } });
+  }(), 'trainer-switch');
+  let frames = 0;
+  while (C.ow.locked && frames < 20000) {
+    if (frames % 5 === 0) g.press('a', 1); else g.step(1);
+    frames++;
+  }
+  assert(!C.ow.locked, 'trainer battle returns to the map after replacement');
+  assert.strictEqual(result, 'win', 'trainer battle finishes with a win');
+  assert.strictEqual(enemies[0].hp, 0, 'first trainer train was defeated');
+  assert.strictEqual(enemies[1].hp, 0, 'replacement trainer train was defeated');
 }
 // ---- catching through the scene: BAG -> TRAINBALL -> caught -> no nickname ----
 {
