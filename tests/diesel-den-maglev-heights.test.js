@@ -135,8 +135,10 @@ for (const id of ['Route5', 'Route6']) {
 }
 
 // 7. Encounter tables and trainer stubs for mid-to-late game tuning.
-assert.deepEqual(result.encounters.Route5, [64, 94], 'Route5 keeps its mid-game encounter table');
-assert.deepEqual(result.encounters.Route6, [82, 116], 'Route6 keeps its late-mid-game encounter table');
+// Array.from: the encounter arrays live in the vm realm, whose Array prototype
+// never deep-equals the test realm's (same workaround as coal-harbor-interiors).
+assert.deepEqual(Array.from(result.encounters.Route5), [64, 94], 'Route5 keeps its mid-game encounter table');
+assert.deepEqual(Array.from(result.encounters.Route6), [82, 116], 'Route6 keeps its late-mid-game encounter table');
 assert.ok(result.trainers.Route5 >= 2, 'Route5 needs trainer stubs');
 assert.ok(result.trainers.Route6 >= 2, 'Route6 needs trainer stubs');
 
