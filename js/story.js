@@ -8,7 +8,9 @@ const STORY_EVENTS = Object.freeze([
     { id: "final_rival", requires: ["Crown Badge", "derailDefeated"], trigger: { map: "GrandTerminus", x: 6, y: 26 }, battle: "rival_blake:4", sets: "rivalFinalDefeated" },
     { id: "league", requires: ["rivalFinalDefeated"], trigger: { map: "GrandTerminus", x: 6, y: 2 }, dialogue: ["Eight badges open the Grand Gate. Four Conductors and the Champion await."], sets: "leagueOpen" },
     { id: "champion", requires: ["defeated_radia"], trigger: { map: "GrandTerminus", x: 6, y: 4 }, battle: "champion_cypress", sets: "gameComplete" },
-    { id: "epilogue", requires: ["gameComplete"], trigger: { map: "PistonTown", x: 10, y: 8 }, dialogue: ["The network is whole again. Every whistle across the region salutes its new Champion.", "THE END - The rails continue wherever you choose to travel."], sets: "epilogueSeen" }
+    { id: "credits", requires: ["gameComplete"], trigger: { map: "GrandTerminus", x: 6, y: 4 }, dialogue: ["The Grand Transit is whole again.", "CREDITS - The rails continue wherever you choose to travel."], sets: "creditsSeen" },
+    { id: "epilogue", requires: ["creditsSeen"], trigger: { map: "PistonTown", x: 10, y: 8 }, dialogue: ["The network is whole again. Every whistle across the region salutes its new Champion."], sets: "epilogueSeen" },
+    { id: "postgame", requires: ["epilogueSeen"], trigger: { map: "GrandTerminus", x: 10, y: 3 }, dialogue: ["Old Iron is ready for a rematch. Legendary trains have returned to their known habitats."], sets: "postgameUnlocked" }
 ]);
 
 function availableStoryEvents(flags, map, x, y) {

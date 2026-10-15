@@ -753,6 +753,45 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     WORLD_MAPS[`Gym${n}`] = makeGym(n);
   }
 
+  const victoryRoadTiles = grid(20, 24, 2);
+  for (let y = 0; y < 24; y++) {
+    victoryRoadTiles[y][0] = 0;
+    victoryRoadTiles[y][19] = 0;
+    for (let x = 8; x <= 11; x++) victoryRoadTiles[y][x] = 1;
+  }
+  for (const [x, y] of [[8, 5], [11, 5], [8, 11], [11, 11], [8, 17], [11, 17]]) {
+    victoryRoadTiles[y][x] = 0;
+  }
+  victoryRoadTiles[0][10] = 1;
+  victoryRoadTiles[23][10] = 1;
+  const roadTrainers = [
+    trainer('road_guard_1', 'Route Guard', 6, 6, [107, 108], 48, 'Show me the strength of your crew!', ['Crown Badge']),
+    trainer('road_guard_2', 'Signal Keeper', 13, 12, [109, 110], 52, 'Only a steady hand can pass these signals.', ['Crown Badge']),
+    trainer('road_guard_3', 'Rail Marshal', 6, 18, [147, 150], 56, 'The final platform is close. Prove you are ready.', ['Crown Badge'])
+  ];
+  const victoryRoad = runtimeMap('VictoryRoad', 'Victory Road', victoryRoadTiles, roadTrainers, [
+    { from: rect(10, 0), to: { mapId: 'Route8', ...pos(10, 22, 'up') } },
+    { from: rect(10, 23), to: { mapId: 'GrandTerminus', ...pos(6, 29, 'up') } }
+  ], [124, 151]);
+  victoryRoad.encounterTable = [
+    { speciesId: 124, minLevel: 48, maxLevel: 52, weight: 4 },
+    { speciesId: 139, minLevel: 50, maxLevel: 54, weight: 3 },
+    { speciesId: 147, minLevel: 52, maxLevel: 56, weight: 2 },
+    { speciesId: 151, minLevel: 55, maxLevel: 58, weight: 1 }
+  ];
+  victoryRoad.routeIndex = 8;
+  victoryRoad.getRandomEncounter = function() {
+    const totalWeight = this.encounterTable.reduce((sum, entry) => sum + entry.weight, 0);
+    let roll = Utils.randomInt(1, totalWeight);
+    const entry = this.encounterTable.find(candidate => (roll -= candidate.weight) <= 0);
+    return new Train(entry.speciesId, Utils.randomInt(entry.minLevel, entry.maxLevel));
+  };
+  victoryRoad.puzzles = [{ id: 'signal-switches', description: 'Three signal gates require the side paths to be crossed.' }];
+  WORLD_MAPS.VictoryRoad = victoryRoad;
+  WORLD_MAPS.Route8.warps = WORLD_MAPS.Route8.warps.map(warp => warp.to.mapId === 'GrandTerminus'
+    ? { ...warp, to: { mapId: 'VictoryRoad', ...pos(10, 1, 'down') } }
+    : warp);
+
   const elite = NPC_DATA.eliteConductors.concat([NPC_DATA.champion]);
   const tt = boxed(13, 30, 0, 3); tt[29][6] = 12;
   const eliteNPCs = elite.map((e, i) => ({ id: e.id, name: e.name, x: 6, y: 24 - i * 5,
@@ -761,9 +800,20 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     storyFlag: i === 4 ? 'gameComplete' : `defeated_${e.id}`,
     party: e.roster.map(r => ({ speciesId: r[0], level: r[1] })),
     dialogue: dialogue(e.name, e.dialogue.intro), defeatDialogue: dialogue(e.name, e.dialogue.defeat) }));
+  eliteNPCs[4].defeatDialogue = [
+    { speaker: 'Champion Cypress', text: 'The Grand Transit has its new Champion.' },
+    { speaker: 'Credits', text: 'CREDITS - The rails continue wherever you choose to travel.' },
+    { speaker: 'Conductor', text: 'Old Iron and legendary trains await beyond the main line.' }
+  ];
   const blake4 = createRivalBlakeNPC(4, 6, 26, 'down');
-  WORLD_MAPS.GrandTerminus = runtimeMap('GrandTerminus', 'Grand Terminus', tt, [blake4, ...eliteNPCs], [
-    { from: rect(6, 29), to: { mapId: 'Route8', ...pos(10, 22, 'up') } }
+  const leagueHealer = { id: 'league_healer', name: 'Platform Attendant', x: 10, y: 27,
+    type: 'healer', dialogue: dialogue('Platform Attendant', 'Rest here between the Elite Conductors.') };
+  const oldIronRematch = { id: 'old_iron_rematch', name: 'Old Iron Rematch', x: 10, y: 3,
+    type: 'trainer', canBattle: true, baseReward: 500, requires: ['postgameUnlocked'],
+    storyFlag: 'oldIronRematchWon', party: [{ speciesId: 151, level: 70 }],
+    dialogue: dialogue('Old Iron', 'The rails have one more lesson to teach.') };
+  WORLD_MAPS.GrandTerminus = runtimeMap('GrandTerminus', 'Grand Terminus', tt, [blake4, ...eliteNPCs, leagueHealer, oldIronRematch], [
+    { from: rect(6, 29), to: { mapId: 'VictoryRoad', ...pos(10, 22, 'up') } }
   ]);
 })();
 
