@@ -152,7 +152,7 @@ const CONSTANTS = {
     MAX_LEVEL: 100,
     MAX_PARTY_SIZE: 6,
     MAX_MOVES: 4,
-    TOTAL_TRAINS: 151,
+    TOTAL_TRAINS: 161,
 
     // Battle
     BATTLE_STATES: {

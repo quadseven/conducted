@@ -187,7 +187,7 @@ class Train {
         return CONSTANTS.COLORS.HP_RED;
     }
 
-    // context may carry { item } for stone-style evolutions.
+    // Context may carry an item, trade flag, form, or branching choice target.
     canEvolve(context = {}) {
         const evolution = this.species.evolution;
         if (!evolution) return false;
@@ -197,13 +197,27 @@ class Train {
         if (evolution.method === 'item') {
             return context.item === evolution.item;
         }
+        if (evolution.method === 'trade') {
+            return context.trade === true;
+        }
+        if (evolution.method === 'form') {
+            return evolution.forms.some(form => form.name === context.form);
+        }
+        if (evolution.method === 'branch') {
+            return this.level >= evolution.level && evolution.choices.some(choice => choice.evolvesTo === context.choice);
+        }
         return false;
     }
 
     evolve(context = {}) {
         const evolution = this.species.evolution;
         if (evolution && this.canEvolve(context)) {
-            this.speciesId = evolution.evolvesTo;
+            const target = evolution.method === 'branch'
+                ? context.choice
+                : evolution.method === 'form'
+                    ? evolution.forms.find(form => form.name === context.form).evolvesTo
+                    : evolution.evolvesTo;
+            this.speciesId = target;
             this.species = TRAIN_SPECIES[this.speciesId];
             this.nickname = this.species.name;
             this.types = [...this.species.types];
