@@ -42,6 +42,7 @@ function createTestContext() {
     'js/utils.js',
     'js/types.js',
     'js/npcData.js',
+    'js/map.js',
     'js/maps.js',
     'js/world-maps.js',
     'js/sprite-atlas.js',
@@ -196,11 +197,27 @@ function createTestContext() {
     'Indoor NPC on indoor map should render normally'
   );
 
-  // Player character should always render
+  // Player character should render when active
   const player = { isPlayer: true, type: 'player', x: 3, y: 3 };
   assert.equal(
     WorldArt.shouldRenderCharacter(player, { map: route }),
     true,
-    'Player character should always be rendered'
+    'Player character should be rendered on current map'
+  );
+
+  // Hidden player character should not render
+  const hiddenPlayer = { isPlayer: true, type: 'player', x: 3, y: 3, hidden: true };
+  assert.equal(
+    WorldArt.shouldRenderCharacter(hiddenPlayer, { map: route }),
+    false,
+    'Hidden player character should not be rendered'
+  );
+
+  // Hidden NPC should not render
+  const hiddenNpc = { id: 'hidden_route_npc', name: 'Hidden NPC', x: 10, y: 7, hidden: true };
+  assert.equal(
+    WorldArt.shouldRenderCharacter(hiddenNpc, { map: route }),
+    false,
+    'Hidden NPC should not be rendered'
   );
 }

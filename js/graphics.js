@@ -619,7 +619,7 @@ const WorldArt = (() => {
     if (role.includes('leader')) p.r(c.brass, 7, 8, 3, 2);
   }
 
-  function isSameMap(character, options) {
+  function isSameMap(character, options = {}) {
     const charMap = character.map || character.mapId || character.currentMap;
     if (!charMap) return true;
     const charMapId = mapId(charMap);
@@ -687,12 +687,11 @@ const WorldArt = (() => {
     return true;
   }
 
-  function isObstructed(character, options) {
+  function isObstructed(character, options = {}) {
     if (!character || character.isPlayer || character.type === 'player' || character.role === 'player') {
       return false;
     }
     if (character.hidden) return true;
-    if (character.inBuilding || character.insideBuilding || character.inside) return true;
 
     const rawMap = options.map || options.currentMap;
     if (!rawMap) return false;
@@ -705,6 +704,7 @@ const WorldArt = (() => {
 
     const outside = !indoor(map) || options.isOutside === true;
     if (outside) {
+      if (character.inBuilding || character.insideBuilding || character.inside) return true;
       if (isBuildingAt(map, tx, ty)) return true;
       if (isSolidCell(map, tx, ty)) return true;
     }
@@ -721,10 +721,11 @@ const WorldArt = (() => {
 
   function shouldRenderCharacter(character, options = {}) {
     if (!character) return false;
+    if (character.hidden) return false;
+    if (!isSameMap(character, options)) return false;
     if (character.isPlayer || character.type === 'player' || character.role === 'player') {
       return true;
     }
-    if (!isSameMap(character, options)) return false;
     if (isObstructed(character, options)) return false;
     return true;
   }
