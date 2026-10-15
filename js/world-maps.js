@@ -576,7 +576,7 @@ const WORLD_MAPS = {
     ];
     map.warps = [
       { from: rect(4, 5), to: { mapId: 'PlayerHouse', ...pos(3, 6, 'down') } },
-      { from: rect(10, 5), to: { mapId: 'LabInterior', ...pos(4, 7, 'down') } },
+      { from: rect(10, 5), to: { mapId: 'LabInterior', ...pos(4, 7, 'down') }, reverse: { from: rect(4, 9), to: pos(10, 6, 'down') } },
       { from: rect(16, 6), to: { mapId: 'HealingDepot', ...pos(3, 6, 'down') } },
       { from: rect(4, 12), to: { mapId: 'TrainMart', ...pos(3, 6, 'down') } },
       { from: rect(9, 14, 2, 1), to: { mapId: 'Route1', ...pos(10, 1, 'down') } }
@@ -631,7 +631,7 @@ const WORLD_MAPS = {
     map.warps = [
       { from: rect(4, 5), to: { mapId: 'CoalHouse', ...pos(3, 6, 'down') } },
       { from: rect(16, 5), to: { mapId: 'CoalDepot', ...pos(3, 6, 'down') } },
-      { from: rect(5, 12), to: { mapId: 'CoalHarborGym', ...pos(7, 13, 'up') } },
+      { from: rect(5, 12), to: { mapId: 'CoalHarborGym', ...pos(7, 13, 'up') }, reverse: { from: rect(7, 14), to: pos(5, 13, 'down') } },
       { from: rect(15, 12), to: { mapId: 'CoalMart', ...pos(3, 6, 'down') } },
       { from: rect(9, 0, 2, 1), to: { mapId: 'Route1', ...pos(10, 22, 'up') } },
       { from: rect(9, 14, 2, 1), to: { mapId: 'Route2', ...pos(10, 1, 'down') } }
@@ -654,19 +654,26 @@ const WORLD_MAPS = {
     }
   }
 
+  // Build reverse interior exits from the exterior door metadata.
+  for (const sourceMap of Object.values(WORLD_MAPS)) {
+    for (const transition of sourceMap.warps || []) {
+      if (transition.reverse) {
+        addReverseWarp(sourceMap, WORLD_MAPS[transition.to.mapId], transition);
+      }
+    }
+  }
+
   // Interior exits land just outside the authored exterior doorways.
   const returnTo = (id, mapId, x, y) => {
     const map = WORLD_MAPS[id];
     if (map && map.warps && map.warps[0]) map.warps[0].to = { mapId, ...pos(x, y, 'down') };
   };
   returnTo('PlayerHouse', 'PistonTown', 4, 6);
-  returnTo('LabInterior', 'PistonTown', 10, 6);
   returnTo('HealingDepot', 'PistonTown', 16, 7);
   returnTo('TrainMart', 'PistonTown', 4, 13);
   returnTo('CoalHouse', 'CoalHarbor', 4, 6);
   returnTo('CoalDepot', 'CoalHarbor', 16, 6);
   returnTo('CoalMart', 'CoalHarbor', 15, 13);
-  returnTo('CoalHarborGym', 'CoalHarbor', 5, 13);
 })();
 
 // Derived collision metadata: void=0, water=4, wall=5, and tree=7 are blocked;
