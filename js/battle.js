@@ -699,15 +699,16 @@ class Battle {
     }
 
     handleItemInput(action) {
-        const items = this.getUsableItems();
+        const total = this.battleItemCount();
 
         if (action === 'up' && this.itemSelection > 0) {
             this.itemSelection--;
-        } else if (action === 'down' && this.itemSelection < items.length - 1) {
+        } else if (action === 'down' && this.itemSelection < total - 1) {
             this.itemSelection++;
         } else if (action === 'a') {
-            if (items.length > 0) {
-                this.useItem(items[this.itemSelection]);
+            const item = this.battleItemAt(this.itemSelection);
+            if (item) {
+                this.useItem(item);
             }
         } else if (action === 'b') {
             this.state = CONSTANTS.BATTLE_STATES.MENU;
@@ -718,8 +719,45 @@ class Battle {
     getUsableItems() {
         if (!this.game || !this.game.player) return [];
         return Items.battleUsable(this.game.player).map(it => ({
-            name: it.id, displayName: it.name, quantity: it.quantity
+            name: it.id, displayName: it.name, quantity: it.quantity, kind: it.kind
         }));
+    }
+
+    // Category order for the battle bag: balls, healing, then anything else.
+    static battleItemGroupLabel(kind) {
+        if (kind === 'capture') return 'Balls';
+        if (kind === 'heal') return 'Healing';
+        return 'Other';
+    }
+
+    // Usable battle items grouped by type for the bag menu. Sections come in
+    // the stable order Balls -> Healing -> Other; empty sections are omitted.
+    getGroupedUsableItems() {
+        const order = ['Balls', 'Healing', 'Other'];
+        const groups = new Map(order.map(label => [label, []]));
+        for (const item of this.getUsableItems()) {
+            const label = Battle.battleItemGroupLabel(item.kind);
+            if (!groups.has(label)) groups.set(label, []);
+            groups.get(label).push(item);
+        }
+        return order
+            .filter(label => groups.get(label).length > 0)
+            .map(label => ({ label, items: groups.get(label) }));
+    }
+
+    // Flattened view of the grouped bag: navigation treats the menu as one
+    // vertical list, so every item is reachable regardless of its group.
+    battleItemAt(index) {
+        let seen = 0;
+        for (const group of this.getGroupedUsableItems()) {
+            if (index < seen + group.items.length) return group.items[index - seen];
+            seen += group.items.length;
+        }
+        return null;
+    }
+
+    battleItemCount() {
+        return this.getGroupedUsableItems().reduce((n, g) => n + g.items.length, 0);
     }
 
     useItem(item) {
@@ -1033,8 +1071,47 @@ class Battle {
         }
 
         if (this.state === CONSTANTS.BATTLE_STATES.ITEM) {
-            const items = this.getUsableItems();
-            this.drawMenuGrid(ctx, items.slice(0, 4).map(it => `${it.displayName} x${it.quantity}`), this.itemSelection, () => '#75502d');
+            this.drawBattleBag(ctx);
+        }
+    }
+
+    // Grouped battle bag: one vertical list, section headers per item type.
+    // Keyboard (up/down/A) and mobile buttons feed the same actions; B
+    // returns to the main battle menu without using anything.
+    drawBattleBag(ctx) {
+        const canvas = ctx.canvas;
+        const rows = [];
+        let flat = 0;
+        for (const group of this.getGroupedUsableItems()) {
+            rows.push({ kind: 'header', label: group.label });
+            for (const item of group.items) {
+                rows.push({ kind: 'item', item, flatIndex: flat++ });
+            }
+        }
+        const rowH = 21;
+        const maxRows = 4;
+        const selRow = rows.findIndex(r => r.kind === 'item' && r.flatIndex === this.itemSelection);
+        const start = Math.max(0, Math.min(selRow - maxRows + 1, rows.length - maxRows));
+        const x = 44;
+        const y0 = 592;
+        ctx.textAlign = 'left';
+        for (let r = start; r < Math.min(rows.length, start + maxRows); r++) {
+            const row = rows[r];
+            const y = y0 + (r - start) * rowH;
+            if (row.kind === 'header') {
+                ctx.fillStyle = '#b56c2c';
+                ctx.font = 'bold 12px monospace';
+                ctx.fillText(row.label.toUpperCase(), x, y);
+            } else {
+                const sel = row.flatIndex === this.itemSelection;
+                if (sel) {
+                    ctx.fillStyle = '#f1cd68';
+                    ctx.fillRect(x - 6, y - 15, canvas.width - 110, rowH - 2);
+                }
+                ctx.fillStyle = sel ? '#142328' : '#26363a';
+                ctx.font = 'bold 14px monospace';
+                ctx.fillText(`${row.item.displayName} x${row.item.quantity}`, x + 12, y);
+            }
         }
     }
 
