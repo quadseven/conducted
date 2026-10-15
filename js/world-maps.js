@@ -388,6 +388,27 @@ const WORLD_MAPS = {
   },
 };
 
+function townDialogue(speaker, town) {
+  return player => {
+    const flags = player.storyFlags || {};
+    const badges = (player.badges || []).length;
+    const lines = [`${town} keeps its lamps lit for every train that comes through.`,
+      badges ? `Your ${badges} badge${badges === 1 ? '' : 's'} ${badges === 1 ? 'shows' : 'show'} how far you have traveled.` : 'Earn your first badge and the whole line will open to you.'];
+    const steamPunkProgress = flags.teamSteamPunkProgress || flags.steamPunkProgress || 0;
+    if (flags.steamPunkDefeated || flags.derailDefeated) lines.push('With Team Steam Punk stopped, our freight is moving safely again.');
+    else if (steamPunkProgress || flags.switchyardCleared || flags.manifestRecovered || flags.gridRestored) lines.push('Team Steam Punk has disrupted the line, but conductors like you are pushing back.');
+    else lines.push('Keep an eye out for Team Steam Punk wherever the signals turn strange.');
+    if (flags.rival_blake_stage) lines.push('Your rival is still keeping pace. The next meeting will be a good one.');
+    else if (flags.rival1Defeated || flags.defeated_rival_blake_1) lines.push('Word is you and your rival have already tested each other on the rails.');
+    return lines.map(text => ({ speaker, text }));
+  };
+}
+
+function questNpc(id, name, x, y, questId, item, rewardText, challenge) {
+  return { id, name, x, y, type: 'npc', quest: { id: questId, item, rewardText, challenge },
+    dialogue: [{ speaker: name, text: 'I have a small favor to ask. Speak with me again when you are ready.' }] };
+}
+
 function getRivalStarterId(player, stage) {
   let base = 4; // Sparkart (Electric)
   if (player && player.party && player.party.length > 0) {
@@ -708,10 +729,14 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     t[5][5] = 12; t[0][10] = 3; t[h - 1][10] = 3;
     const townsfolk = [
       { id: `city${n}_guide`, name: 'Station Guide', x: 12, y: 7, type: 'npc',
-        dialogue: dialogue('Station Guide', `${cityNames[n - 1]} connects every traveler to a new possibility.`) },
+        dialogue: townDialogue('Station Guide', cityNames[n - 1]) },
       { id: `city${n}_mechanic`, name: 'Mechanic', x: 7, y: 10, type: 'npc',
-        dialogue: dialogue('Mechanic', 'Type matchups matter as much as horsepower. Plan before you depart!') }
+        dialogue: townDialogue('Mechanic', cityNames[n - 1]) },
+      { id: `city${n}_porter`, name: 'Platform Porter', x: 12, y: 9, type: 'npc',
+        dialogue: townDialogue('Platform Porter', cityNames[n - 1]) }
     ];
+    if (n === 2) townsfolk.push(questNpc('copper_signal_keeper', 'Signal Keeper', 6, 9,
+      'copper_signal_challenge', 'super_potion', 'The signal challenge is complete. Take this Super Potion!', true));
     if (n === 4) townsfolk.push(trainer('grunt_spike', 'Derail Grunt Spike', 9, 7, [40, 49], 28,
       'The regional manifest is ours. No timetable can stop us!', ['Torque Badge'], 'manifestRecovered'));
     return runtimeMap(`City${n}`, cityNames[n - 1], t, townsfolk, [
@@ -868,7 +893,10 @@ function createRivalBlakeNPC(stage, x, y, direction) {
       { from: rect(4, 12), to: { mapId: 'TrainMart', ...pos(3, 6, 'down') } },
       { from: rect(9, 14, 2, 1), to: { mapId: 'Route1', ...pos(10, 1, 'down') } }
     ];
-    map.npcs = [createRivalBlakeNPC(1, 10, 13, 'down')];
+    map.npcs = [createRivalBlakeNPC(1, 10, 13, 'down'),
+      { id: 'piston_station_guide', name: 'Station Guide', x: 8, y: 7, type: 'npc', dialogue: townDialogue('Station Guide', 'Piston Town') },
+      { id: 'piston_gardener', name: 'Rail Gardener', x: 12, y: 8, type: 'npc', dialogue: townDialogue('Rail Gardener', 'Piston Town') },
+      questNpc('piston_courier', 'Courier', 7, 8, 'piston_potion_delivery', 'potion', 'The depot crew thanks you for the delivery. Here is an Ether.')];
     map.isWalkable = function (x, y) { return [1, 3, 6, 12].includes(this.getTile(x, y)) && !this.npcs.some(n => n.x === x && n.y === y); };
   }
 
@@ -926,7 +954,10 @@ function createRivalBlakeNPC(stage, x, y, direction) {
       { from: rect(9, 0, 2, 1), to: { mapId: 'Route1', ...pos(10, 22, 'up') } },
       { from: rect(9, 14, 2, 1), to: { mapId: 'Route2', ...pos(10, 1, 'down') } }
     ];
-    map.npcs = [createRivalBlakeNPC(3, 16, 8, 'right')];
+    map.npcs = [createRivalBlakeNPC(3, 16, 8, 'right'),
+      { id: 'coalharbor_dock_guide', name: 'Dock Guide', x: 8, y: 7, type: 'npc', dialogue: townDialogue('Dock Guide', 'Coal Harbor') },
+      { id: 'coalharbor_freight_clerk', name: 'Freight Clerk', x: 12, y: 8, type: 'npc', dialogue: townDialogue('Freight Clerk', 'Coal Harbor') },
+      { id: 'coalharbor_fisher', name: 'Harbor Fisher', x: 7, y: 8, type: 'npc', dialogue: townDialogue('Harbor Fisher', 'Coal Harbor') }];
     map.isWalkable = function (x, y) { return [1, 2, 3, 6, 12].includes(this.getTile(x, y)) && !this.npcs.some(n => n.x === x && n.y === y); };
   }
 
@@ -1089,12 +1120,13 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
       'Hah! My diesel freighters will grind you into scrap!'),
     {
       id: 'dieselden_mechanic', name: 'Mod Mechanic', x: 3, y: 6, type: 'npc',
-      dialogue: say('Mod Mechanic', 'We bolt, weld, and overclock every engine that rolls through.')
+      dialogue: townDialogue('Mod Mechanic', 'Diesel Den')
     },
     {
       id: 'dieselden_brawler', name: 'Ring Brawler', x: 15, y: 6, type: 'npc',
-      dialogue: say('Ring Brawler', 'The fighting ring runs all night. Bring your toughest train.')
-    }
+      dialogue: townDialogue('Ring Brawler', 'Diesel Den')
+    },
+    { id: 'dieselden_scrap_merchant', name: 'Scrap Merchant', x: 7, y: 8, type: 'npc', dialogue: townDialogue('Scrap Merchant', 'Diesel Den') }
   ], [
     { from: rect(3, 4), to: { mapId: 'DieselModShop', ...pos(4, 6, 'down') } },
     { from: rect(15, 4), to: { mapId: 'FightingRing', ...pos(4, 6, 'down') } },
@@ -1120,12 +1152,13 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
       'Catch me if you can - my maglevs ride the wind itself!'),
     {
       id: 'maglevheights_scientist', name: 'Institute Scientist', x: 15, y: 6, type: 'npc',
-      dialogue: say('Institute Scientist', 'Our weather models predict clear rails for weeks.')
+      dialogue: townDialogue('Institute Scientist', 'Maglev Heights')
     },
     {
       id: 'maglevheights_watcher', name: 'Star Watcher', x: 3, y: 6, type: 'npc',
-      dialogue: say('Star Watcher', 'Rare trains descend near the space station at night.')
-    }
+      dialogue: townDialogue('Star Watcher', 'Maglev Heights')
+    },
+    { id: 'maglevheights_signal_tech', name: 'Signal Technician', x: 7, y: 8, type: 'npc', dialogue: townDialogue('Signal Technician', 'Maglev Heights') }
   ], [
     { from: rect(3, 4), to: { mapId: 'SpaceStation', ...pos(4, 6, 'down') } },
     { from: rect(15, 4), to: { mapId: 'WeatherInstitute', ...pos(4, 6, 'down') } },
