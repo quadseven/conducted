@@ -27,6 +27,7 @@ class Player {
         this.money = 3000;
         this.badges = [];  // Array of badge names
         this.badgeCount = 0;
+        this.techniques = [];
 
         // Story flags
         this.hasStarterTrain = false;
@@ -66,7 +67,7 @@ class Player {
 
         // Check collision with map if provided
         if (map) {
-            const walkable = map.isWalkable(newX, newY);
+            const walkable = map.isWalkable(newX, newY, this);
             if (walkable) {
                 this.targetX = newX;
                 this.targetY = newY;
@@ -195,6 +196,16 @@ class Player {
         return this.badges.includes(badgeName);
     }
 
+    learnTechnique(technique) {
+        if (this.hasTechnique(technique)) return false;
+        this.techniques.push(technique);
+        return true;
+    }
+
+    hasTechnique(technique) {
+        return this.techniques.includes(technique);
+    }
+
     // Alias kept for backwards compatibility - delegates to the canonical heal.
     healAllTrains() {
         this.healParty();
@@ -216,6 +227,7 @@ class Player {
             money: this.money,
             badges: this.badges,
             badgeCount: this.badgeCount,
+            techniques: this.techniques,
             hasStarterTrain: this.hasStarterTrain,
             metProfessor: this.metProfessor,
             defeatedGymLeaders: this.defeatedGymLeaders,
@@ -256,6 +268,7 @@ class Player {
         player.money = typeof data.money === 'number' ? data.money : player.money;
         player.badges = data.badges || [];
         player.badgeCount = data.badgeCount || player.badges.length;
+        player.techniques = Array.isArray(data.techniques) ? data.techniques : [];
         player.hasStarterTrain = data.hasStarterTrain || false;
         player.metProfessor = data.metProfessor || false;
         player.defeatedGymLeaders = data.defeatedGymLeaders || [];

@@ -37,6 +37,8 @@ function Game(canvas) {
     // Visual-only flags / animation clocks (no gameplay effect).
     this.debug = false;        // set true to show the Map/Pos developer overlay
     this.animClock = 0;        // seconds, drives subtle idle animations
+    this.techniqueNotice = '';
+    this.techniqueNoticeTime = 0;
 
     // Debug menu
     this.debugMenuSelection = 0;
@@ -461,6 +463,7 @@ Game.prototype.updateStarterSelection = function () {
 };
 
 Game.prototype.updateOverworld = function (deltaTime) {
+    this.techniqueNoticeTime = Math.max(0, this.techniqueNoticeTime - deltaTime);
     // Open pause menu with Escape key (only when not moving)
     if (!this.player.isMoving && this.input.isKeyJustPressed('Escape')) {
         this.setState(CONSTANTS.STATES.MENU);
@@ -485,13 +488,13 @@ Game.prototype.updateOverworld = function (deltaTime) {
         }
 
         if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
-            this.player.move(CONSTANTS.DIRECTIONS.UP, this.currentMap);
+            this.tryMovePlayer(CONSTANTS.DIRECTIONS.UP);
         } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
-            this.player.move(CONSTANTS.DIRECTIONS.DOWN, this.currentMap);
+            this.tryMovePlayer(CONSTANTS.DIRECTIONS.DOWN);
         } else if (this.input.isKeyJustPressed('ArrowLeft') || this.input.isVirtualKeyJustPressed('left')) {
-            this.player.move(CONSTANTS.DIRECTIONS.LEFT, this.currentMap);
+            this.tryMovePlayer(CONSTANTS.DIRECTIONS.LEFT);
         } else if (this.input.isKeyJustPressed('ArrowRight') || this.input.isVirtualKeyJustPressed('right')) {
-            this.player.move(CONSTANTS.DIRECTIONS.RIGHT, this.currentMap);
+            this.tryMovePlayer(CONSTANTS.DIRECTIONS.RIGHT);
         }
     }
 
@@ -508,6 +511,28 @@ Game.prototype.updateOverworld = function (deltaTime) {
         }
     }
 
+};
+
+Game.prototype.tryMovePlayer = function (direction) {
+    const offsets = {
+        [CONSTANTS.DIRECTIONS.UP]: [0, -1],
+        [CONSTANTS.DIRECTIONS.DOWN]: [0, 1],
+        [CONSTANTS.DIRECTIONS.LEFT]: [-1, 0],
+        [CONSTANTS.DIRECTIONS.RIGHT]: [1, 0]
+    };
+    const [dx, dy] = offsets[direction];
+    const x = this.player.x + dx;
+    const y = this.player.y + dy;
+    const obstacle = this.currentMap.getTechniqueObstacle && this.currentMap.getTechniqueObstacle(x, y);
+    const moved = this.player.move(direction, this.currentMap);
+    if (obstacle && !moved) this.showTechniqueNotice(`Path blocked. Requires ${obstacle.technique}.`);
+    else if (obstacle && moved) this.showTechniqueNotice(obstacle.clearedMessage);
+    return moved;
+};
+
+Game.prototype.showTechniqueNotice = function (message) {
+    this.techniqueNotice = message;
+    this.techniqueNoticeTime = 3;
 };
 
 Game.prototype.checkNPCInteraction = function () {
@@ -680,6 +705,10 @@ Game.prototype.startTrainerBattle = function (npc) {
                 this.player.storyFlags[npc.badge] = true;
                 if (!this.player.defeatedGymLeaders.includes(npc.id)) this.player.defeatedGymLeaders.push(npc.id);
                 console.log(`🏅 Earned ${npc.badge}!`);
+            }
+            if (npc.techniqueReward && this.player.learnTechnique(npc.techniqueReward)) {
+                this.player.menuMessage = `Learned ${npc.techniqueReward}!`;
+                this.showTechniqueNotice(this.player.menuMessage);
             }
         }
 
@@ -1357,6 +1386,20 @@ Game.prototype.renderOverworld = function (ctx) {
         ctx.font = '12px monospace';
         ctx.fillText(`Map: ${this.currentMap.id || this.currentMap.name}`, 12, 22);
         ctx.fillText(`Pos: (${this.player.x}, ${this.player.y})`, 12, 37);
+    }
+
+    if (this.techniqueNoticeTime > 0) {
+        const notice = this.techniqueNotice;
+        ctx.font = '14px monospace';
+        const width = Math.min(canvas.width - 32, ctx.measureText(notice).width + 28);
+        const x = (canvas.width - width) / 2;
+        const y = canvas.height - 56;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
+        ctx.fillRect(x, y, width, 36);
+        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        ctx.textAlign = 'center';
+        ctx.fillText(notice, canvas.width / 2, y + 23);
+        ctx.textAlign = 'left';
     }
 
     // Render dialogue box if active
