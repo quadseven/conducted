@@ -2,7 +2,7 @@
 // things (the scene stack, walkers in motion, open menus) live elsewhere.
 (function (CD) {
   'use strict';
-  const VERSION = 1;
+  const VERSION = 2;
 
   function fresh() {
     return {
@@ -13,6 +13,8 @@
       vars: {},
       party: [],          // train instances (see train.js)
       box: [],            // depot storage
+      pcBoxes: [[]],      // trains organized into PC storage boxes
+      techniques: [],     // learned field techniques
       bag: {},            // itemId -> count
       money: 3000,
       badges: [],         // badge ids in order earned

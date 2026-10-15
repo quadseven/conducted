@@ -13,16 +13,23 @@
     const copy = JSON.parse(JSON.stringify(state));
     if (!Array.isArray(copy.party) || !Array.isArray(copy.box)) throw new Error('invalid game state');
     for (const t of copy.party.concat(copy.box)) delete t.stats;
+    if (Array.isArray(copy.pcBoxes)) for (const box of copy.pcBoxes) if (Array.isArray(box)) for (const t of box) delete t.stats;
     return JSON.stringify({ v: CD.STATE_VERSION, at: Date.now(), state: copy });
   }
   function deserialize(text) {
     const data = JSON.parse(text);
     if (!data || typeof data !== 'object' || !data.state) throw new Error('not a save file');
-    if (data.v > CD.STATE_VERSION) throw new Error('save is from a newer version');
+    const version = Number.isInteger(data.v) ? data.v : 1;
+    if (version > CD.STATE_VERSION) throw new Error('save is from a newer version');
     if (!Array.isArray(data.state.party) || !Array.isArray(data.state.box)) throw new Error('not a save file');
     const s = Object.assign(CD.freshState(), data.state);
     s.options = Object.assign(CD.freshState().options, data.state.options || {});
+    if (!Array.isArray(s.techniques)) s.techniques = [];
+    if (!Array.isArray(data.state.pcBoxes)) s.pcBoxes = [s.box.slice()];
+    else s.pcBoxes = s.pcBoxes.map(box => Array.isArray(box) ? box : []);
+    s.version = CD.STATE_VERSION;
     for (const t of s.party.concat(s.box)) { delete t.stats; CD.train.refresh(t); }
+    for (const box of s.pcBoxes) for (const t of box) { delete t.stats; CD.train.refresh(t); }
     return s;
   }
   function storage() { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch (e) { return null; } }
