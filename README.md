@@ -30,7 +30,7 @@ Then open `http://127.0.0.1:8765/`. Keyboard: arrows or WASD move, Z confirms, X
 Nothing outside `main.js` touches the DOM, so the whole game runs headless in Node. The tests drive it with button presses, from the title screen to the Harbor Badge:
 
 ```bash
-for t in copper/tests/*.test.js; do node "$t"; done
+npm test
 ```
 
 ## Grand Transit (earlier prototype)
@@ -146,17 +146,36 @@ The older Python files are not part of the browser build.
 
 ## Validation
 
-Run the dependency-free integrity tests:
+Run every automated suite with one command:
 
 ```bash
-node tests/core-integrity.test.js
-node tests/starter-selection.test.js
-node tests/dispatch-logic.test.js
+npm test
 ```
 
-CI runs these on every pull request (`.github/workflows/check.tests.yml`).
+It needs no dependencies, only the Node already on `PATH` (18 or newer), because every suite is a dependency-free Node script. Each suite runs in its own process and the command exits non-zero if any of them fails, so a broken overworld or battle loop fails the run rather than scrolling past.
 
-The core test verifies species and move counts, unique names, learnsets, types, matchups, NPC rosters, campaign map counts, warp destinations, warp coordinates, EV serialization, Depot serialization, and old-save map migration.
+Expected output on a healthy tree (the version shown is whichever Node you run it with):
+
+```
+Running 25 suites headlessly on v22.11.0
+
+  ok    copper/tests/audio.test.js
+  ok    copper/tests/battle.test.js
+  ...
+  ok    tests/victory-road.test.js
+
+25 passed, 0 failed in 1.9s
+```
+
+Pass a substring to run part of the suite, for example `npm test -- smoke`.
+
+`copper/tests/smoke.test.js` is the smoke suite. It plays the two loops a session spends all its time in, end to end and through real button presses: entering a building and coming back out, crossing a map connection and crossing it back, winning a battle, losing a battle and waking up at the last depot, and saving then loading a game. The rest of the suites check the rules underneath those loops in more detail -- damage and types in `battle.test.js`, map and warp integrity in `world.test.js`, save-slot handling in `save.test.js` -- and the `tests/` suites cover the data and the earlier browser build in `js/`.
+
+A few suites cannot run headlessly and are reported as skipped at the end of every run, with the reason, so the gap stays visible: `tests/menu-navigation.test.js` needs Playwright, and `tests/rival.test.js` and `tests/rail-mart.test.js` build the browser runtime in `js/` or drive shop code that the menu overlays have since replaced.
+
+CI runs `npm test` on every pull request (`.github/workflows/check.tests.yml`).
+
+The core integrity test verifies species and move counts, unique names, learnsets, types, matchups, NPC rosters, campaign map counts, warp destinations, warp coordinates, EV serialization, Depot serialization, and old-save map migration.
 
 ## Original work
 
