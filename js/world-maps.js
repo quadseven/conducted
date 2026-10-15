@@ -615,12 +615,16 @@ function createRivalBlakeNPC(stage, x, y, direction) {
   function makeInterior(id, name, returnMap, returnX, returnY, attendant) {
     const t = boxed(8, 8, 0, 1);
     t[7][4] = 12;
-    return runtimeMap(id, name, t, attendant ? [{
+    const npcs = attendant ? [{
       id: `${id}_attendant`, name: attendant, x: 4, y: 2, type: id.includes('Depot') ? 'healer' : 'npc',
       dialogue: dialogue(attendant, id.includes('Depot')
         ? 'Welcome to the Healing Depot. Your whole crew is back at full pressure!'
         : id.includes('Mart') ? 'Boxcars, Potions, and Tickets keep a conductor moving.' : 'A warm boiler and a safe platform make any station home.')
-    }] : [], [{ from: rect(4, 7), to: { mapId: returnMap, ...pos(returnX, returnY, 'down') } }]);
+    }] : [];
+    if (id.includes('Depot')) npcs.push({
+      id: `${id}_storage`, name: 'Storage Terminal', x: 6, y: 2, type: 'storage'
+    });
+    return runtimeMap(id, name, t, npcs, [{ from: rect(4, 7), to: { mapId: returnMap, ...pos(returnX, returnY, 'down') } }]);
   }
   function makeCoalHarborInterior(id, kind, attendant, dialogueText) {
     const width = 10, height = 9, tiles = boxed(width, height, 0, 1);
@@ -646,7 +650,10 @@ function createRivalBlakeNPC(stage, x, y, direction) {
       type: kind === 'depot' ? 'healer' : 'npc',
       dialogue: dialogue(attendant, dialogueText)
     };
-    const map = runtimeMap(id, `Coal Harbor ${kind === 'depot' ? 'Depot' : 'Mart'}`, tiles, [npc], [
+    const npcs = kind === 'depot' ? [npc, {
+      id: `${id}_storage`, name: 'Storage Terminal', x: 6, y: 2, type: 'storage'
+    }] : [npc];
+    const map = runtimeMap(id, `Coal Harbor ${kind === 'depot' ? 'Depot' : 'Mart'}`, tiles, npcs, [
       { from: rect(4, height - 1), to: { mapId: 'CoalHarbor', ...pos(kind === 'depot' ? 16 : 15, kind === 'depot' ? 6 : 13, 'down') } }
     ]);
     map.theme = kind;
