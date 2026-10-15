@@ -2,3 +2,5 @@
 .DS_Store
 .env
 .loom_test
+.test_write
+.agents/

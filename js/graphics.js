@@ -119,7 +119,10 @@ const WorldArt = (() => {
   function seedAt(tx, ty, salt = 0) { return hash(variantAt(tx, ty), 0, salt); }
   function waterPhase(clock, tx, ty) { return (Math.floor((clock || 0) * 4) + tx * 3 + ty * 5) & 7; }
 
-  function mapId(map) { return String((map && (map.id || map.name)) || ''); }
+  function mapId(map) {
+    if (typeof map === 'string') return map;
+    return String((map && (map.id || map.name)) || '');
+  }
   function districtNumber(map) {
     const id = mapId(map);
     const match = id.match(/(?:City|Route|Gym)(\d+)/i);
@@ -580,9 +583,114 @@ const WorldArt = (() => {
     if (role.includes('leader')) p.r(c.brass, 7, 8, 3, 2);
   }
 
+  function isSameMap(character, options) {
+    const charMap = character.map || character.mapId || character.currentMap;
+    if (!charMap) return true;
+    const charMapId = mapId(charMap);
+    const curMapId = mapId(options.map || options.currentMap);
+    if (charMapId && curMapId && charMapId.toLowerCase() !== curMapId.toLowerCase()) {
+      return false;
+    }
+    return true;
+  }
+
+  function isBuildingAt(map, tx, ty) {
+    if (!map) return false;
+    if (isBuildingCell(map, tx, ty)) return true;
+    if (map.decorations) {
+      for (const d of map.decorations) {
+        if (d && String(d.type || '').toLowerCase() === 'building') {
+          const w = d.w || 4;
+          const h = d.h || 4;
+          if (tx >= d.x && tx < d.x + w && ty >= d.y && ty < d.y + h) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  function isSolidCell(map, tx, ty) {
+    if (!map) return false;
+    if (map.collisions && map.collisions.has(`${tx},${ty}`)) return true;
+    const tile = tileAt(map, tx, ty);
+    if (tile < 0) return true;
+    if (tile === 0 || tile === 5 || tile === 7 || tile === 163) return true;
+    return isBuildingAt(map, tx, ty);
+  }
+
+  function hasLineOfSight(map, x0, y0, x1, y1) {
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+    let currX = x0;
+    let currY = y0;
+
+    while (currX !== x1 || currY !== y1) {
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        currX += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        currY += sy;
+      }
+      if (currX === x1 && currY === y1) break;
+      if (isSolidCell(map, currX, currY)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function isObstructed(character, options) {
+    if (!character || character.isPlayer || character.type === 'player' || character.role === 'player') {
+      return false;
+    }
+    if (character.hidden) return true;
+    if (character.inBuilding || character.insideBuilding || character.inside) return true;
+
+    const map = options.map || options.currentMap;
+    if (!map) return false;
+
+    const tx = Number.isFinite(character.x) ? character.x : (character.pos && character.pos.x);
+    const ty = Number.isFinite(character.y) ? character.y : (character.pos && character.pos.y);
+    if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+
+    const outside = !indoor(map) || options.isOutside === true;
+    if (outside) {
+      if (isBuildingAt(map, tx, ty)) return true;
+      if (isSolidCell(map, tx, ty)) return true;
+    }
+
+    const observer = options.player || options.viewer || options.observer || (map && map.player);
+    if (observer && Number.isFinite(observer.x) && Number.isFinite(observer.y)) {
+      if (!hasLineOfSight(map, observer.x, observer.y, tx, ty)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function shouldRenderCharacter(character, options = {}) {
+    if (!character) return false;
+    if (character.isPlayer || character.type === 'player' || character.role === 'player') {
+      return true;
+    }
+    if (!isSameMap(character, options)) return false;
+    if (isObstructed(character, options)) return false;
+    return true;
+  }
+
   // Each role, facing and walk frame is one atlas sprite, blitted whole so the
   // figure moves as a unit instead of re-rounding every limb per frame.
   function drawWorldCharacter(ctx, character, sx, sy, size, options = {}) {
+    if (!shouldRenderCharacter(character, options)) return;
     const c = palette(options.map), look = characterLook(character, options, c);
     const key = `char:${size}:${districtNumber(options.map)}:${look.role}:${look.direction}:${look.step}:${look.shirt}:${look.hat}`;
     spriteAtlas.draw(ctx, key, size, size, (bake, ox, oy) => paintCharacter(bake, look, ox, oy, size, c), sx, sy);
@@ -666,7 +774,8 @@ const WorldArt = (() => {
     palette, drawWorldTile, paintWorldTile, tileKey, drawGrass, drawTallGrass, drawPath, drawWater,
     drawRail, drawTree, drawFence: drawFenceTile, drawDoor, drawSign, drawLamp,
     drawPlatform, drawBuilding: buildingCell, drawInteriorFloor, drawInteriorWall: interiorWall,
-    drawWorldDecoration, drawWorldCharacter
+    drawWorldDecoration, drawWorldCharacter,
+    shouldRenderCharacter, isSameMap, hasLineOfSight, isBuildingAt, isSolidCell
   };
 })();
 
@@ -682,7 +791,24 @@ function drawWorldCharacter(ctx, character, sx, sy, size, options) {
   WorldArt.drawWorldCharacter(ctx, character, sx, sy, size, options);
 }
 
+function shouldRenderCharacter(character, options) {
+  return WorldArt.shouldRenderCharacter(character, options);
+}
+
 if (typeof window !== 'undefined') {
   window.WorldArt = WorldArt;
   window.BattleGraphics = BattleGraphics;
+  window.drawWorldCharacter = drawWorldCharacter;
+  window.shouldRenderCharacter = shouldRenderCharacter;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    WorldArt,
+    BattleGraphics,
+    drawWorldTile,
+    drawWorldDecoration,
+    drawWorldCharacter,
+    shouldRenderCharacter
+  };
 }
