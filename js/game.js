@@ -63,12 +63,17 @@ function Game(canvas) {
     // Shop system - catalog derived from the Items registry (single source of
     // truth). UI expects {name, displayName, price, description}.
     this.shopSelection = 0;
-    this.shopMode = null;  // null or 'active' when shop is open
+    this.shopMode = null;
+    this.shopCategory = 'Trainballs';
+    this.shopCategories = ['Trainballs', 'Healing Items', 'Sell Items'];
+    this.shopMessage = '';
+    this.shopCapacity = 99;
     this.shopItems = Items.shopInventory().map(item => ({
         name: item.id,
         displayName: item.name,
         price: item.price,
-        description: item.description
+        description: item.description,
+        category: item.kind === 'capture' ? 'Trainballs' : 'Healing Items'
     }));
 
     // Initialize maps and assets
@@ -572,6 +577,16 @@ Game.prototype.checkNPCInteraction = function () {
             ], () => {
                 this.state = CONSTANTS.STATES.OVERWORLD;
             });
+            return;
+        }
+        if (npc.type === 'shopkeeper' || (this.currentMap.theme === 'mart' && npc.type === 'npc')) {
+            this.setState(CONSTANTS.STATES.MENU);
+            this.menuSelection = this.menuOptions.indexOf('SHOP');
+            this.shopSelection = 0;
+            this.shopMode = 'categories';
+            this.shopCategory = 'Trainballs';
+            this.shopMessage = '';
+            this.player.menuMessage = '';
             return;
         }
         // Start trainer battle if applicable
@@ -1597,35 +1612,64 @@ Game.prototype.importSaveToken = function (token) {
         return false;
     }
 };
+Game.prototype.getShopEntries = function () {
+    if (this.shopMode === 'categories') return this.shopCategories;
+    if (this.shopMode === 'buy') return this.shopItems.filter(item => item.category === this.shopCategory);
+    return Object.keys(this.player.items)
+        .filter(id => this.player.items[id] > 0 && Items.get(id) && Items.get(id).price > 0)
+        .map(id => ({ ...this.shopItems.find(item => item.name === id), price: Math.max(1, Math.floor(Items.get(id).price / 2)) }));
+};
+
+Game.prototype.selectShopEntry = function (entry) {
+    if (this.shopMode === 'categories') {
+        if (entry === 'Sell Items') this.shopMode = 'sell';
+        else {
+            this.shopCategory = entry;
+            this.shopMode = 'buy';
+        }
+        this.shopSelection = 0;
+        return;
+    }
+    if (!entry) return;
+    const count = this.player.items[entry.name] || 0;
+    if (this.shopMode === 'sell') {
+        this.player.items[entry.name] = count - 1;
+        this.player.addMoney(entry.price);
+        this.shopMessage = `Sold ${entry.displayName} for $${entry.price}.`;
+    } else if (count >= this.shopCapacity) {
+        this.shopMessage = 'Your inventory is full.';
+    } else if (!this.player.spendMoney(entry.price)) {
+        this.shopMessage = `Not enough money. Need $${entry.price}.`;
+    } else {
+        this.player.items[entry.name] = count + 1;
+        this.shopMessage = `Bought ${entry.displayName} for $${entry.price}.`;
+    }
+    this.player.menuMessage = this.shopMessage;
+};
+
 Game.prototype.updateMenu = function () {
-    // SHOP mode - browse and purchase items (only if shop is actually open, not just highlighted)
-    if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode === 'active') {
-        // Navigate shop items
+    // Shop categories and item lists share keyboard and virtual controls.
+    if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode) {
+        const entries = this.getShopEntries();
         if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
             this.shopSelection = Math.max(0, this.shopSelection - 1);
         } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
-            this.shopSelection = Math.min(this.shopItems.length - 1, this.shopSelection + 1);
+            this.shopSelection = Math.min(entries.length - 1, this.shopSelection + 1);
         }
-
-        // Purchase item (spendMoney is the single gate; never goes negative).
         if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
-            const item = this.shopItems[this.shopSelection];
-            if (this.player.spendMoney(item.price)) {
-                this.player.items[item.name] = (this.player.items[item.name] || 0) + 1;
-                console.log(`Bought ${item.displayName} for $${item.price}! Money: $${this.player.money}`);
-            } else {
-                console.log(`Not enough money! Need $${item.price}, have $${this.player.money}`);
-            }
+            this.selectShopEntry(entries[this.shopSelection]);
         }
-
-        // Exit shop
         if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
-            this.menuSelection = 0;
-            this.shopMode = null;  // Clear shop mode to return to main menu
+            if (this.shopMode === 'categories') {
+                this.menuSelection = 0;
+                this.shopMode = null;
+            } else {
+                this.shopMode = 'categories';
+                this.shopSelection = 0;
+            }
             return;
         }
-
-        return; // Don't process main menu navigation while in shop
+        return;
     }
 
     // BAG mode with item usage
@@ -1769,7 +1813,7 @@ Game.prototype.updateMenu = function () {
             this.bagMode = 'list';
         } else if (option === 'SHOP') {
             this.shopSelection = 0;
-            this.shopMode = 'active';
+            this.shopMode = 'categories';
         } else if (option === 'HEAL') {
             // Heal synchronously. A setTimeout here could fire after the player
             // had already opened another menu or entered a battle, yanking them
@@ -1802,8 +1846,8 @@ Game.prototype.renderMenu = function () {
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Only show submenus when they're actually open (shopMode/bagMode set), not just highlighted
-    if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode === 'active') {
-        UI.drawShop(this.ctx, this.shopItems, this.shopSelection, this.player);
+    if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode) {
+        UI.drawShop(this.ctx, this.getShopEntries(), this.shopSelection, this.player, this.shopMode, this.shopMessage);
     } else if (this.menuOptions[this.menuSelection] === 'TRAINDEX' && this.bagMode === 'dex') {
         UI.drawTrainDex(this.ctx, this.player, this.trainSelection);
     } else if (this.menuOptions[this.menuSelection] === 'TRAINS' && this.bagMode === 'trains') {
