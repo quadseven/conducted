@@ -56,11 +56,16 @@ function Game(canvas) {
 
     // Pause menu system
     this.menuSelection = 0;
-    this.menuOptions = ['TRAINDEX', 'TRAINS', 'DEPOT', 'BAG', 'SHOP', 'HEAL', 'SAVE', 'CLOSE'];
+    this.menuOptions = ['BAG', 'TRAINS', 'SAVE', 'OPTIONS'];
+    this.menuOverlay = null; // null (main menu), 'BAG', 'TRAINS', 'SAVE', 'OPTIONS'
     this.bagSelection = 0;
-    this.bagMode = null; // null, 'list', or 'use_on_train'
+    this.bagMode = null; // null, 'list', 'use_on_train', or 'depot'
     this.selectedItem = null;
     this.trainSelection = 0;
+    this.saveSelection = 0; // 0: YES, 1: NO
+    this.saveMessage = '';
+    this.optionsSelection = 0; // 0: Audio, 1: Text Speed
+    this.textSpeedSetting = 'MID';
 
     // Shop system - catalog derived from the Items registry (single source of
     // truth). UI expects {name, displayName, price, description}.
@@ -191,9 +196,13 @@ Game.prototype.setState = function (next) {
     switch (next) {
         case CONSTANTS.STATES.MENU:
             this.menuSelection = 0;
+            this.menuOverlay = null;
             this.bagMode = null;
             this.shopMode = null;
             this.selectedItem = null;
+            this.saveSelection = 0;
+            this.saveMessage = '';
+            this.optionsSelection = 0;
             break;
         case CONSTANTS.STATES.BATTLE_SUMMARY:
             // caughtTrainResult is set by the caller before transitioning.
@@ -468,10 +477,14 @@ Game.prototype.updateStarterSelection = function () {
 
 Game.prototype.updateOverworld = function (deltaTime) {
     this.techniqueNoticeTime = Math.max(0, this.techniqueNoticeTime - deltaTime);
-    // Open pause menu with Escape key (only when not moving)
-    if (!this.player.isMoving && this.input.isKeyJustPressed('Escape')) {
+    // Open pause menu with Start button, mobile menu button, Escape, or virtual keys
+    const isMenuTriggered = typeof this.input.isMenuJustPressed === 'function'
+        ? this.input.isMenuJustPressed()
+        : (this.input.isKeyJustPressed('Escape') || this.input.isKeyJustPressed('m') || this.input.isKeyJustPressed('M') || this.input.isKeyJustPressed('Start') || this.input.isVirtualKeyJustPressed('start') || this.input.isVirtualKeyJustPressed('menu'));
+
+    if (!this.player.isMoving && (isMenuTriggered || this.input.isVirtualKeyJustPressed('start') || this.input.isVirtualKeyJustPressed('menu') || this.input.isVirtualKeyJustPressed('b'))) {
         this.setState(CONSTANTS.STATES.MENU);
-        console.log('→ MENU');
+        console.log('-> MENU');
         return;
     }
 
@@ -567,7 +580,6 @@ Game.prototype.checkNPCInteraction = function () {
     if (npc) {
         if (npc.type === 'storage') {
             this.setState(CONSTANTS.STATES.MENU);
-            this.menuSelection = this.menuOptions.indexOf('DEPOT');
             this.trainSelection = 0;
             this.bagMode = 'depot';
             this.player.menuMessage = '';
@@ -1715,199 +1727,301 @@ Game.prototype.selectShopEntry = function (entry) {
 };
 
 Game.prototype.updateMenu = function () {
-    // Shop categories and item lists share keyboard and virtual controls.
-    if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode) {
-        const entries = this.getShopEntries();
-        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
-            this.shopSelection = Math.max(0, this.shopSelection - 1);
-        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
-            this.shopSelection = Math.min(entries.length - 1, this.shopSelection + 1);
-        }
-        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
-            this.selectShopEntry(entries[this.shopSelection]);
-        }
-        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
-            if (this.shopMode === 'categories') {
-                this.menuSelection = 0;
-                this.shopMode = null;
-            } else {
-                this.shopMode = 'categories';
-                this.shopSelection = 0;
-            }
-            return;
-        }
+    if (this.bagMode === 'depot') {
+        this.updateDepotMenu();
         return;
     }
-
-    // BAG mode with item usage
-    if (this.menuOptions[this.menuSelection] === 'BAG' && this.bagMode === 'use_on_train') {
-        // Navigate trains
-        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
-            this.trainSelection = Math.max(0, this.trainSelection - 1);
-        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
-            this.trainSelection = Math.min(this.player.party.length - 1, this.trainSelection + 1);
-        }
-
-        // Select train to use item on
-        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
-            const train = this.player.party[this.trainSelection];
-            const def = Items.get(this.selectedItem);
-
-            if (def && def.kind === 'heal' && this.player.storyFlags.leagueChallengeActive) {
-                this.player.menuMessage = 'Use the League healing room between battles.';
-                return;
-            }
-
-            // Train has `maxHP`, NOT `stats.hp` (that property does not exist and
-            // threw here previously). Heal amount comes from the Items registry.
-            if (def && train && ((def.kind === 'heal' && train.currentHP < train.maxHP) ||
-                (def.kind === 'pp' && train.moves.some(move => (train.movePP[move] || 0) < MOVES_DB[move].pp)))) {
-                if (def.kind === 'heal') train.heal(def.amount);
-                else train.restorePP(def.amount);
-                this.player.items[def.id] = Math.max(0, (this.player.items[def.id] || 0) - 1);
-                this.bagMode = 'list';
-                this.selectedItem = null;
-                console.log(`Used ${def.name} on ${train.nickname || train.species.name}`);
-            }
-        }
-
-        // Cancel
-        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
-            this.bagMode = 'list';
-            this.selectedItem = null;
-        }
+    if (this.menuOverlay === 'BAG') {
+        this.updateMenuBag();
         return;
     }
-
-    // BAG mode - list items (only if bag is actually open, not just highlighted)
-    if (this.menuOptions[this.menuSelection] === 'BAG' && this.bagMode === 'list') {
-        const items = Object.keys(this.player.items).filter(item => this.player.items[item] > 0);
-
-        if (items.length > 0) {
-            if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
-                this.bagSelection = Math.max(0, this.bagSelection - 1);
-            } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
-                this.bagSelection = Math.min(items.length - 1, this.bagSelection + 1);
-            }
-
-            // Use item
-            if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
-                const selectedItem = items[this.bagSelection];
-
-                if (selectedItem === 'boxcar') {
-                    console.log("Can't use Boxcars here!");
-                } else if (Items.get(selectedItem) && Items.get(selectedItem).usableInField) {
-                    this.selectedItem = selectedItem;
-                    this.bagMode = 'use_on_train';
-                    this.trainSelection = 0;
-                }
-            }
-        }
-
-        // Back to main menu
-        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
-            this.menuSelection = 0;
-            this.bagMode = null;  // Clear bag mode to return to main menu
-        }
+    if (this.menuOverlay === 'TRAINS') {
+        this.updateMenuTrains();
         return;
     }
-
-    // TRAINS mode - view party
-    if (this.menuOptions[this.menuSelection] === 'TRAINS' && this.bagMode === 'trains') {
-        // Navigate trains
-        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
-            this.trainSelection = Math.max(0, this.trainSelection - 1);
-        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
-            this.trainSelection = Math.min(this.player.party.length - 1, this.trainSelection + 1);
-        }
-
-        // Back to main menu
-        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
-            this.menuSelection = 0;
-            this.bagMode = null;  // Clear trains mode to return to main menu
-        }
+    if (this.menuOverlay === 'SAVE') {
+        this.updateMenuSave();
         return;
     }
-
-    if (this.menuOptions[this.menuSelection] === 'DEPOT' && this.bagMode === 'depot') {
-        const total = this.player.party.length + this.player.storage.length;
-        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
-            this.trainSelection = Math.max(0, this.trainSelection - 1);
-        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
-            this.trainSelection = Math.min(Math.max(0, total - 1), this.trainSelection + 1);
-        } else if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
-            if (this.trainSelection < this.player.party.length) {
-                this.player.menuMessage = this.player.depositTrain(this.trainSelection);
-            } else {
-                const storageIndex = this.trainSelection - this.player.party.length;
-                this.player.menuMessage = this.player.withdrawTrain(storageIndex);
-            }
-            this.save();
-            this.trainSelection = 0;
-        }
-        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
-            this.menuSelection = 0;
-            this.bagMode = null;
-        }
+    if (this.menuOverlay === 'OPTIONS') {
+        this.updateMenuOptions();
         return;
     }
+    this.updateMainMenu();
+};
 
-    if (this.menuOptions[this.menuSelection] === 'TRAINDEX' && this.bagMode === 'dex') {
-        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) this.trainSelection = Math.max(0, this.trainSelection - 1);
-        else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) this.trainSelection = Math.min(150, this.trainSelection + 1);
-        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
-            this.menuSelection = 0;
-            this.bagMode = null;
-        }
-        return;
-    }
-
-    // Main menu navigation with wrapping
+Game.prototype.updateMainMenu = function () {
+    // Navigation
     if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
         this.menuSelection = (this.menuSelection - 1 + this.menuOptions.length) % this.menuOptions.length;
     } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
         this.menuSelection = (this.menuSelection + 1) % this.menuOptions.length;
     }
 
-    // Select menu option
+    // Select core option
     if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
         const option = this.menuOptions[this.menuSelection];
-
-        if (option === 'TRAINDEX') {
-            this.trainSelection = 0;
-            this.bagMode = 'dex';
-        } else if (option === 'TRAINS') {
-            this.trainSelection = 0;
-            this.bagMode = 'trains'; // Reuse bagMode for trains view
-        } else if (option === 'DEPOT') {
-            this.trainSelection = 0;
-            this.bagMode = 'depot';
-        } else if (option === 'BAG') {
-            this.bagSelection = 0;
+        if (option === 'BAG') {
+            this.menuOverlay = 'BAG';
             this.bagMode = 'list';
-        } else if (option === 'SHOP') {
-            this.shopSelection = 0;
-            this.shopMode = 'categories';
-        } else if (option === 'HEAL') {
-            // Heal synchronously. A setTimeout here could fire after the player
-            // had already opened another menu or entered a battle, yanking them
-            // out of it mid-action.
-            this.player.healParty();
-            console.log('All trains healed to full HP!');
-            this.setState(CONSTANTS.STATES.OVERWORLD);
+            this.bagSelection = 0;
+            this.selectedItem = null;
+        } else if (option === 'TRAINS') {
+            this.menuOverlay = 'TRAINS';
+            this.trainSelection = 0;
         } else if (option === 'SAVE') {
-            this.save();
-            console.log('Game saved!');
-        } else if (option === 'CLOSE') {
-            this.state = CONSTANTS.STATES.OVERWORLD;
-            console.log('→ OVERWORLD');
+            this.menuOverlay = 'SAVE';
+            this.saveSelection = 0;
+            this.saveMessage = '';
+        } else if (option === 'OPTIONS') {
+            this.menuOverlay = 'OPTIONS';
+            this.optionsSelection = 0;
+        }
+        return;
+    }
+
+    // Close menu with B, X, Backspace, Escape, or mobile menu buttons
+    const isDismiss = this.input.isKeyJustPressed('Backspace') ||
+                      this.input.isKeyJustPressed('x') ||
+                      this.input.isVirtualKeyJustPressed('b') ||
+                      this.input.isKeyJustPressed('Escape') ||
+                      this.input.isVirtualKeyJustPressed('start') ||
+                      this.input.isVirtualKeyJustPressed('menu');
+
+    if (isDismiss) {
+        this.state = CONSTANTS.STATES.OVERWORLD;
+        if (this.input) this.input.reset();
+        console.log('-> OVERWORLD');
+    }
+};
+
+Game.prototype.updateMenuBag = function () {
+    const isCancel = this.input.isKeyJustPressed('Backspace') ||
+                     this.input.isKeyJustPressed('x') ||
+                     this.input.isVirtualKeyJustPressed('b') ||
+                     this.input.isKeyJustPressed('Escape');
+
+    if (this.bagMode === 'use_on_train') {
+        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+            this.trainSelection = Math.max(0, this.trainSelection - 1);
+        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+            this.trainSelection = Math.min(this.player.party.length - 1, this.trainSelection + 1);
+        }
+
+        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+            this.useItemOnTrain(this.selectedItem, this.trainSelection);
+        } else if (isCancel) {
+            this.bagMode = 'list';
+            this.selectedItem = null;
+        }
+        return;
+    }
+
+    const items = Object.keys(this.player.items).filter(k => this.player.items[k] > 0);
+    this.bagSelection = Math.min(this.bagSelection, Math.max(0, items.length - 1));
+    if (items.length > 0) {
+        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+            this.bagSelection = Math.max(0, this.bagSelection - 1);
+        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+            this.bagSelection = Math.min(items.length - 1, this.bagSelection + 1);
+        }
+
+        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+            const selectedItem = items[this.bagSelection];
+            const def = (typeof Items !== 'undefined' && typeof Items.get === 'function') ? Items.get(selectedItem) : null;
+            if (def && def.usableInField) {
+                this.selectedItem = selectedItem;
+                this.bagMode = 'use_on_train';
+                this.trainSelection = 0;
+            } else {
+                this.player.menuMessage = "Can't use that here!";
+            }
         }
     }
 
-    // Close menu with B/X
-    if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
+    if (isCancel) {
+        this.menuOverlay = null;
+        this.bagMode = null;
+        this.selectedItem = null;
+    }
+};
+
+Game.prototype.useItemOnTrain = function (itemId, trainIndex) {
+    const train = this.player.party[trainIndex];
+    const def = (typeof Items !== 'undefined' && typeof Items.get === 'function') ? Items.get(itemId) : null;
+    if (!train || !def) return;
+
+    if (def.kind === 'heal' && this.player.storyFlags.leagueChallengeActive) {
+        this.player.menuMessage = 'Use the League healing room between battles.';
+        return;
+    }
+
+    if (def.kind === 'heal') {
+        if (train.currentHP >= train.maxHP) {
+            this.player.menuMessage = 'HP is already full.';
+            return;
+        }
+        train.heal(def.amount);
+        this.player.items[def.id] = Math.max(0, (this.player.items[def.id] || 0) - 1);
+        this.player.menuMessage = `Used ${def.name} on ${train.nickname || train.species.name}!`;
+        if (this.audio && typeof this.audio.playSound === 'function') {
+            this.audio.playSound('heal');
+        }
+        this.bagMode = 'list';
+        this.selectedItem = null;
+    } else if (def.kind === 'pp') {
+        const canRestore = train.moves.some(move => (train.movePP[move] || 0) < MOVES_DB[move].pp);
+        if (!canRestore) {
+            this.player.menuMessage = 'PP is already full.';
+            return;
+        }
+        train.restorePP(def.amount);
+        this.player.items[def.id] = Math.max(0, (this.player.items[def.id] || 0) - 1);
+        this.player.menuMessage = `Restored PP for ${train.nickname || train.species.name}!`;
+        this.bagMode = 'list';
+        this.selectedItem = null;
+    } else {
+        this.player.menuMessage = "Can't use that here!";
+    }
+};
+
+Game.prototype.updateMenuTrains = function () {
+    const party = this.player.party || [];
+    if (party.length > 0) {
+        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+            this.trainSelection = (this.trainSelection - 1 + party.length) % party.length;
+        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+            this.trainSelection = (this.trainSelection + 1) % party.length;
+        }
+    }
+
+    const isCancel = this.input.isKeyJustPressed('Backspace') ||
+                     this.input.isKeyJustPressed('x') ||
+                     this.input.isVirtualKeyJustPressed('b') ||
+                     this.input.isKeyJustPressed('Escape');
+
+    if (isCancel) {
+        this.menuOverlay = null;
+    }
+};
+
+Game.prototype.updateMenuSave = function () {
+    const isCancel = this.input.isKeyJustPressed('Backspace') ||
+                     this.input.isKeyJustPressed('x') ||
+                     this.input.isVirtualKeyJustPressed('b') ||
+                     this.input.isKeyJustPressed('Escape');
+
+    const isConfirm = this.input.isKeyJustPressed('Enter') ||
+                      this.input.isKeyJustPressed('z') ||
+                      this.input.isVirtualKeyJustPressed('a');
+
+    if (this.saveMessage) {
+        if (isConfirm || isCancel) {
+            this.menuOverlay = null;
+            this.saveMessage = '';
+        }
+        return;
+    }
+
+    const toggle = this.input.isKeyJustPressed('ArrowLeft') || this.input.isVirtualKeyJustPressed('left') ||
+                   this.input.isKeyJustPressed('ArrowRight') || this.input.isVirtualKeyJustPressed('right') ||
+                   this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up') ||
+                   this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down');
+
+    if (toggle) {
+        this.saveSelection = this.saveSelection === 0 ? 1 : 0;
+    }
+
+    if (isConfirm) {
+        if (this.saveSelection === 0) {
+            const success = this.save();
+            this.saveMessage = success ? 'Game saved successfully!' : 'Save failed!';
+            if (this.audio && typeof this.audio.playSound === 'function') {
+                this.audio.playSound('select');
+            }
+        } else {
+            this.menuOverlay = null;
+        }
+        return;
+    }
+
+    if (isCancel) {
+        this.menuOverlay = null;
+        this.saveMessage = '';
+    }
+};
+
+Game.prototype.updateMenuOptions = function () {
+    const isCancel = this.input.isKeyJustPressed('Backspace') ||
+                     this.input.isKeyJustPressed('x') ||
+                     this.input.isVirtualKeyJustPressed('b') ||
+                     this.input.isKeyJustPressed('Escape');
+
+    if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+        this.optionsSelection = (this.optionsSelection - 1 + 2) % 2;
+    } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+        this.optionsSelection = (this.optionsSelection + 1) % 2;
+    }
+
+    const toggle = this.input.isKeyJustPressed('ArrowLeft') || this.input.isVirtualKeyJustPressed('left') ||
+                   this.input.isKeyJustPressed('ArrowRight') || this.input.isVirtualKeyJustPressed('right') ||
+                   this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') ||
+                   this.input.isVirtualKeyJustPressed('a');
+
+    if (toggle) {
+        if (this.optionsSelection === 0) {
+            this.audio.muted = !this.audio.muted;
+            if (this.audio.muted) {
+                this.audio.stopMusic();
+            } else {
+                this.audio.playMusic('overworld');
+            }
+        } else if (this.optionsSelection === 1) {
+            const speeds = ['SLOW', 'MID', 'FAST'];
+            const speedValues = { SLOW: 20, MID: 35, FAST: 60 };
+            const currIdx = speeds.indexOf(this.textSpeedSetting || 'MID');
+            const nextIdx = (currIdx + 1) % speeds.length;
+            this.textSpeedSetting = speeds[nextIdx];
+            if (this.dialogueBox) {
+                this.dialogueBox.textSpeed = speedValues[this.textSpeedSetting];
+            }
+        }
+        if (this.audio && typeof this.audio.playSound === 'function') {
+            this.audio.playSound('select');
+        }
+    }
+
+    if (isCancel) {
+        this.menuOverlay = null;
+    }
+};
+
+Game.prototype.updateDepotMenu = function () {
+    const total = this.player.party.length + this.player.storage.length;
+    if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+        this.trainSelection = Math.max(0, this.trainSelection - 1);
+    } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+        this.trainSelection = Math.min(Math.max(0, total - 1), this.trainSelection + 1);
+    } else if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+        if (this.trainSelection < this.player.party.length) {
+            this.player.menuMessage = this.player.depositTrain(this.trainSelection);
+        } else {
+            const storageIndex = this.trainSelection - this.player.party.length;
+            this.player.menuMessage = this.player.withdrawTrain(storageIndex);
+        }
+        this.save();
+        this.trainSelection = 0;
+    }
+
+    const isCancel = this.input.isKeyJustPressed('Backspace') ||
+                     this.input.isKeyJustPressed('x') ||
+                     this.input.isVirtualKeyJustPressed('b') ||
+                     this.input.isKeyJustPressed('Escape');
+
+    if (isCancel) {
+        this.bagMode = null;
         this.state = CONSTANTS.STATES.OVERWORLD;
-        console.log('→ OVERWORLD');
+        if (this.input) this.input.reset();
     }
 };
 
@@ -1919,22 +2033,25 @@ Game.prototype.renderMenu = function () {
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Only show submenus when they're actually open (shopMode/bagMode set), not just highlighted
-    if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode) {
-        UI.drawShop(this.ctx, this.getShopEntries(), this.shopSelection, this.player, this.shopMode, this.shopMessage);
-    } else if (this.menuOptions[this.menuSelection] === 'TRAINDEX' && this.bagMode === 'dex') {
-        UI.drawTrainDex(this.ctx, this.player, this.trainSelection);
-    } else if (this.menuOptions[this.menuSelection] === 'TRAINS' && this.bagMode === 'trains') {
-        UI.drawTrainParty(this.ctx, this.player, this.trainSelection);
-    } else if (this.menuOptions[this.menuSelection] === 'DEPOT' && this.bagMode === 'depot') {
+    if (this.bagMode === 'depot') {
         UI.drawDepot(this.ctx, this.player, this.trainSelection);
-    } else if (this.menuOptions[this.menuSelection] === 'BAG' && this.bagMode) {
+    } else if (this.menuOverlay === 'BAG') {
         if (this.bagMode === 'use_on_train') {
             UI.drawBagUseOnTrain(this.ctx, this.player, this.trainSelection, this.selectedItem);
         } else {
             UI.drawBag(this.ctx, this.player, this.bagSelection);
         }
+    } else if (this.menuOverlay === 'TRAINS') {
+        UI.drawTrainsOverlay(this.ctx, this.player, this.trainSelection);
+    } else if (this.menuOverlay === 'SAVE') {
+        UI.drawSaveOverlay(this.ctx, this.player, this.currentMap, this.saveSelection, this.saveMessage);
+    } else if (this.menuOverlay === 'OPTIONS') {
+        UI.drawOptionsOverlay(this.ctx, this.audio, this.textSpeedSetting, this.optionsSelection);
     } else {
         UI.drawPauseMenu(this.ctx, this.menuOptions, this.menuSelection, this.player);
     }
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Game;
+}
