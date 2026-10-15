@@ -168,7 +168,8 @@ const CONSTANTS = {
         MESSAGE: 'message',
         VICTORY: 'victory',
         DEFEAT: 'defeat',
-        BATTLE_SUMMARY: 'battle_summary'
+        BATTLE_SUMMARY: 'battle_summary',
+        LEARN_MOVE: 'learn_move'
     },
 
     // Player starting position
