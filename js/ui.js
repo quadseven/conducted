@@ -244,7 +244,7 @@ class UI {
         ctx.fillText('Press A to use • B to cancel', x + 20, y + height - 20);
     }
 
-    static drawShop(ctx, shopItems, selectedIndex, player) {
+    static drawShop(ctx, shopItems, selectedIndex, player, mode = 'buy', message = '') {
         const x = 100;
         const y = 100;
         const width = 600;
@@ -260,7 +260,7 @@ class UI {
         // Title
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
         ctx.font = 'bold 24px monospace';
-        ctx.fillText('RAIL MART', x + 20, y + 40);
+        ctx.fillText(mode === 'categories' ? 'RAIL MART' : mode === 'sell' ? 'SELL ITEMS' : 'BUY ' + mode.toUpperCase(), x + 20, y + 40);
 
         // Money display
         ctx.font = '18px monospace';
@@ -284,17 +284,21 @@ class UI {
             }
 
             // Item name and price
-            ctx.fillText(`${item.displayName}`, x + 30, itemY - 5);
-            ctx.font = '16px monospace';
-            ctx.fillText(`$${item.price}`, x + 400, itemY - 5);
-            ctx.fillText(item.description, x + 30, itemY + 20);
+            const label = typeof item === 'string' ? item : item.displayName;
+            ctx.fillText(label, x + 30, itemY - 5);
+            if (typeof item !== 'string') {
+                ctx.font = '16px monospace';
+                ctx.fillText(`$${item.price}`, x + 400, itemY - 5);
+                ctx.fillText(item.description, x + 30, itemY + 20);
+            }
             ctx.font = '20px monospace';
         }
 
         // Instructions
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
         ctx.font = '16px monospace';
-        ctx.fillText('Press A to buy • B to exit', x + 20, y + height - 20);
+        if (message) ctx.fillText(message, x + 20, y + height - 52);
+        ctx.fillText(mode === 'categories' ? 'A: choose / B: close' : mode === 'sell' ? 'A: sell / B: categories' : 'A: buy / B: categories', x + 20, y + height - 20);
     }
 
     static drawTrainParty(ctx, player, trainSelection) {
