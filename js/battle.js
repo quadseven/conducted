@@ -67,6 +67,12 @@ class Battle {
         this.visualMoveType = null;
         this.visualMoveSide = null;
         this.visualMoveTimer = 0;
+        this.criticalFlash = 0;
+        this.effectivenessFlash = 0;
+        this.capturePulse = 0;
+        this.hpDisplay = new WeakMap();
+        this.hpDisplay.set(this.playerActive, this.playerActive.currentHP);
+        this.hpDisplay.set(this.enemyActive, this.enemyActive.currentHP);
 
         // Intro message
         if (this.isWild) {
@@ -93,6 +99,9 @@ class Battle {
         if (this.playerFlash > 0) this.playerFlash -= deltaTime * 3;
         if (this.enemyFlash > 0) this.enemyFlash -= deltaTime * 3;
         if (this.visualMoveTimer > 0) this.visualMoveTimer -= deltaTime;
+        if (this.criticalFlash > 0) this.criticalFlash = Math.max(0, this.criticalFlash - deltaTime * 2.5);
+        if (this.effectivenessFlash > 0) this.effectivenessFlash = Math.max(0, this.effectivenessFlash - deltaTime * 2.2);
+        if (this.capturePulse > 0) this.capturePulse = Math.max(0, this.capturePulse - deltaTime * 2.5);
 
         // Handle state-based updates
         switch (this.state) {
@@ -110,6 +119,8 @@ class Battle {
 
             case CONSTANTS.BATTLE_STATES.ANIMATION:
                 // Playing battle animation
+                if (this.playerActive) this.hpDisplay.set(this.playerActive, this.displayHP(this.playerActive, deltaTime));
+                if (this.enemyActive) this.hpDisplay.set(this.enemyActive, this.displayHP(this.enemyActive, deltaTime));
                 this.updateAnimation(deltaTime);
                 break;
 
@@ -125,7 +136,7 @@ class Battle {
     }
 
     updateAnimation(deltaTime) {
-        if (this.animationQueue.length > 0 && this.animationTimer > 0.5) {
+        if (this.animationQueue.length > 0 && this.animationTimer > 0.18) {
             const anim = this.animationQueue.shift();
             anim.callback();
             this.animationTimer = 0;
@@ -137,7 +148,27 @@ class Battle {
         }
     }
 
+    displayHP(train, deltaTime) {
+        const target = train.currentHP;
+        const shown = this.hpDisplay.has(train) ? this.hpDisplay.get(train) : target;
+        return shown + (target - shown) * Math.min(1, deltaTime * 5);
+    }
+
+    fastForwardAnimations() {
+        let steps = 0;
+        while (this.animationQueue.length && steps < 64) {
+            this.animationQueue.shift().callback();
+            steps++;
+        }
+        this.animationTimer = 0;
+        if (!this.animationQueue.length) this.checkBattleEnd();
+    }
+
     handleInput(action) {
+        if (this.state === CONSTANTS.BATTLE_STATES.ANIMATION && (action === 'a' || action === 'b')) {
+            this.fastForwardAnimations();
+            return;
+        }
         switch (this.state) {
             case CONSTANTS.BATTLE_STATES.INTRO:
                 this.currentMessage++;
@@ -403,6 +434,10 @@ class Battle {
         if (physical) {
             if (side === 'player') this.playerShake = 3; else this.enemyShake = 3;
         }
+        if (moveData.category === 'status') {
+            this.playerFlash = side === 'player' ? 0.8 : this.playerFlash;
+            this.enemyFlash = side === 'enemy' ? 0.8 : this.enemyFlash;
+        }
 
         // Accuracy/evasion stages affect every targeted move, including status.
         const targetsSelf = moveData.effect && moveData.effect.target === 'self';
@@ -440,6 +475,7 @@ class Battle {
             result = calculateDamage(attacker, defender, move, { attackStat, defenseStat, skipAccuracy: true });
             if (!result.hit) break;
             if (side === 'player') this.enemyFlash = 1; else this.playerFlash = 1;
+            this.visualMoveTimer = 0.7;
             defender.takeDamage(result.damage);
             if (this.game && this.game.audio) this.game.audio.playSound('hit');
             totalDamage += result.damage;
@@ -452,7 +488,8 @@ class Battle {
             return;
         }
 
-        if (result.critical) this.addMessage('Critical hit!');
+        if (result.critical) { this.addMessage('Critical hit!'); this.criticalFlash = 1; }
+        if (result.effectiveness > 1) this.effectivenessFlash = 1;
         const effText = getEffectivenessText(result.effectiveness);
         if (effText) this.addMessage(effText);
         if (hits > 1) this.addMessage(`Hit ${hits} times!`);
@@ -777,6 +814,7 @@ class Battle {
             if (Utils.randomInt(0, 255) < threshold) {
                 shakes++;
                 this.enemyShake = 0.6;
+                this.capturePulse = 1;
                 if (shakes < 4) this.animationQueue.push({ callback: shake });
                 else this.finishCapture(true, shakes);
             } else {
@@ -853,7 +891,8 @@ class Battle {
         }
 
         const barX = px + (train.status ? 66 : 24), barY = py + 45, barW = pw - (barX - px) - 18, barH = 11;
-        const pct = Math.max(0, train.currentHP / train.maxHP);
+        const shownHP = this.hpDisplay.has(train) ? this.hpDisplay.get(train) : train.currentHP;
+        const pct = Math.max(0, shownHP / train.maxHP);
         ctx.fillStyle = '#152126';
         this.rr(ctx, barX - 18, barY - 2, barW + 20, barH + 4, 2); ctx.fill();
         ctx.fillStyle = '#e8c65c'; ctx.font = 'bold 9px monospace';
@@ -923,7 +962,10 @@ class Battle {
         const playerShakeX = this.playerShake > 0 ? Math.sin(this.animationTimer * 40) * this.playerShake * 2 : 0;
 
         if (this.enemyActive) {
+            ctx.save();
+            if (this.enemyActive.fainted) ctx.globalAlpha = 0.45;
             this.drawEnemyTrain(ctx, 464 + enemyShakeX, 114);
+            ctx.restore();
             if (this.enemyFlash > 0) {
                 this.drawImpactBurst(ctx, 574 + enemyShakeX, 205, this.visualMoveType, this.enemyFlash);
             }
@@ -931,7 +973,10 @@ class Battle {
         }
 
         if (this.playerActive) {
+            ctx.save();
+            if (this.playerActive.fainted) ctx.globalAlpha = 0.45;
             this.drawPlayerTrain(ctx, 67 + playerShakeX, 282);
+            ctx.restore();
             if (this.playerFlash > 0) {
                 this.drawImpactBurst(ctx, 196 + playerShakeX, 388, this.visualMoveType, this.playerFlash);
             }
@@ -939,6 +984,21 @@ class Battle {
         }
 
         if (this.visualMoveTimer > 0) this.drawMoveTrail(ctx);
+        const overlayStrength = Math.max(this.criticalFlash, this.effectivenessFlash, this.capturePulse);
+        if (overlayStrength > 0) {
+            const flash = this.criticalFlash > 0 ? this.criticalFlash * 0.16 : overlayStrength * 0.1;
+            const color = this.criticalFlash > 0 ? '#fff8cf' : '#ffeb96';
+            if (typeof BattleGraphics !== 'undefined') BattleGraphics.drawFlash(ctx, canvas.width, 548, flash, color);
+            else { ctx.fillStyle = `rgba(255,235,150,${flash})`; ctx.fillRect(0, 0, canvas.width, 548); }
+            if (this.effectivenessFlash > 0) {
+                ctx.fillStyle = '#fff1a8'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center';
+                ctx.fillText('SUPER EFFECTIVE!', canvas.width / 2, 74); ctx.textAlign = 'left';
+            }
+            if (this.criticalFlash > 0) {
+                ctx.fillStyle = '#fff1a8'; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center';
+                ctx.fillText('CRITICAL!', canvas.width / 2, 52); ctx.textAlign = 'left';
+            }
+        }
 
         ctx.fillStyle = '#071116';
         ctx.fillRect(0, 548, canvas.width, 124);

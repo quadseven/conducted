@@ -5,6 +5,17 @@
 
 const TILE_SIZE = 16;
 
+const BattleGraphics = {
+  drawFlash(ctx, width, height, alpha, color = '#fff8cf') {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, width, height);
+    ctx.restore();
+  }
+};
+
 const IMG_CACHE = new Map();
 function loadImage(src) {
   if (IMG_CACHE.has(src)) return IMG_CACHE.get(src);
@@ -671,4 +682,7 @@ function drawWorldCharacter(ctx, character, sx, sy, size, options) {
   WorldArt.drawWorldCharacter(ctx, character, sx, sy, size, options);
 }
 
-if (typeof window !== 'undefined') window.WorldArt = WorldArt;
+if (typeof window !== 'undefined') {
+  window.WorldArt = WorldArt;
+  window.BattleGraphics = BattleGraphics;
+}
