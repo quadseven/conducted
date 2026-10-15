@@ -427,6 +427,36 @@ const WORLD_MAPS = {
         : id.includes('Mart') ? 'Boxcars, Potions, and Tickets keep a conductor moving.' : 'A warm boiler and a safe platform make any station home.')
     }] : [], [{ from: rect(4, 7), to: { mapId: returnMap, ...pos(returnX, returnY, 'down') } }]);
   }
+  function makeCoalHarborInterior(id, kind, attendant, dialogueText) {
+    const width = 10, height = 9, tiles = boxed(width, height, 0, 1);
+    tiles[height - 1][4] = 12;
+    if (kind === 'depot') {
+      for (let x = 2; x < 8; x++) tiles[2][x] = 0;
+      tiles[2][4] = 1;
+      tiles[4][2] = 3;
+      tiles[4][3] = 3;
+      tiles[4][6] = 3;
+      tiles[4][7] = 3;
+    } else {
+      for (const x of [2, 3, 6, 7]) {
+        tiles[2][x] = 0;
+        tiles[3][x] = 0;
+        tiles[4][x] = 0;
+      }
+      tiles[2][4] = 0;
+      tiles[2][5] = 0;
+    }
+    const npc = {
+      id: `${id}_attendant`, name: attendant, x: 4, y: 2,
+      type: kind === 'depot' ? 'healer' : 'npc',
+      dialogue: dialogue(attendant, dialogueText)
+    };
+    const map = runtimeMap(id, `Coal Harbor ${kind === 'depot' ? 'Depot' : 'Mart'}`, tiles, [npc], [
+      { from: rect(4, height - 1), to: { mapId: 'CoalHarbor', ...pos(kind === 'depot' ? 16 : 15, kind === 'depot' ? 6 : 13, 'down') } }
+    ]);
+    map.theme = kind;
+    return map;
+  }
   function trainer(id, name, x, y, species, level, line, requires, sets) {
     return { id, name, x, y, type: 'trainer', direction: 'down', canBattle: true,
       defeated: false, baseReward: 65, party: species.map((s, i) => ({ speciesId: s, level: level + i })),
@@ -508,8 +538,10 @@ const WORLD_MAPS = {
   WORLD_MAPS.HealingDepot = makeInterior('HealingDepot', 'Piston Healing Depot', 'PistonTown', 15, 10, 'Depot Nurse Joyner');
   WORLD_MAPS.TrainMart = makeInterior('TrainMart', 'Piston Train Mart', 'PistonTown', 8, 12, 'Quartermaster Cole');
   WORLD_MAPS.CoalHouse = makeInterior('CoalHouse', 'Coal Harbor House', 'CoalHarbor', 2, 8, 'Dockworker Finn');
-  WORLD_MAPS.CoalDepot = makeInterior('CoalDepot', 'Coal Harbor Depot', 'CoalHarbor', 16, 6, 'Depot Nurse Joyner');
-  WORLD_MAPS.CoalMart = makeInterior('CoalMart', 'Coal Harbor Mart', 'CoalHarbor', 15, 11, 'Quartermaster Cole');
+  WORLD_MAPS.CoalDepot = makeCoalHarborInterior('CoalDepot', 'depot', 'Depot Nurse Joyner',
+    'Welcome to the Coal Harbor Depot. Your whole crew is back at full pressure!');
+  WORLD_MAPS.CoalMart = makeCoalHarborInterior('CoalMart', 'mart', 'Quartermaster Cole',
+    'Boxcars, Potions, and Tickets keep a conductor moving.');
   WORLD_MAPS.CoalHarbor.warps.push({ from: rect(10, 14), to: { mapId: 'Route2', ...pos(10, 1, 'down') } });
   for (let n = 2; n <= 8; n++) {
     WORLD_MAPS[`Route${n}`] = makeRoute(n);
