@@ -240,6 +240,12 @@ Game.prototype.update = function (deltaTime) {
         case CONSTANTS.STATES.DIALOGUE:
             this.updateDialogue(deltaTime);
             break;
+        case CONSTANTS.STATES.FAST_TRAVEL:
+            this.updateFastTravel();
+            break;
+        case CONSTANTS.STATES.FAST_TRAVEL_TRANSITION:
+            this.updateFastTravelTransition(deltaTime);
+            break;
         case 'debug':
             this.updateDebugMenu();
             break;
@@ -578,6 +584,19 @@ Game.prototype.checkNPCInteraction = function () {
     const npc = this.currentMap.npcs.find(n => n.x === facingX && n.y === facingY);
 
     if (npc) {
+        if (npc.type === 'station') {
+            if ((this.player.badges || []).length < 1 && !this.player.storyFlags?.copper_signal_challenge_complete) {
+                this.state = CONSTANTS.STATES.DIALOGUE;
+                this.dialogueBox.show([{ speaker: npc.name, text: 'Earn a badge or complete the signal challenge to receive your rail pass.' }], () => {
+                    this.state = CONSTANTS.STATES.OVERWORLD;
+                });
+                return;
+            }
+            this.refreshFastTravelDestinations();
+            this.fastTravelSelection = Math.max(0, this.fastTravelDestinations.indexOf(this.player.currentMap));
+            this.setState(CONSTANTS.STATES.FAST_TRAVEL);
+            return;
+        }
         if (npc.type === 'storage') {
             this.setState(CONSTANTS.STATES.MENU);
             this.trainSelection = 0;
@@ -713,6 +732,99 @@ Game.prototype.checkNPCInteraction = function () {
     }
 };
 
+Game.prototype.refreshFastTravelDestinations = function () {
+    const towns = ['PistonTown', 'CoalHarbor', 'City2', 'City3', 'City4', 'City5', 'City6', 'City7', 'City8'];
+    const visited = new Set(this.player.visitedMaps || [this.player.currentMap]);
+    const badgeCount = (this.player.badges || []).length;
+    this.fastTravelDestinations = towns.filter(id => visited.has(id) && this.maps[id] && this.getFastTravelBadgeRequirement(id) <= badgeCount);
+    if (!this.fastTravelDestinations.includes(this.player.currentMap) && this.maps[this.player.currentMap] && this.getFastTravelBadgeRequirement(this.player.currentMap) <= badgeCount) {
+        this.fastTravelDestinations.push(this.player.currentMap);
+    }
+    return this.fastTravelDestinations;
+};
+
+Game.prototype.getFastTravelBadgeRequirement = function (mapId) {
+    const cityNumber = /^City([2-8])$/.exec(mapId);
+    return cityNumber ? Number(cityNumber[1]) - 1 : 0;
+};
+
+Game.prototype.updateFastTravel = function () {
+    const count = this.fastTravelDestinations.length;
+    if (!count) return;
+    if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+        this.fastTravelSelection = (this.fastTravelSelection - 1 + count) % count;
+    } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+        this.fastTravelSelection = (this.fastTravelSelection + 1) % count;
+    } else if (this.input.isKeyJustPressed('Escape') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+        this.setState(CONSTANTS.STATES.OVERWORLD);
+    } else if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+        this.beginFastTravel(this.fastTravelDestinations[this.fastTravelSelection]);
+    }
+};
+
+Game.prototype.beginFastTravel = function (destinationId) {
+    this.refreshFastTravelDestinations();
+    if (!this.fastTravelDestinations.includes(destinationId)) return false;
+    this.fastTravelTarget = destinationId;
+    this.fastTravelTransitionTime = 0;
+    this.setState(CONSTANTS.STATES.FAST_TRAVEL_TRANSITION);
+    return true;
+};
+
+Game.prototype.updateFastTravelTransition = function (deltaTime) {
+    this.fastTravelTransitionTime += Math.max(0, deltaTime || 0);
+    if (this.fastTravelTransitionTime < 0.6) return;
+    const destinationId = this.fastTravelTarget;
+    if (!destinationId || !this.fastTravelDestinations.includes(destinationId) || !this.maps[destinationId]) {
+        this.setState(CONSTANTS.STATES.OVERWORLD);
+        return;
+    }
+    this.currentMap = this.maps[destinationId];
+    this.player.currentMap = destinationId;
+    const arrival = destinationId === 'GrandTerminus' ? { x: 6, y: 27 } : { x: 10, y: 12 };
+    this.player.x = arrival.x;
+    this.player.y = arrival.y;
+    this.player.targetX = arrival.x;
+    this.player.targetY = arrival.y;
+    this.player.isMoving = false;
+    this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), destinationId]));
+    this.fastTravelTarget = null;
+    this.save();
+    this.setState(CONSTANTS.STATES.OVERWORLD);
+};
+
+Game.prototype.renderFastTravel = function (ctx, transitioning) {
+    const w = this.canvas.width, h = this.canvas.height;
+    ctx.fillStyle = transitioning ? '#101820' : '#17232e';
+    ctx.fillRect(0, 0, w, h);
+    if (transitioning) {
+        const pulse = Math.floor((this.fastTravelTransitionTime || 0) * 18) % 2;
+        ctx.fillStyle = pulse ? '#e9bf57' : '#f8f4e8';
+        ctx.font = 'bold 24px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('ALL ABOARD...', w / 2, h / 2);
+        return;
+    }
+    ctx.fillStyle = '#f8f4e8';
+    ctx.fillRect(56, 48, w - 112, h - 96);
+    ctx.strokeStyle = '#2c2416';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(56, 48, w - 112, h - 96);
+    ctx.fillStyle = '#173742';
+    ctx.font = 'bold 24px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('RAIL PASS - SELECT A TOWN', 84, 90);
+    this.fastTravelDestinations.forEach((id, index) => {
+        const name = this.maps[id].name || id;
+        ctx.fillStyle = index === this.fastTravelSelection ? '#5878a8' : '#25313b';
+        ctx.font = '20px monospace';
+        ctx.fillText(`${index === this.fastTravelSelection ? '>' : ' '} ${name}`, 100, 132 + index * 31);
+    });
+    ctx.font = '14px monospace';
+    ctx.fillStyle = '#485048';
+    ctx.fillText('UP/DOWN: SELECT   Z: BOARD   X: CANCEL', 84, h - 76);
+};
+
 Game.prototype.startTrainerBattle = function (npc) {
     if (this.player.party.length === 0) {
         console.warn('Cannot start trainer battle - no trains in party');
@@ -807,6 +919,7 @@ Game.prototype.checkWarpTransition = function () {
         if (this.maps[to.mapId]) {
             this.currentMap = this.maps[to.mapId];
             this.player.currentMap = to.mapId;
+            this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), to.mapId]));
         } else {
             console.error(`Map not found: ${to.mapId}`);
             return;
@@ -1020,6 +1133,7 @@ Game.prototype.handleDefeat = function () {
     const respawnKey = this.maps['PistonTown'] ? 'PistonTown' : 'pallet_town';
     this.currentMap = this.maps[respawnKey];
     this.player.currentMap = respawnKey;
+    this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), respawnKey]));
     this.player.x = 10;
     this.player.y = 7;
     this.player.targetX = 10;
@@ -1063,6 +1177,12 @@ Game.prototype.render = function () {
             break;
         case CONSTANTS.STATES.MENU:
             this.renderMenu(ctx);
+            break;
+        case CONSTANTS.STATES.FAST_TRAVEL:
+            this.renderFastTravel(ctx, false);
+            break;
+        case CONSTANTS.STATES.FAST_TRAVEL_TRANSITION:
+            this.renderFastTravel(ctx, true);
             break;
         case 'debug':
             this.renderDebugMenu(ctx);

@@ -9,6 +9,7 @@ class Player {
         this.y = 7;
         this.direction = CONSTANTS.DIRECTIONS.DOWN;
         this.currentMap = 'PistonTown';
+        this.visitedMaps = ['PistonTown'];
 
         // Party - empty until starter selection
         this.party = [];
@@ -219,6 +220,7 @@ class Player {
             y: this.y,
             direction: this.direction,
             currentMap: this.currentMap,
+            visitedMaps: this.visitedMaps,
             party: this.party.map(t => t.toJSON()),
             storage: this.storage.map(t => t.toJSON()),
             seenSpecies: this.seenSpecies,
@@ -245,6 +247,8 @@ class Player {
         player.direction = data.direction ?? player.direction;
         const savedMap = data.currentMap ?? player.currentMap;
         player.currentMap = savedMap === 'piston_town' || savedMap === 'pallet_town' ? 'PistonTown' : savedMap;
+        player.visitedMaps = Array.isArray(data.visitedMaps) ? data.visitedMaps : [player.currentMap];
+        if (!player.visitedMaps.includes(player.currentMap)) player.visitedMaps.push(player.currentMap);
 
         // Party: guard against missing/empty and drop any entry that fails to
         // deserialize rather than throwing out the whole save.

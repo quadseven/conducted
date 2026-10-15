@@ -1223,6 +1223,18 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
   ]);
 })();
 
+// Add attendants after campaign and town NPC setup so station staff remain
+// present when authored NPC lists are replaced.
+(function installRailPassStations() {
+  const towns = ['PistonTown', 'CoalHarbor', 'City2', 'City3', 'City4', 'City5', 'City6', 'City7', 'City8'];
+  for (const id of towns) {
+    const map = WORLD_MAPS[id];
+    if (!map) continue;
+    map.npcs.push({ id: `station_${id}`, name: 'Rail Attendant', x: 11, y: 7, type: 'station',
+      dialogue: [{ speaker: 'Rail Attendant', text: 'The rail pass lets you return to towns you have already visited.' }] });
+  }
+})();
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { WORLD_MAPS, createRivalBlakeNPC, getRivalStarterId };
 }
