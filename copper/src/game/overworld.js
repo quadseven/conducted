@@ -40,7 +40,7 @@
     p.x = x; p.y = y; p.tx = x; p.ty = y; p.moving = false; p.prog = 0; if (dir) p.dir = dir;
     const m = map();
     if (!opts.keepNpcs) loadNpcs(m);
-    if (m.music) CD.audio.music(typeof m.music === 'function' ? m.music(CD.state) : m.music);
+    if (m.music) CD.audio.playMusic(typeof m.music === 'function' ? m.music(CD.state) : m.music);
     if (m.name && (!opts.quiet) && (W.get(prev).name !== m.name)) ow.banner = { text: m.name, t: 150 };
     ow.trainState = m.ambientTrain ? { t: m.ambientTrain.every * 0.4, x: null } : null;
     if (m.onEnter) script(m.onEnter(CD.state), 'enter:' + id);
