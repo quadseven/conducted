@@ -15,11 +15,11 @@
 
   const add = (id, n) => { (map(id).npcs = map(id).npcs || []).push(n); };
   add('Route1', { id: 'r1youngster', sprite: 'youngster', x: 5, y: 8, dir: 'right', move: 'still',
-    trainer: { id: 'r1youngster', cls: 'YOUNGSTER', name: 'TOBY', sight: 4, prize: 16, party: [[10, 5], [13, 5]],
-      intro: "Hey! You've got a train! Mine are the fastest on Route 1!", defeat: "Aw, my Commutot missed its connection...", post: 'I\'m going to train in the tall grass until my trains never miss a timetable.' } });
+    trainer: { id: 'r1youngster', cls: 'YOUNGSTER', name: 'TOBY', sight: 4, prize: 16, party: [[10, 5], [10, 5]],
+      intro: "Hey! You've got a train! Mine are the fastest on Route 1!", defeat: "Aw, my Trackie missed its connection...", post: 'I\'m going to train in the tall grass until my trains never miss a timetable.' } });
   add('Route1', { id: 'r1lass', sprite: 'lass', look: { hair: '#5a3a28' }, x: 15, y: 17, dir: 'left', move: 'still',
-    trainer: { id: 'r1lass', cls: 'LASS', name: 'PENNY', sight: 3, prize: 18, party: [[10, 5], [13, 5]],
-      intro: 'Our eyes met! That means we battle. Those are the rules of the rails!', defeat: "Oh! You're strong. My Cargoat's all tuckered out.", post: 'Cargoat climb anything. Mine climbed my dad\'s shed last week.' } });
+    trainer: { id: 'r1lass', cls: 'LASS', name: 'PENNY', sight: 3, prize: 18, party: [[10, 5], [4, 5]],
+      intro: 'Our eyes met! That means we battle. Those are the rules of the rails!', defeat: "Oh! You're strong. My Sparkart's all tuckered out.", post: 'Sparkart go fast with electricity. I use the newest tech!' } });
   add('Route1', { id: 'r1bugkid', sprite: 'bugkid', x: 12, y: 24, dir: 'left', move: 'still',
     trainer: { id: 'r1bugkid', cls: 'RAIL FAN', name: 'RORY', sight: 3, prize: 12, party: [[10, 5], [10, 6], [11, 7]],
       intro: "I've been spotting trains all morning! Let me see yours up close!", defeat: 'Wow! I have to write that down in my spotter book.', post: 'Trackie turn into Coachoon, and then something amazing. Keep training and see!' } });
