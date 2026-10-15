@@ -533,10 +533,21 @@ Game.prototype.checkNPCInteraction = function () {
     if (npc) {
         const flags = this.player.storyFlags || (this.player.storyFlags = {});
         const requirements = npc.requires || [];
-        const missing = requirements.filter(required => !flags[required] && !this.player.hasBadge(required));
+        const hasReq = (req) => {
+            if (flags[req] || this.player.hasBadge(req)) return true;
+            if (req === 'hasStarter' && (this.player.hasStarterTrain || (this.player.party && this.player.party.length > 0))) return true;
+            return false;
+        };
+        const missing = requirements.filter(req => !hasReq(req));
         if (missing.length) {
             this.state = CONSTANTS.STATES.DIALOGUE;
-            this.dialogueBox.show([{ speaker: npc.name, text: `This line is closed. Required: ${missing.join(', ')}.` }], () => {
+            let blockedText = [{ speaker: npc.name, text: `This line is closed. Required: ${missing.join(', ')}.` }];
+            if (typeof npc.blockedDialogue === 'function') {
+                blockedText = npc.blockedDialogue(this.player, missing);
+            } else if (npc.blockedDialogue && npc.blockedDialogue.length > 0) {
+                blockedText = npc.blockedDialogue;
+            }
+            this.dialogueBox.show(blockedText, () => {
                 this.state = CONSTANTS.STATES.OVERWORLD;
             });
             return;
@@ -557,10 +568,17 @@ Game.prototype.checkNPCInteraction = function () {
         }
         // Start trainer battle if applicable
         if ((npc.type === 'trainer' || npc.type === 'gym_leader' || npc.type === 'champion') && npc.canBattle && !npc.defeated) {
+            if (!this.player.hasAliveTrain()) {
+                this.player.healParty();
+            }
+            let battleIntro = npc.dialogue;
+            if (flags['attempted_' + npc.id] && npc.retryDialogue && npc.retryDialogue.length > 0) {
+                battleIntro = npc.retryDialogue;
+            }
             // Show dialogue first, then start battle
-            if (npc.dialogue && npc.dialogue.length > 0) {
+            if (battleIntro && battleIntro.length > 0) {
                 this.state = CONSTANTS.STATES.DIALOGUE;
-                this.dialogueBox.show(npc.dialogue, () => {
+                this.dialogueBox.show(battleIntro, () => {
                     this.startTrainerBattle(npc);
                 });
             } else {
@@ -568,7 +586,16 @@ Game.prototype.checkNPCInteraction = function () {
             }
         } else {
             // Show dialogue for defeated trainers or non-battle NPCs
-            const dialogue = npc.defeated && npc.defeatDialogue ? npc.defeatDialogue : npc.dialogue;
+            let dialogue = npc.dialogue;
+            if (npc.defeated) {
+                if (typeof npc.revisitDialogue === 'function') {
+                    dialogue = npc.revisitDialogue(this.player);
+                } else if (npc.revisitDialogue && npc.revisitDialogue.length > 0) {
+                    dialogue = npc.revisitDialogue;
+                } else if (npc.defeatDialogue && npc.defeatDialogue.length > 0) {
+                    dialogue = npc.defeatDialogue;
+                }
+            }
             if (dialogue && dialogue.length > 0) {
                 this.state = CONSTANTS.STATES.DIALOGUE;
                 this.dialogueBox.show(dialogue, () => {
@@ -586,10 +613,12 @@ Game.prototype.startTrainerBattle = function (npc) {
     }
 
     console.log(`Starting trainer battle with ${npc.name}...`);
+    this.player.storyFlags['attempted_' + npc.id] = true;
 
     // Generate enemy trains from NPC party data. Train(speciesId, level) takes
     // a numeric species id and looks it up in TRAIN_SPECIES itself.
-    const enemyTrains = npc.party.map(data => {
+    const partyData = typeof npc.getParty === 'function' ? npc.getParty(this.player) : npc.party;
+    const enemyTrains = partyData.map(data => {
         if (!TRAIN_SPECIES[data.speciesId]) {
             console.error(`Species not found: ${data.speciesId}`);
             return null;
@@ -613,6 +642,12 @@ Game.prototype.startTrainerBattle = function (npc) {
         npc.defeated = true;
         const storyFlag = npc.storyFlag || `defeated_${npc.id}`;
         this.player.storyFlags[storyFlag] = true;
+        if (npc.isRival && npc.rivalStage) {
+            this.player.storyFlags['rival_blake_stage'] = Math.max(
+                this.player.storyFlags['rival_blake_stage'] || 0,
+                npc.rivalStage
+            );
+        }
         console.log(`${npc.name} defeated!`);
 
         // Award badge if gym leader
@@ -623,6 +658,10 @@ Game.prototype.startTrainerBattle = function (npc) {
                 if (!this.player.defeatedGymLeaders.includes(npc.id)) this.player.defeatedGymLeaders.push(npc.id);
                 console.log(`🏅 Earned ${npc.badge}!`);
             }
+        }
+
+        if (typeof npc.onVictory === 'function') {
+            npc.onVictory(this.player);
         }
 
         // Call original callback if exists
@@ -756,8 +795,16 @@ Game.prototype.updateBattle = function (deltaTime) {
 
 Game.prototype.updateBattleSummary = function () {
     if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+        const trainer = this.battle ? this.battle.trainerNPC : null;
         this.battle = null;
-        this.state = CONSTANTS.STATES.OVERWORLD;
+        if (trainer && trainer.defeatDialogue && trainer.defeatDialogue.length > 0) {
+            this.state = CONSTANTS.STATES.DIALOGUE;
+            this.dialogueBox.show(trainer.defeatDialogue, () => {
+                this.state = CONSTANTS.STATES.OVERWORLD;
+            });
+        } else {
+            this.state = CONSTANTS.STATES.OVERWORLD;
+        }
         console.log('→ OVERWORLD');
     }
 };
@@ -808,10 +855,28 @@ Game.prototype.renderBattleSummary = function (ctx) {
 };
 
 Game.prototype.handleDefeat = function () {
-    console.log('Player defeated - triggering blackout');
+    const trainer = this.battle ? this.battle.trainerNPC : null;
+    const isRival = trainer && (trainer.isRival || (trainer.id && trainer.id.includes('blake')));
 
     // Heal all trains to full HP (and clear status).
     this.player.healParty();
+
+    if (isRival) {
+        console.log('Player defeated by Blake - triggering rival fail state (heal + retry)');
+        this.battle = null;
+        const retryDialogue = (typeof trainer.lossDialogue === 'function')
+            ? trainer.lossDialogue(this.player)
+            : (trainer.lossDialogue || [
+                { speaker: trainer.name || 'Blake', text: "Tough break, Alex! I patched up your trains. Catch your breath and let's go again whenever you're ready!" }
+            ]);
+        this.state = CONSTANTS.STATES.DIALOGUE;
+        this.dialogueBox.show(retryDialogue, () => {
+            this.state = CONSTANTS.STATES.OVERWORLD;
+        });
+        return;
+    }
+
+    console.log('Player defeated - triggering blackout');
 
     // Lose half your money on blackout.
     this.player.money = this.player.money < 100 ? 0 : Math.floor(this.player.money * 0.5);
