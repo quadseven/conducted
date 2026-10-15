@@ -13,6 +13,8 @@ class InputHandler {
     }
 
     setupListeners() {
+        if (typeof window === 'undefined') return;
+
         window.addEventListener('keydown', (e) => {
             if (!this.keys[e.key]) {
                 this.keyJustPressed[e.key] = true;
@@ -67,6 +69,7 @@ class InputHandler {
         if (this.isVirtualKeyJustPressed('right')) return 'right';
         if (this.isVirtualKeyJustPressed('a')) return 'a';
         if (this.isVirtualKeyJustPressed('b')) return 'b';
+        if (this.isVirtualKeyJustPressed('start') || this.isVirtualKeyJustPressed('menu')) return 'start';
 
         // Check for physical keyboard keys
         if (this.isKeyJustPressed('ArrowUp')) return 'up';
@@ -75,10 +78,19 @@ class InputHandler {
         if (this.isKeyJustPressed('ArrowRight')) return 'right';
         if (this.isKeyJustPressed('z') || this.isKeyJustPressed('Enter')) return 'a';
         if (this.isKeyJustPressed('x') || this.isKeyJustPressed('Backspace')) return 'b';
-        if (this.isKeyJustPressed('Escape')) return 'start';
+        if (this.isKeyJustPressed('Escape') || this.isKeyJustPressed('m') || this.isKeyJustPressed('M') || this.isKeyJustPressed('Start')) return 'start';
         if (this.isKeyJustPressed(' ')) return 'select';
 
         return null;
+    }
+
+    isMenuJustPressed() {
+        return this.isVirtualKeyJustPressed('start') ||
+               this.isVirtualKeyJustPressed('menu') ||
+               this.isKeyJustPressed('Escape') ||
+               this.isKeyJustPressed('m') ||
+               this.isKeyJustPressed('M') ||
+               this.isKeyJustPressed('Start');
     }
 
     // Mobile touch control simulation

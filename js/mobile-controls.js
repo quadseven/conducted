@@ -36,10 +36,11 @@ class MobileControls {
         });
 
         // Action buttons
-        ['a', 'b'].forEach(action => {
+        ['a', 'b', 'start', 'menu'].forEach(action => {
             const button = document.getElementById(`btn-${action}`);
             if (button) {
-                this.addTouchListeners(button, action);
+                const key = button.getAttribute('data-key') || action;
+                this.addTouchListeners(button, key);
             }
         });
 

@@ -25,6 +25,8 @@ jobs:
         run: node tests/starter-selection.test.js
       - name: Train storage
         run: node tests/train-storage.test.js
+      - name: Menu overlays
+        run: node tests/menu-overlays.test.js
       - name: Runaway Junction logic, art and music
         run: node tests/dispatch-logic.test.js
       - name: Copper Version syntax check
