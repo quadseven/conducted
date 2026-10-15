@@ -786,9 +786,8 @@ Game.prototype.updateBattle = function (deltaTime) {
             if (this.battle.caughtTrain) {
                 this.player.registerCaught(this.battle.caughtTrain.speciesId);
                 const added = this.player.addTrain(this.battle.caughtTrain);
-                if (!added) this.player.storage.push(this.battle.caughtTrain);
+                this.pendingPCTrain = added ? null : this.battle.caughtTrain;
                 this.caughtTrainResult = { name: this.battle.caughtTrain.species.name, added };
-                console.log(added ? 'Caught train added to party' : 'Party full - caught train sent to Depot');
             } else {
                 this.caughtTrainResult = null;
             }
@@ -802,6 +801,14 @@ Game.prototype.updateBattle = function (deltaTime) {
 };
 
 Game.prototype.updateBattleSummary = function () {
+    if (this.pendingPCTrain) {
+        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+            this.player.storage.push(this.pendingPCTrain);
+            this.pendingPCTrain = null;
+            this.caughtTrainResult.sentToPC = true;
+        }
+        return;
+    }
     if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
         const trainer = this.battle ? this.battle.trainerNPC : null;
         this.battle = null;
@@ -855,7 +862,9 @@ Game.prototype.renderBattleSummary = function (ctx) {
         ctx.font = '16px monospace';
         const msg = this.caughtTrainResult.added
             ? `Caught ${this.caughtTrainResult.name}!`
-            : `${this.caughtTrainResult.name} was sent to the Depot.`;
+            : this.caughtTrainResult.sentToPC
+                ? `${this.caughtTrainResult.name} was sent to the PC.`
+                : `Party full. Send ${this.caughtTrainResult.name} to PC? Press A.`;
         ctx.fillText(msg, this.canvas.width / 2, boxY + 140);
     }
 

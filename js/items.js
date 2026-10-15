@@ -30,6 +30,7 @@ const ITEMS = {
     boxcar: {
         id: 'boxcar', name: 'Boxcar', price: 200,
         description: 'Catches wild trains', kind: 'capture',
+        catchMultiplier: 1,
         usableInField: false, usableInBattle: true, sold: true
     },
     train_ticket: {
