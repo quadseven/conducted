@@ -571,9 +571,13 @@ class Battle {
             this.addMessage(`${this.playerActive.species.name} grew to Lv${this.playerActive.level}!`);
         }
         // Level-up evolution.
-        if (this.playerActive.canEvolve()) {
+        const evolution = this.playerActive.species.evolution;
+        const evolutionContext = evolution && evolution.method === 'branch'
+            ? { choice: evolution.defaultTarget }
+            : {};
+        if (this.playerActive.canEvolve(evolutionContext)) {
             const oldName = this.playerActive.species.name;
-            if (this.playerActive.evolve()) {
+            if (this.playerActive.evolve(evolutionContext)) {
                 this.addMessage(`${oldName} evolved into ${this.playerActive.species.name}!`);
             }
         }

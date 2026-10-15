@@ -637,8 +637,9 @@ class UI {
         const x = 70, y = 45, width = 628, height = 580;
         UI.drawPanel(ctx, x, y, width, height);
         ctx.fillStyle = CONSTANTS.COLORS.BLACK; ctx.font = 'bold 24px monospace';
-        ctx.fillText(`TRAINDEX  SEEN ${player.seenSpecies.length}/151  CAUGHT ${player.caughtSpecies.length}/151`, x + 20, y + 38);
-        const start = Math.max(0, Math.min(selectedIndex - 7, 141));
+        const totalSpecies = Object.keys(TRAIN_SPECIES).length;
+        ctx.fillText(`TRAINDEX  SEEN ${player.seenSpecies.length}/${totalSpecies}  CAUGHT ${player.caughtSpecies.length}/${totalSpecies}`, x + 20, y + 38);
+        const start = Math.max(0, Math.min(selectedIndex - 7, totalSpecies - 10));
         for (let row = 0; row < 10; row++) {
             const id = start + row + 1, species = TRAIN_SPECIES[id], ry = y + 70 + row * 47;
             const seen = player.seenSpecies.includes(id), caught = player.caughtSpecies.includes(id);

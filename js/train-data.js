@@ -198,8 +198,25 @@ const TRAIN_SPECIES = {
     23: { id: 23, name: "Tunnela", types: ["DIESEL"], baseStats: { hp: 35, attack: 60, defense: 44, speed: 55, special: 40 }, learnset: [{ level: 1, move: "Ram" }], evolution: { method: "level", level: 22, evolvesTo: 24 }, catchRate: 255, expYield: 62 },
     24: { id: 24, name: "Cobraloco", types: ["DIESEL"], baseStats: { hp: 60, attack: 95, defense: 69, speed: 80, special: 65 }, learnset: [{ level: 1, move: "Ram" }], evolution: null, catchRate: 90, expYield: 147 },
     25: { id: 25, name: "Zaptram", types: ["ELECTRIC"], baseStats: { hp: 35, attack: 55, defense: 40, speed: 90, special: 50 }, learnset: [{ level: 1, move: "Pantograph Spark" }], evolution: { method: "item", item: "thunder_stone", evolvesTo: 26 }, catchRate: 190, expYield: 112 },
-    26: { id: 26, name: "Raitram", types: ["ELECTRIC"], baseStats: { hp: 60, attack: 90, defense: 55, speed: 110, special: 90 }, learnset: [{ level: 1, move: "Pantograph Spark" }], evolution: null, catchRate: 75, expYield: 218 },
+    26: { id: 26, name: "Raitram", types: ["ELECTRIC"], baseStats: { hp: 60, attack: 90, defense: 55, speed: 110, special: 90 }, learnset: [{ level: 1, move: "Pantograph Spark" }], evolution: { method: "trade", evolvesTo: 158 }, catchRate: 75, expYield: 218 },
+    152: { id: 152, name: "Railcater", types: ["PASSENGER"], baseStats: { hp: 70, attack: 88, defense: 74, speed: 108, special: 60 }, learnset: [{ level: 1, move: "Ram" }, { level: 24, move: "Express Shunt" }, { level: 38, move: "Full Throttle" }], evolution: null, catchRate: 90, expYield: 164, spritePlaceholder: "placeholder:railcater" },
+    153: { id: 153, name: "Delaycate", types: ["PASSENGER", "STEAM"], baseStats: { hp: 82, attack: 62, defense: 110, speed: 34, special: 104 }, learnset: [{ level: 1, move: "Ram" }, { level: 24, move: "Smoke Screen" }, { level: 38, move: "Whistle Blast" }], evolution: null, catchRate: 90, expYield: 168, spritePlaceholder: "placeholder:delaycate" },
+    154: { id: 154, name: "Cobralocomotive", types: ["DIESEL", "FREIGHT"], baseStats: { hp: 86, attack: 112, defense: 92, speed: 64, special: 58 }, learnset: [{ level: 1, move: "Ram" }, { level: 28, move: "Cargo Toss" }, { level: 42, move: "Freight Frenzy" }], evolution: null, catchRate: 45, expYield: 190, spritePlaceholder: "placeholder:cobralocomotive" },
+    155: { id: 155, name: "Freightgeot", types: ["FREIGHT", "MAGLEV"], baseStats: { hp: 108, attack: 116, defense: 104, speed: 72, special: 72 }, learnset: [{ level: 1, move: "Ram" }, { level: 26, move: "Heavy Haul" }, { level: 40, move: "Container Crush" }], evolution: null, catchRate: 45, expYield: 194, spritePlaceholder: "placeholder:freightgeot" },
+    156: { id: 156, name: "Passengergeot", types: ["PASSENGER", "MAGLEV"], baseStats: { hp: 84, attack: 78, defense: 80, speed: 122, special: 108 }, learnset: [{ level: 1, move: "Ram" }, { level: 26, move: "Passenger Rush" }, { level: 40, move: "Express Service" }], evolution: null, catchRate: 45, expYield: 194, spritePlaceholder: "placeholder:passengergeot" },
+    157: { id: 157, name: "Monopoultry", types: ["MONORAIL", "PASSENGER"], baseStats: { hp: 76, attack: 84, defense: 68, speed: 112, special: 70 }, learnset: [{ level: 1, move: "Mono-Strike" }, { level: 22, move: "Beam Balance" }, { level: 36, move: "Horn Honk" }], evolution: null, catchRate: 90, expYield: 170, spritePlaceholder: "placeholder:monopoultry" },
+    158: { id: 158, name: "Tradelectric", types: ["ELECTRIC", "PASSENGER"], baseStats: { hp: 70, attack: 104, defense: 76, speed: 126, special: 118 }, learnset: [{ level: 1, move: "Pantograph Spark" }, { level: 26, move: "Third Rail" }, { level: 40, move: "Lightning Express" }], evolution: null, catchRate: 45, expYield: 200, spritePlaceholder: "placeholder:tradelectric" },
+    159: { id: 159, name: "Cargodrillsergeant", types: ["FREIGHT", "DIESEL"], baseStats: { hp: 96, attack: 124, defense: 76, speed: 84, special: 60 }, learnset: [{ level: 1, move: "Cargo Toss" }, { level: 22, move: "Boxcar Bash" }, { level: 36, move: "Heavy Haul" }], evolution: null, catchRate: 45, expYield: 198, spritePlaceholder: "placeholder:cargodrillsergeant" },
+    160: { id: 160, name: "Brakefast", types: ["PASSENGER", "STEAM"], baseStats: { hp: 104, attack: 78, defense: 92, speed: 66, special: 100 }, learnset: [{ level: 1, move: "Emergency Brake" }, { level: 20, move: "Steam Jet" }, { level: 34, move: "Whistle Blast" }], evolution: null, catchRate: 90, expYield: 178, spritePlaceholder: "placeholder:brakefast" },
+    161: { id: 161, name: "Megalate", types: ["STEAM", "FREIGHT"], baseStats: { hp: 128, attack: 106, defense: 120, speed: 38, special: 108 }, learnset: [{ level: 1, move: "Mega Steam" }, { level: 30, move: "Derailment" }, { level: 44, move: "Freight Frenzy" }], evolution: null, catchRate: 30, expYield: 240, spritePlaceholder: "placeholder:megalate" },
 };
+
+TRAIN_SPECIES[20].evolution = { method: "branch", level: 28, defaultTarget: 152, choices: [{ evolvesTo: 152, label: "On Time" }, { evolvesTo: 153, label: "Whenever" }] };
+TRAIN_SPECIES[18].evolution = { method: "form", forms: [{ name: "freight", evolvesTo: 155 }, { name: "passenger", evolvesTo: 156 }] };
+TRAIN_SPECIES[22].evolution = { method: "item", item: "whistle_stone", evolvesTo: 157 };
+TRAIN_SPECIES[24].evolution = { method: "trade", evolvesTo: 154 };
+TRAIN_SPECIES[15].evolution = { method: "level", level: 34, evolvesTo: 159 };
+TRAIN_SPECIES[12].evolution = { method: "level", level: 36, evolvesTo: 160 };
 
 // Clever train names for all 151 trains!
 const TRAIN_NAMES = {
@@ -320,6 +337,8 @@ for (let i = 27; i <= 151; i++) {
         expYield: randInt(50, 250)
     };
 }
+
+TRAIN_SPECIES[151].evolution = { method: "level", level: 75, evolvesTo: 161 };
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {
