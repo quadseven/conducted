@@ -15,7 +15,7 @@
 
   const add = (id, n) => { (map(id).npcs = map(id).npcs || []).push(n); };
   add('Route1', { id: 'r1youngster', sprite: 'youngster', x: 5, y: 8, dir: 'right', move: 'still',
-    trainer: { id: 'r1youngster', cls: 'YOUNGSTER', name: 'TOBY', sight: 4, prize: 16, party: [[58, 4], [10, 4]],
+    trainer: { id: 'r1youngster', cls: 'YOUNGSTER', name: 'TOBY', sight: 4, prize: 16, party: [[10, 5], [13, 5]],
       intro: "Hey! You've got a train! Mine are the fastest on Route 1!", defeat: "Aw, my Commutot missed its connection...", post: 'I\'m going to train in the tall grass until my trains never miss a timetable.' } });
   add('Route1', { id: 'r1lass', sprite: 'lass', look: { hair: '#5a3a28' }, x: 15, y: 17, dir: 'left', move: 'still',
     trainer: { id: 'r1lass', cls: 'LASS', name: 'PENNY', sight: 3, prize: 18, party: [[10, 5], [13, 5]],
