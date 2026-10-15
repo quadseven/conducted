@@ -99,6 +99,8 @@ const CONSTANTS = {
         OVERWORLD: 'overworld',
         BATTLE: 'battle',
         BATTLE_SUMMARY: 'battle_summary',
+        FAST_TRAVEL: 'fast_travel',
+        FAST_TRAVEL_TRANSITION: 'fast_travel_transition',
         MENU: 'menu',
         DIALOGUE: 'dialogue',
         TRANSITION: 'transition'
