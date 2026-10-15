@@ -1688,8 +1688,10 @@ Game.prototype.updateMenu = function () {
 
             // Train has `maxHP`, NOT `stats.hp` (that property does not exist and
             // threw here previously). Heal amount comes from the Items registry.
-            if (def && def.kind === 'heal' && train && train.currentHP < train.maxHP) {
-                train.heal(def.amount);
+            if (def && train && ((def.kind === 'heal' && train.currentHP < train.maxHP) ||
+                (def.kind === 'pp' && train.moves.some(move => (train.movePP[move] || 0) < MOVES_DB[move].pp)))) {
+                if (def.kind === 'heal') train.heal(def.amount);
+                else train.restorePP(def.amount);
                 this.player.items[def.id] = Math.max(0, (this.player.items[def.id] || 0) - 1);
                 this.bagMode = 'list';
                 this.selectedItem = null;
@@ -1722,7 +1724,7 @@ Game.prototype.updateMenu = function () {
 
                 if (selectedItem === 'boxcar') {
                     console.log("Can't use Boxcars here!");
-                } else if (selectedItem === 'potion' || selectedItem === 'super_potion') {
+                } else if (Items.get(selectedItem) && Items.get(selectedItem).usableInField) {
                     this.selectedItem = selectedItem;
                     this.bagMode = 'use_on_train';
                     this.trainSelection = 0;

@@ -10,7 +10,7 @@
  *   name          - display name
  *   price         - shop buy price (0 = not sold)
  *   description   - short blurb for shop/bag UI
- *   kind          - 'heal' | 'capture' | 'key'
+ *   kind          - 'heal' | 'pp' | 'capture' | 'key'
  *   amount        - for kind 'heal': HP restored
  *   usableInField - can be used from the pause-menu bag
  *   usableInBattle- can be used from the battle item menu
@@ -25,6 +25,11 @@ const ITEMS = {
     super_potion: {
         id: 'super_potion', name: 'Super Potion', price: 700,
         description: 'Heals 50 HP', kind: 'heal', amount: 50,
+        usableInField: true, usableInBattle: true, sold: true
+    },
+    ether: {
+        id: 'ether', name: 'Ether', price: 800,
+        description: 'Restores 10 PP to each move', kind: 'pp', amount: 10,
         usableInField: true, usableInBattle: true, sold: true
     },
     boxcar: {

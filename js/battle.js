@@ -206,14 +206,10 @@ class Battle {
     handleFightInput(action) {
         const moves = this.playerActive.moves;
 
-        if (action === 'up' && this.moveSelection >= 2) {
-            this.moveSelection -= 2;
-        } else if (action === 'down' && this.moveSelection < 2 && this.moveSelection + 2 < moves.length) {
-            this.moveSelection += 2;
-        } else if (action === 'left' && this.moveSelection % 2 === 1) {
-            this.moveSelection--;
-        } else if (action === 'right' && this.moveSelection % 2 === 0 && this.moveSelection + 1 < moves.length) {
-            this.moveSelection++;
+        const directions = { up: -2, down: 2, left: -1, right: 1 };
+        if (directions[action] !== undefined) {
+            const next = this.moveSelection + directions[action];
+            if (next >= 0 && next < moves.length && (this.playerActive.movePP[moves[next]] || 0) > 0) this.moveSelection = next;
         } else if (action === 'a') {
             const move = moves[this.moveSelection];
             if ((this.playerActive.movePP[move] || 0) <= 0) {
@@ -223,8 +219,7 @@ class Battle {
                     this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
                     this.currentMessage = 0;
                 } else {
-                    this.playerActive.movePP.Ram = 1;
-                    this.executeTurn('Ram');
+                    this.executeTurn('Struggle');
                 }
             } else {
                 this.executeTurn(move);
@@ -289,8 +284,7 @@ class Battle {
     chooseEnemyMove() {
         const moves = this.enemyActive.moves.filter(name => MOVES_DB[name] && (this.enemyActive.movePP[name] || 0) > 0);
         if (moves.length === 0) {
-            this.enemyActive.movePP.Ram = 1;
-            return 'Ram';
+            return 'Struggle';
         }
         let best = moves[0];
         let bestScore = -Infinity;
@@ -371,12 +365,12 @@ class Battle {
             if (volatile.confusedTurns === 0) this.addMessage(`${prefix}${action.attacker.species.name} snapped out of confusion!`);
         }
 
-        if ((action.attacker.movePP[action.move] || 0) <= 0) {
+        if (action.move !== 'Struggle' && (action.attacker.movePP[action.move] || 0) <= 0) {
             this.addMessage(`${prefix}${action.attacker.species.name} has no PP left for ${action.move}!`);
             this.animationQueue.push({ callback: () => this.processNextAction() });
             return;
         }
-        action.attacker.movePP[action.move]--;
+        if (action.move !== 'Struggle') action.attacker.movePP[action.move]--;
         this.addMessage(`${prefix}${action.attacker.species.name} used ${action.move}!`);
         this.animationQueue.push({ callback: () => this.performAttack(action) });
     }
@@ -682,6 +676,28 @@ class Battle {
         if (!def) return;
         if (def.kind === 'capture') this.useBoxcar(def);
         else if (def.kind === 'heal') this.usePotion(item.name);
+        else if (def.kind === 'pp') this.usePPItem(def);
+    }
+
+    usePPItem(def) {
+        const train = this.playerActive;
+        const currentPP = train.moves.reduce((sum, move) => sum + (train.movePP[move] || 0), 0);
+        if (train.moves.every(move => (train.movePP[move] || 0) >= MOVES_DB[move].pp)) {
+            this.addMessage('All move PP is already full!');
+            this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+            this.currentMessage = 0;
+            return;
+        }
+        train.restorePP(def.amount);
+        this.playerInventory[def.id] = Math.max(0, (this.playerInventory[def.id] || 0) - 1);
+        this.addMessage(`You used ${def.name}!`);
+        this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
+        this.currentMessage = 0;
+        this.animationQueue.push({ callback: () => {
+            const restored = train.moves.reduce((sum, move) => sum + (train.movePP[move] || 0), 0) - currentPP;
+            this.addMessage(`${train.species.name} recovered ${restored} PP!`);
+            this.enemyFreeTurn();
+        } });
     }
 
     // Switch the active train to the next healthy benched one. Costs the turn.
@@ -935,7 +951,7 @@ class Battle {
         // Move menu - each button tinted by the move's type.
         if (this.state === CONSTANTS.BATTLE_STATES.FIGHT) {
             const moves = this.playerActive.moves;
-            this.drawMenuGrid(ctx, moves.map(m => `${m}  ${this.playerActive.movePP[m] || 0}PP`), this.moveSelection,
+            this.drawMenuGrid(ctx, moves.map(m => `${m}  ${this.playerActive.movePP[m] || 0}/${MOVES_DB[m].pp}PP`), this.moveSelection,
                 (i) => {
                     const md = MOVES_DB[moves[i]];
                     return (md && CONSTANTS.TYPE_COLORS[md.type]) || CONSTANTS.COLORS.UI_HIGHLIGHT;

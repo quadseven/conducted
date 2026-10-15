@@ -169,8 +169,11 @@ class Train {
         }
     }
 
-    restorePP() {
-        for (const move of this.moves) this.movePP[move] = MOVES_DB[move] ? MOVES_DB[move].pp : 0;
+    restorePP(amount = Infinity) {
+        for (const move of this.moves) {
+            const maximum = MOVES_DB[move] ? MOVES_DB[move].pp : 0;
+            this.movePP[move] = Math.min(maximum, (this.movePP[move] || 0) + amount);
+        }
     }
 
     getHPPercentage() {
