@@ -586,6 +586,42 @@ Game.prototype.checkNPCInteraction = function () {
             return;
         }
         const flags = this.player.storyFlags || (this.player.storyFlags = {});
+        if (npc.quest) {
+            const quest = npc.quest;
+            const started = `${quest.id}_started`, completed = `${quest.id}_complete`;
+            let lines;
+            if (flags[completed]) {
+                lines = [{ speaker: npc.name, text: 'Thanks again for your help. The whole platform remembers your kindness.' }];
+            } else if (quest.challenge) {
+                if (!flags[started]) {
+                    flags[started] = true;
+                    lines = [{ speaker: npc.name, text: 'Can you earn three badges and prove your timing on the line? Come back when you have them.' }];
+                    this.save();
+                } else if ((this.player.badges || []).length >= 3) {
+                    flags[completed] = true;
+                    this.player.items[quest.item] = (this.player.items[quest.item] || 0) + 1;
+                    lines = [{ speaker: npc.name, text: quest.rewardText }, { speaker: npc.name, text: 'Quest complete!' }];
+                    this.save();
+                } else {
+                    lines = [{ speaker: npc.name, text: 'The signal challenge is still open. Earn three badges, then report back.' }];
+                }
+            } else if (!flags[started]) {
+                flags[started] = true;
+                lines = [{ speaker: npc.name, text: 'Please bring me a Potion for the depot supply shelf. I will reward you for the delivery.' }];
+                this.save();
+            } else if ((this.player.items[quest.item] || 0) > 0) {
+                this.player.items[quest.item]--;
+                flags[completed] = true;
+                this.player.items.ether = (this.player.items.ether || 0) + 1;
+                lines = [{ speaker: npc.name, text: quest.rewardText }, { speaker: npc.name, text: 'Quest complete!' }];
+                this.save();
+            } else {
+                lines = [{ speaker: npc.name, text: 'I am still waiting for that Potion for the depot.' }];
+            }
+            this.state = CONSTANTS.STATES.DIALOGUE;
+            this.dialogueBox.show(lines, () => { this.state = CONSTANTS.STATES.OVERWORLD; });
+            return;
+        }
         const requirements = npc.requires || [];
         const hasReq = (req) => {
             if (flags[req] || this.player.hasBadge(req)) return true;
@@ -657,7 +693,7 @@ Game.prototype.checkNPCInteraction = function () {
             }
         } else {
             // Show dialogue for defeated trainers or non-battle NPCs
-            let dialogue = npc.dialogue;
+            let dialogue = typeof npc.dialogue === 'function' ? npc.dialogue(this.player) : npc.dialogue;
             if (npc.defeated) {
                 if (typeof npc.revisitDialogue === 'function') {
                     dialogue = npc.revisitDialogue(this.player);
