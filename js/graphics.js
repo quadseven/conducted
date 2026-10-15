@@ -1,5 +1,7 @@
 // Grand Transit graphics primitives and procedural overworld art.
 // Everything is drawn on Canvas so the game has no runtime asset dependency.
+// Tiles and characters are baked into the shared sprite atlas
+// (js/sprite-atlas.js) once per distinct look, then blitted each frame.
 
 const TILE_SIZE = 16;
 
@@ -97,6 +99,15 @@ const WorldArt = (() => {
     return (n ^ (n >>> 16)) >>> 0;
   }
 
+  // Cells draw from a fixed set of looks so the atlas can share one baked
+  // frame per look. Each cell picks its variant from its position, and the
+  // painters derive their detail seeds from that variant alone. 128 variants
+  // keep rare details (flowers, lamps, pebbles) near their old density.
+  const TILE_VARIANTS = 128;
+  function variantAt(tx, ty) { return hash(tx, ty) % TILE_VARIANTS; }
+  function seedAt(tx, ty, salt = 0) { return hash(variantAt(tx, ty), 0, salt); }
+  function waterPhase(clock, tx, ty) { return (Math.floor((clock || 0) * 4) + tx * 3 + ty * 5) & 7; }
+
   function mapId(map) { return String((map && (map.id || map.name)) || ''); }
   function districtNumber(map) {
     const id = mapId(map);
@@ -171,7 +182,7 @@ const WorldArt = (() => {
   }
 
   function drawGrass(ctx, sx, sy, size, tx, ty, map) {
-    const p = painter(ctx, sx, sy, size), c = palette(map), seed = hash(tx, ty);
+    const p = painter(ctx, sx, sy, size), c = palette(map), seed = seedAt(tx, ty);
     ground(p, c, tx, ty, seed);
     if (route(map) && seed % 29 === 0) drawFlower(ctx, sx, sy, size, seed & 1 ? c.flowerA : c.flowerB, seed);
     if (city(map) && seed % 47 === 0) drawLamp(ctx, sx, sy, size, c);
@@ -182,7 +193,7 @@ const WorldArt = (() => {
 
   function drawTallGrass(ctx, sx, sy, size, tx, ty, map) {
     drawGrass(ctx, sx, sy, size, tx, ty, map);
-    const p = painter(ctx, sx, sy, size), c = palette(map), seed = hash(tx, ty, 2);
+    const p = painter(ctx, sx, sy, size), c = palette(map), seed = seedAt(tx, ty, 2);
     p.r(c.turf, 0, 8, 16, 8);
     for (let row = 0; row < 2; row++) {
       for (let i = 0; i < 5; i++) {
@@ -195,7 +206,7 @@ const WorldArt = (() => {
   }
 
   function drawPath(ctx, sx, sy, size, tx, ty, map) {
-    const p = painter(ctx, sx, sy, size), c = palette(map), seed = hash(tx, ty, 3);
+    const p = painter(ctx, sx, sy, size), c = palette(map), seed = seedAt(tx, ty, 3);
     ground(p, c, tx, ty, seed);
     const n = pathAt(map, tx, ty - 1);
     const e = pathAt(map, tx + 1, ty);
@@ -217,7 +228,7 @@ const WorldArt = (() => {
     const p = painter(ctx, sx, sy, size), c = palette(map);
     p.r(c.waterDark, 0, 0, 16, 16);
     p.r(c.water, 0, 1, 16, 14);
-    const phase = (Math.floor((clock || 0) * 4) + tx * 3 + ty * 5) & 7;
+    const phase = waterPhase(clock, tx, ty);
     p.r(c.waterLight, (phase + 1) % 9, 3, 6, 1);
     p.r(c.waterLight, (12 - phase) % 10, 10, 5, 1);
     p.r(c.waterDark, (phase + 5) % 12, 7, 4, 1);
@@ -225,7 +236,7 @@ const WorldArt = (() => {
   }
 
   function drawRail(ctx, sx, sy, size, tx, ty, map) {
-    const p = painter(ctx, sx, sy, size), c = palette(map), seed = hash(tx, ty, 6);
+    const p = painter(ctx, sx, sy, size), c = palette(map), seed = seedAt(tx, ty, 6);
     p.r(c.pathDark, 0, 0, 16, 16);
     p.r(c.stone, 0, 0, 16, 16);
     for (let i = 0; i < 5; i++) p.r(i & 1 ? c.stoneDark : c.stoneLight, (seed >>> (i * 4)) % 15, (seed >>> (i * 5 + 2)) % 15, 1, 1);
@@ -247,7 +258,7 @@ const WorldArt = (() => {
   }
 
   function drawTree(ctx, sx, sy, size, tx, ty, map) {
-    const p = painter(ctx, sx, sy, size), c = palette(map), seed = hash(tx, ty, 7);
+    const p = painter(ctx, sx, sy, size), c = palette(map), seed = seedAt(tx, ty, 7);
     ground(p, c, tx, ty, seed);
     p.r(c.shadow, 3, 12, 11, 3);
     p.r(c.trunk, 7, 9, 4, 6); p.r(c.woodLight, 8, 9, 1, 5);
@@ -330,7 +341,7 @@ const WorldArt = (() => {
   }
 
   function drawInteriorFloor(ctx, sx, sy, size, tx, ty, map) {
-    const p = painter(ctx, sx, sy, size), c = palette(map), seed = hash(tx, ty, 11);
+    const p = painter(ctx, sx, sy, size), c = palette(map), seed = seedAt(tx, ty, 11);
     p.r(c.pathDark, 0, 0, 16, 16); p.r(c.path, 1, 1, 15, 15);
     p.r(c.pathLight, 1, 1, 14, 1); p.r(c.pathDark, 0, 15, 16, 1);
     if (/Gym|Terminus/i.test(mapId(map))) {
@@ -522,19 +533,28 @@ const WorldArt = (() => {
     ctx.restore();
   }
 
-  function drawWorldCharacter(ctx, character, sx, sy, size, options = {}) {
-    const c = palette(options.map), p = painter(ctx, sx, sy, size);
+  function characterLook(character, options, c) {
     const role = String(character.type || character.role || (character.isPlayer ? 'player' : 'npc')).toLowerCase();
     const direction = String(character.direction || options.direction || 'down').toLowerCase();
-    const moving = !!options.moving;
-    const step = moving ? (Math.floor((options.clock || 0) * 8) & 1) : 0;
-    const shirt = character.color || (role.includes('leader') ? c.brass : role.includes('trainer') ? '#b84e46' : role.includes('healer') ? '#e8e3d3' : role === 'player' ? '#315c83' : '#52756f');
-    const hat = role === 'player' ? '#b8423b' : role.includes('leader') ? c.roof : role.includes('trainer') ? '#6f372d' : c.ink;
-    ctx.save(); ctx.imageSmoothingEnabled = false;
+    const step = options.moving ? (Math.floor((options.clock || 0) * 8) & 1) : 0;
+    const colors = outfit(role, c);
+    return { role, direction, step, shirt: character.color || colors.shirt, hat: colors.hat };
+  }
+
+  function outfit(role, c) {
+    if (role.includes('leader')) return { shirt: c.brass, hat: c.roof };
+    if (role.includes('trainer')) return { shirt: '#b84e46', hat: '#6f372d' };
+    if (role.includes('healer')) return { shirt: '#e8e3d3', hat: c.ink };
+    if (role === 'player') return { shirt: '#315c83', hat: '#b8423b' };
+    return { shirt: '#52756f', hat: c.ink };
+  }
+
+  function paintCharacter(ctx, look, sx, sy, size, c) {
+    const p = painter(ctx, sx, sy, size), { role, direction, hat } = look;
     p.r(c.shadow, 3, 13, 11, 3);
-    const legOffset = step ? 1 : 0;
+    const legOffset = look.step ? 1 : 0;
     p.r(c.deepInk, 5 - legOffset, 11, 3, 4); p.r(c.deepInk, 9 + legOffset, 11, 3, 4);
-    p.r(shirt, 4, 7, 9, 6); p.r(c.deepInk, 3, 8, 2, 4); p.r(c.deepInk, 13, 8, 2, 4);
+    p.r(look.shirt, 4, 7, 9, 6); p.r(c.deepInk, 3, 8, 2, 4); p.r(c.deepInk, 13, 8, 2, 4);
     p.r('#d89d74', 5, 3, 7, 5);
     if (direction === 'up') p.r('#4a3028', 5, 3, 7, 5);
     else {
@@ -547,43 +567,92 @@ const WorldArt = (() => {
     else p.r(hat, 8, 3, 6, 1);
     if (role.includes('healer')) { p.r('#df6068', 7, 1, 3, 3); p.r('#fff4dc', 8, 1, 1, 3); }
     if (role.includes('leader')) p.r(c.brass, 7, 8, 3, 2);
-    ctx.restore();
+  }
+
+  // Each role, facing and walk frame is one atlas sprite, blitted whole so the
+  // figure moves as a unit instead of re-rounding every limb per frame.
+  function drawWorldCharacter(ctx, character, sx, sy, size, options = {}) {
+    const c = palette(options.map), look = characterLook(character, options, c);
+    const key = `char:${size}:${districtNumber(options.map)}:${look.role}:${look.direction}:${look.step}:${look.shirt}:${look.hat}`;
+    spriteAtlas.draw(ctx, key, size, size, (bake, ox, oy) => paintCharacter(bake, look, ox, oy, size, c), sx, sy);
+  }
+
+  function drawSignpost(ctx, sx, sy, size, tx, ty, map) {
+    drawGrass(ctx, sx, sy, size, tx, ty, map);
+    drawSign(ctx, sx, sy, size, 'GT', map);
+  }
+
+  const TILE_PAINTERS = {
+    0: drawBarrier, 1: drawGrass, 2: drawTallGrass, 3: drawPath, 4: drawWater,
+    5: drawFenceTile, 6: drawRail, 7: drawTree, 12: drawDoor
+  };
+  // The handcrafted opening maps predate the campaign's normalized tile
+  // vocabulary. Translate their material IDs here so old layouts receive
+  // exactly the same art direction as the procedural campaign.
+  const PISTON_TOWN_PAINTERS = {
+    227: drawTallGrass, 226: drawGrass, 139: drawPath, 140: drawDoor, 163: buildingCell, 132: drawSignpost
+  };
+
+  function tilePainter(tile, map) {
+    const id = mapId(map);
+    if (/PistonTown/i.test(id) && PISTON_TOWN_PAINTERS[tile]) return PISTON_TOWN_PAINTERS[tile];
+    if (/CoalHarbor$/i.test(id) && tile === 5) return buildingCell;
+    if (/CoalHarborGym/i.test(id) && tile === 5) return interiorWall;
+    if (indoor(map) && (tile === 1 || tile === 3)) return drawInteriorFloor;
+    return TILE_PAINTERS[tile] || drawGrass;
+  }
+
+  // Everything about the map a painter reads besides the cell's neighbours.
+  function mapClass(map) {
+    const id = mapId(map);
+    return [districtNumber(map), indoor(map) ? 'i' : '', city(map) ? 'c' : '', route(map) ? 'r' : '',
+      /Gym|Terminus/i.test(id) ? 'g' : ''].join('');
+  }
+
+  function neighbourMask(map, tx, ty, test) {
+    return (test(map, tx, ty - 1) ? 1 : 0) | (test(map, tx + 1, ty) ? 2 : 0) |
+      (test(map, tx, ty + 1) ? 4 : 0) | (test(map, tx - 1, ty) ? 8 : 0);
+  }
+  function railAt(map, x, y) { return same(map, x, y, [6]); }
+
+  // The per-cell inputs a painter reads: its variant, the neighbours that
+  // shape its edges, and for water the animation phase.
+  function cellContext(paint, map, tx, ty, clock) {
+    const v = variantAt(tx, ty);
+    switch (paint) {
+      case drawWater: return `w${waterPhase(clock, tx, ty)}${same(map, tx, ty - 1, [4]) ? 'n' : ''}`;
+      case drawPath:
+      case drawDoor: return `${v}p${neighbourMask(map, tx, ty, pathAt)}`;
+      case drawRail: return `${v}r${neighbourMask(map, tx, ty, railAt)}`;
+      case buildingCell: return `b${neighbourMask(map, tx, ty, isBuildingCell)}`;
+      case interiorWall: return '';
+      case drawInteriorFloor: return `${v}${((tx + ty) & 3) === 0 ? 'x' : ''}`;
+      case drawBarrier:
+        if (indoor(map)) return '';
+        return isBuildingCell(map, tx, ty) ? `b${neighbourMask(map, tx, ty, isBuildingCell)}` : `${v}`;
+      default: return `${v}`;
+    }
+  }
+
+  function tileKey(tile, tx, ty, size, options = {}) {
+    const map = options.map || options.currentMap || null;
+    const paint = tilePainter(tile, map);
+    return `tile:${size}:${paint.name}:${mapClass(map)}:${cellContext(paint, map, tx, ty, options.clock)}`;
+  }
+
+  function paintWorldTile(ctx, tile, sx, sy, size, tx, ty, options = {}) {
+    const map = options.map || options.currentMap || null;
+    tilePainter(tile, map)(ctx, sx, sy, size, tx, ty, map, options.clock);
   }
 
   function drawWorldTile(ctx, tile, sx, sy, size, tx, ty, options = {}) {
-    const map = options.map || options.currentMap || null;
-    const id = mapId(map);
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-    // The handcrafted opening maps predate the campaign's normalized tile
-    // vocabulary. Translate their material IDs here so old layouts receive
-    // exactly the same art direction as the procedural campaign.
-    if (/PistonTown/i.test(id) && tile === 227) drawTallGrass(ctx, sx, sy, size, tx, ty, map);
-    else if (/PistonTown/i.test(id) && tile === 226) drawGrass(ctx, sx, sy, size, tx, ty, map);
-    else if (/PistonTown/i.test(id) && tile === 139) drawPath(ctx, sx, sy, size, tx, ty, map);
-    else if (/PistonTown/i.test(id) && tile === 140) drawDoor(ctx, sx, sy, size, tx, ty, map);
-    else if (/PistonTown/i.test(id) && tile === 163) buildingCell(ctx, sx, sy, size, tx, ty, map);
-    else if (/PistonTown/i.test(id) && tile === 132) {
-      drawGrass(ctx, sx, sy, size, tx, ty, map); drawSign(ctx, sx, sy, size, 'GT', map);
-    }
-    else if (/CoalHarbor$/i.test(id) && tile === 5) buildingCell(ctx, sx, sy, size, tx, ty, map);
-    else if (/CoalHarborGym/i.test(id) && tile === 5) interiorWall(ctx, sx, sy, size, tx, ty, map);
-    else if (indoor(map) && tile === 1) drawInteriorFloor(ctx, sx, sy, size, tx, ty, map);
-    else if (tile === 0) drawBarrier(ctx, sx, sy, size, tx, ty, map);
-    else if (tile === 1) drawGrass(ctx, sx, sy, size, tx, ty, map);
-    else if (tile === 2) drawTallGrass(ctx, sx, sy, size, tx, ty, map);
-    else if (tile === 3) indoor(map) ? drawInteriorFloor(ctx, sx, sy, size, tx, ty, map) : drawPath(ctx, sx, sy, size, tx, ty, map);
-    else if (tile === 4) drawWater(ctx, sx, sy, size, tx, ty, map, options.clock);
-    else if (tile === 5) drawFenceTile(ctx, sx, sy, size, tx, ty, map);
-    else if (tile === 6) drawRail(ctx, sx, sy, size, tx, ty, map);
-    else if (tile === 7) drawTree(ctx, sx, sy, size, tx, ty, map);
-    else if (tile === 12) drawDoor(ctx, sx, sy, size, tx, ty, map);
-    else drawGrass(ctx, sx, sy, size, tx, ty, map);
-    ctx.restore();
+    const key = tileKey(tile, tx, ty, size, options);
+    spriteAtlas.draw(ctx, key, size, size,
+      (bake, ox, oy) => paintWorldTile(bake, tile, ox, oy, size, tx, ty, options), sx, sy);
   }
 
   return {
-    palette, drawWorldTile, drawGrass, drawTallGrass, drawPath, drawWater,
+    palette, drawWorldTile, paintWorldTile, tileKey, drawGrass, drawTallGrass, drawPath, drawWater,
     drawRail, drawTree, drawFence: drawFenceTile, drawDoor, drawSign, drawLamp,
     drawPlatform, drawBuilding: buildingCell, drawInteriorFloor, drawInteriorWall: interiorWall,
     drawWorldDecoration, drawWorldCharacter

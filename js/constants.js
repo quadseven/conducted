@@ -34,6 +34,11 @@ const CONSTANTS = {
         UI_HIGHLIGHT: '#5878A8', // Blue highlight (Pokemon menu blue)
         UI_SHADOW: '#90A090',  // Shadow color for depth
 
+        // Pixel panel frame (ART_DIRECTION_SPECS.md, Battle UI Enhancement)
+        PANEL_BORDER: '#2C2416', // Dark brown outline
+        PANEL_ACCENT: '#B8924E', // Antique gold inner rule
+        PANEL_FILL: '#F8F4E8',   // Warm parchment
+
         // HP Bar Colors (Pokemon-accurate)
         HP_GREEN: '#58D878',   // Bright green (high HP)
         HP_YELLOW: '#F8C838',  // Yellow (medium HP)
