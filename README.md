@@ -152,24 +152,26 @@ Run every automated suite with one command:
 npm test
 ```
 
-It needs no dependencies, only the Node already on `PATH` (18 or newer), because every suite is a dependency-free Node script. Each suite runs in its own process and the command exits non-zero if any of them fails, so a broken overworld or battle loop fails the run rather than scrolling past.
+It needs no dependencies, only the Node already on `PATH` (18 or newer), because every suite is a dependency-free Node script. Each suite runs alone in its own worker thread and the command exits non-zero if any of them fails, so a broken overworld or battle loop fails the run rather than scrolling past. A suite that hangs is dropped after two minutes rather than blocking the rest of the run.
 
 Expected output on a healthy tree (the version shown is whichever Node you run it with):
 
 ```
-Running 25 suites headlessly on v22.11.0
+Running 26 suites headlessly on v22.11.0
 
   ok    copper/tests/audio.test.js
   ok    copper/tests/battle.test.js
   ...
   ok    tests/victory-road.test.js
 
-25 passed, 0 failed in 1.9s
+26 passed, 0 failed in 1.9s
 ```
 
 Pass a substring to run part of the suite, for example `npm test -- smoke`.
 
 `copper/tests/smoke.test.js` is the smoke suite. It plays the two loops a session spends all its time in, end to end and through real button presses: entering a building and coming back out, crossing a map connection and crossing it back, winning a battle, losing a battle and waking up at the last depot, and saving then loading a game. The rest of the suites check the rules underneath those loops in more detail -- damage and types in `battle.test.js`, map and warp integrity in `world.test.js`, save-slot handling in `save.test.js` -- and the `tests/` suites cover the data and the earlier browser build in `js/`.
+
+`tests/test-runner-integrity.test.js` guards the runner itself: that it only ever collects suites out of the two suite directories, that every suite it leaves out comes with a reason, and that it never assembles a command line to run one. The last one is a code-scanning rule (CWE-78) rather than a bug we hit, and the test keeps the flag from coming back.
 
 A few suites cannot run headlessly and are reported as skipped at the end of every run, with the reason, so the gap stays visible: `tests/menu-navigation.test.js` needs Playwright, and `tests/rival.test.js` and `tests/rail-mart.test.js` build the browser runtime in `js/` or drive shop code that the menu overlays have since replaced.
 

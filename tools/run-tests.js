@@ -1,16 +1,20 @@
 // Runs every automated suite in this repo with one command: `npm test`.
 //
 // Dependency-free, like the suites themselves, so a fresh clone can run the
-// tests with nothing but the Node already on PATH. Each suite runs in its own
-// process because that is how they are written (top-level assertions that
-// throw), and the run exits non-zero if any suite fails, so a broken overworld
-// or battle loop fails the command the way a broken test is supposed to.
+// tests with nothing but the Node already on PATH. Each suite runs alone in
+// its own worker thread because that is how they are written (top-level
+// assertions that throw, and a game VM built per suite), and the run exits
+// non-zero if any suite fails, so a broken overworld or battle loop fails the
+// command the way a broken test is supposed to.
 'use strict';
-const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { Worker } = require('worker_threads');
 
 const ROOT = path.join(__dirname, '..');
+
+// How long one suite may take before the run gives up on it and moves on.
+const TIMEOUT_MS = 120000;
 
 // Directories whose *.test.js files are suites. Everything in them runs headless.
 const SUITE_DIRS = ['copper/tests', 'tests'];
@@ -34,12 +38,30 @@ function discover() {
   return found;
 }
 
-// Run one suite in its own process, from the repo root (the suites read
-// sources through paths relative to it).
+// Run one suite on its own worker, collecting whatever it printed so a failure
+// can show the assertion that broke. A worker rather than a child process: it
+// isolates the suite just as well, it needs no command line assembled to do
+// it, and a suite path can never be read as a Node option. Code scanning reads
+// the command-line form as a command injection (CWE-78) either way.
 function run(suite) {
-  const res = spawnSync(process.execPath, [suite], { cwd: ROOT, encoding: 'utf8', timeout: 120000 });
-  if (res.error) return { ok: false, output: String(res.error.stack || res.error) };
-  return { ok: res.status === 0, output: (res.stdout || '') + (res.stderr || '') };
+  return new Promise(resolve => {
+    const chunks = [];
+    let failure = null;
+    let timedOut = false;
+
+    const worker = new Worker(path.join(ROOT, suite), { stdout: true, stderr: true });
+    worker.stdout.on('data', chunk => chunks.push(chunk));
+    worker.stderr.on('data', chunk => chunks.push(chunk));
+
+    const timer = setTimeout(() => { timedOut = true; worker.terminate(); }, TIMEOUT_MS);
+    worker.on('error', err => { failure = String(err.stack || err); });
+    worker.on('exit', code => {
+      clearTimeout(timer);
+      const output = Buffer.concat(chunks).toString('utf8');
+      const reason = timedOut ? 'timed out after ' + (TIMEOUT_MS / 1000) + 's' : failure;
+      resolve({ ok: code === 0 && !reason, output: reason ? output + reason + '\n' : output });
+    });
+  });
 }
 
 function report(suite, outcome) {
@@ -58,7 +80,7 @@ function reportSkipped(suites) {
   for (const suite of suites) console.log('  ' + suite + '\n      ' + NOT_HEADLESS[suite]);
 }
 
-function main() {
+async function main() {
   const filter = process.argv[2];
   const all = discover();
   const skipped = all.filter(s => NOT_HEADLESS[s]);
@@ -73,7 +95,7 @@ function main() {
 
   const started = process.hrtime.bigint();
   let failed = 0;
-  for (const suite of suites) failed += report(suite, run(suite));
+  for (const suite of suites) failed += report(suite, await run(suite));
   const seconds = (Number(process.hrtime.bigint() - started) / 1e9).toFixed(1);
 
   console.log('\n' + (suites.length - failed) + ' passed, ' + failed + ' failed in ' + seconds + 's');
@@ -81,4 +103,8 @@ function main() {
   return failed ? 1 : 0;
 }
 
-process.exitCode = main();
+module.exports = { discover, NOT_HEADLESS, SUITE_DIRS, run };
+
+// Only the `npm test` entry point runs the suites; a test that requires this
+// module gets the functions above and nothing else.
+if (require.main === module) main().then(code => { process.exitCode = code; });
