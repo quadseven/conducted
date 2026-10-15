@@ -104,45 +104,77 @@ class Train {
         return level ** 3;
     }
 
-    gainExp(amount) {
-        this.exp += amount;
-
-        while (this.exp >= this.calculateExpForLevel(this.level + 1) && this.level < CONSTANTS.MAX_LEVEL) {
-            this.levelUp();
-        }
+    // Fraction (0..1) of the way from this level's EXP threshold to the next.
+    expProgress(exp = this.exp) {
+        const floor = this.calculateExpForLevel(this.level);
+        const span = this.calculateExpForLevel(this.level + 1) - floor;
+        return Math.min(1, Math.max(0, (exp - floor) / span));
     }
 
-    levelUp() {
-        this.level++;
+    // Returns one levelUp() record per level gained, in order.
+    gainExp(amount) {
+        this.exp += amount;
+        const records = [];
+        while (this.exp >= this.calculateExpForLevel(this.level + 1) && this.level < CONSTANTS.MAX_LEVEL) {
+            records.push(this.levelUp());
+        }
+        return records;
+    }
 
-        // Recalculate stats
-        const oldMaxHP = this.maxHP;
+    recalculateStats() {
+        const before = { hp: this.maxHP, attack: this.attack, defense: this.defense, speed: this.speed, special: this.special };
         this.maxHP = this.calculateStat('hp');
-        this.currentHP += (this.maxHP - oldMaxHP);
+        this.currentHP += (this.maxHP - before.hp);
         this.attack = this.calculateStat('attack');
         this.defense = this.calculateStat('defense');
         this.speed = this.calculateStat('speed');
         this.special = this.calculateStat('special');
-
-        // Check for new moves
-        this.checkForNewMoves();
-
-        return true;
+        return {
+            hp: this.maxHP - before.hp,
+            attack: this.attack - before.attack,
+            defense: this.defense - before.defense,
+            speed: this.speed - before.speed,
+            special: this.special - before.special
+        };
     }
 
+    // Raises the level by one. The record lists the stat gains, the moves
+    // learned outright and the moves waiting on learnMove() for a free slot.
+    levelUp() {
+        this.level++;
+        const gains = this.recalculateStats();
+        return { level: this.level, gains, ...this.checkForNewMoves() };
+    }
+
+    // Learns this level's moves while there is room; the rest are left to the
+    // player, who chooses which move to forget via learnMove().
     checkForNewMoves() {
+        const learnedMoves = [];
+        const pendingMoves = [];
         for (const moveData of this.species.learnset) {
-            if (moveData.level === this.level) {
-                if (this.moves.length < CONSTANTS.MAX_MOVES) {
-                    this.moves.push(moveData.move);
-                } else {
-                    const forgotten = this.moves.shift();
-                    delete this.movePP[forgotten];
-                    this.moves.push(moveData.move);
-                }
-                this.movePP[moveData.move] = MOVES_DB[moveData.move].pp;
+            if (moveData.level !== this.level) continue;
+            if (this.moves.length < CONSTANTS.MAX_MOVES) {
+                this.addMove(moveData.move);
+                learnedMoves.push(moveData.move);
+            } else {
+                pendingMoves.push(moveData.move);
             }
         }
+        return { learnedMoves, pendingMoves };
+    }
+
+    addMove(move) {
+        this.moves.push(move);
+        this.movePP[move] = MOVES_DB[move].pp;
+    }
+
+    // Swaps the move in slot `replaceIndex` for `move` and returns the forgotten one.
+    learnMove(move, replaceIndex) {
+        const forgotten = this.moves[replaceIndex];
+        delete this.movePP[forgotten];
+        this.moves[replaceIndex] = move;
+        this.movePP[move] = MOVES_DB[move].pp;
+        return forgotten;
     }
 
     getStartingMoves() {
@@ -229,14 +261,7 @@ class Train {
             this.baseSpeed = this.species.baseStats.speed;
             this.baseSpecial = this.species.baseStats.special;
 
-            // Recalculate stats
-            const oldMaxHP = this.maxHP;
-            this.maxHP = this.calculateStat('hp');
-            this.currentHP += (this.maxHP - oldMaxHP);
-            this.attack = this.calculateStat('attack');
-            this.defense = this.calculateStat('defense');
-            this.speed = this.calculateStat('speed');
-            this.special = this.calculateStat('special');
+            this.recalculateStats();
 
             return true;
         }
