@@ -1,7 +1,8 @@
 name: check.tests
 
 # Runs the dependency-free Node test suites on every pull request. They need
-# nothing beyond the Node that ships on the hosted runner image.
+# nothing beyond the Node that ships on the hosted runner image, so there is no
+# install step: `npm test` runs the suites themselves, not any dependency.
 
 on:
   pull_request:
@@ -19,19 +20,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Syntax check the browser modules
         run: for f in js/dispatch/*.js; do node --check "$f"; done
-      - name: Core integrity
-        run: node tests/core-integrity.test.js
-      - name: Starter selection
-        run: node tests/starter-selection.test.js
-      - name: Train storage
-        run: node tests/train-storage.test.js
-      - name: Menu overlays
-        run: node tests/menu-overlays.test.js
-      - name: Sprite atlas rendering pipeline
-        run: node tests/sprite-atlas.test.js
-      - name: Runaway Junction logic, art and music
-        run: node tests/dispatch-logic.test.js
       - name: Copper Version syntax check
         run: find copper/src -name '*.js' -print0 | xargs -0 -n1 node --check
-      - name: Copper Version tests (the whole game runs headless in Node)
-        run: for t in copper/tests/*.test.js; do echo "== $t"; node "$t" || exit 1; done
+      - name: Automated suites (overworld, battle, save/load, integrity)
+        run: npm test

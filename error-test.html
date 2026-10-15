@@ -8,35 +8,12 @@
     <div id="errors"></div>
     <div id="console-log"></div>
 
+    <!-- Capture all errors and console output. js/error-capture.js holds the
+         capture code so tests/error-page-escaping.test.js can drive the same
+         code the page runs, instead of a copy of it. -->
+    <script src="js/error-capture.js"></script>
     <script>
-        // Capture all errors
-        window.addEventListener('error', (e) => {
-            const div = document.getElementById('errors');
-            div.innerHTML += `<p style="color: red;">ERROR: ${e.message} at ${e.filename}:${e.lineno}</p>`;
-            console.error('Caught error:', e);
-        });
-
-        // Override console.log to display on page
-        const originalLog = console.log;
-        console.log = function(...args) {
-            originalLog.apply(console, args);
-            const div = document.getElementById('console-log');
-            div.innerHTML += `<p>${args.join(' ')}</p>`;
-        };
-
-        const originalError = console.error;
-        console.error = function(...args) {
-            originalError.apply(console, args);
-            const div = document.getElementById('errors');
-            div.innerHTML += `<p style="color: red;">CONSOLE ERROR: ${args.join(' ')}</p>`;
-        };
-
-        const originalWarn = console.warn;
-        console.warn = function(...args) {
-            originalWarn.apply(console, args);
-            const div = document.getElementById('errors');
-            div.innerHTML += `<p style="color: orange;">WARNING: ${args.join(' ')}</p>`;
-        };
+        ErrorCapture.install(document, console, handler => window.addEventListener('error', handler));
     </script>
 
     <!-- Load scripts in order -->

@@ -1,0 +1,12 @@
+{
+  "name": "conducted",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Conducted, a train-taming RPG that runs in a browser and headlessly in Node",
+  "scripts": {
+    "test": "node tools/run-tests.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
