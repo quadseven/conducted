@@ -49,7 +49,7 @@ const report = vm.runInContext(`(() => {
 assert.equal(report.species, 151);
 assert.equal(report.normalizedSpecies, 151);
 assert.equal(report.names, 151);
-assert.equal(report.moves, 50);
+assert.equal(report.moves, 51);
 assert.equal(report.invalidLearnsets.length, 0);
 assert.equal(report.types, 8);
 assert.equal(report.matchups, 64);
