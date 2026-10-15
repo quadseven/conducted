@@ -16,7 +16,8 @@ const NPC_DATA = Object.freeze({
         { id: "radia", name: "Conductor Radia", specialty: "NUCLEAR", roster: [[65, 59], [66, 60], [148, 61], [149, 62], [150, 64]], dialogue: { intro: "At the heart of every machine waits a choice: control or catastrophe.", defeat: "You chose control." } }
     ],
     champion: { id: "champion_cypress", name: "Champion Cypress", roster: [[3, 62], [6, 62], [9, 62], [72, 64], [150, 65], [151, 67]], dialogue: { intro: "I taught you how to begin. Now show me how far the rails have carried you.", defeat: "The Grand Transit has its new Champion." } },
-    rival: { id: "rival_axel", name: "Axel", rosters: [[[4, 5]], [[5, 18], [20, 17]], [[6, 32], [36, 30], [57, 30]], [[6, 48], [36, 46], [57, 46], [99, 47], [140, 48]], [[6, 61], [36, 59], [57, 59], [99, 60], [140, 60], [151, 63]]], dialogue: { intro: "I'm taking the express route to the top!", defeat: "Fine. Next time, I'm leaving you at the platform." } },
+    rival: { id: "rival_blake", name: "Blake", rosters: [[[4, 5]], [[10, 8], [4, 9]], [[20, 18], [14, 19], [5, 21]], [[36, 50], [57, 51], [66, 52], [99, 53], [6, 55]]], dialogue: { intro: "My engine is all fired up. Let's see who's the better conductor right now!", defeat: "Whoa, nice shunting! You really know how to handle that engine." } },
+    rival_axel: { id: "rival_blake", name: "Blake" },
     teamDerail: [
         { id: "grunt_switch", name: "Derail Grunt Switch", roster: [[23, 14], [27, 15]], dialogue: "Team Derail owns this junction now!" },
         { id: "grunt_spike", name: "Derail Grunt Spike", roster: [[40, 22], [49, 23]], dialogue: "One loose spike can stop an empire." },

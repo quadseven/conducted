@@ -387,6 +387,201 @@ const WORLD_MAPS = {
   },
 };
 
+function getRivalStarterId(player, stage) {
+  let base = 4; // Sparkart (Electric)
+  if (player && player.party && player.party.length > 0) {
+    const p0 = player.party[0].speciesId;
+    if (p0 >= 1 && p0 <= 3) {
+      base = 4; // Player has Steam -> Blake picks Electric
+    } else if (p0 >= 4 && p0 <= 6) {
+      base = 7; // Player has Electric -> Blake picks Diesel
+    } else if (p0 >= 7 && p0 <= 9) {
+      base = 1; // Player has Diesel -> Blake picks Steam
+    }
+  }
+  if (stage <= 2) return base;
+  if (stage === 3) return base + 1; // Evolved to 2nd stage
+  return base + 2; // Evolved to final stage
+}
+
+function createRivalBlakeNPC(stage, x, y, direction) {
+  const stageConfigs = {
+    1: {
+      id: 'rival_blake_1',
+      requires: ['hasStarter'],
+      storyFlag: 'defeated_rival_blake_1',
+      baseReward: 60,
+      defaultParty: [{ speciesId: 4, level: 5 }],
+      getParty: function (player) {
+        return [{ speciesId: getRivalStarterId(player, 1), level: 5 }];
+      },
+      blockedDialogue: [
+        { speaker: 'Blake', text: "Hey Alex! Go see Professor Cypress in the lab and pick your starter train first. Then we'll battle!" }
+      ],
+      dialogue: [
+        { speaker: 'Blake', text: "Hey Alex! I see you got your starter train from Professor Cypress!" },
+        { speaker: 'Blake', text: "My engine is all fired up. Let's see who's the better conductor right now!" }
+      ],
+      retryDialogue: [
+        { speaker: 'Blake', text: "Ready for a rematch, Alex? Let's see if your engine is running smoother this time!" }
+      ],
+      defeatDialogue: [
+        { speaker: 'Blake', text: "Whoa, nice shunting! You really know how to handle that engine." },
+        { speaker: 'Blake', text: "I'm heading down Route 1 to challenge Captain Marina at Coal Harbor. Don't fall behind!" }
+      ],
+      lossDialogue: [
+        { speaker: 'Blake', text: "Tough break, Alex! I patched up your trains. Catch your breath and let's go again whenever you're ready!" }
+      ],
+      revisitDialogue: function (player) {
+        if (player && player.hasBadge && player.hasBadge('Harbor Badge')) {
+          return [{ speaker: 'Blake', text: "You already took down Captain Marina and got the Harbor Badge?! I need to get moving!" }];
+        }
+        return [{ speaker: 'Blake', text: "I'm tuning up my engine before heading out. Meet me down Route 1, Alex!" }];
+      }
+    },
+    2: {
+      id: 'rival_blake_2',
+      requires: ['defeated_rival_blake_1'],
+      storyFlag: 'defeated_rival_blake_2',
+      baseReward: 80,
+      defaultParty: [{ speciesId: 10, level: 8 }, { speciesId: 4, level: 9 }],
+      getParty: function (player) {
+        return [{ speciesId: 10, level: 8 }, { speciesId: getRivalStarterId(player, 2), level: 9 }];
+      },
+      blockedDialogue: [
+        { speaker: 'Blake', text: "Catch up with me back in Piston Town first, Alex!" }
+      ],
+      dialogue: [
+        { speaker: 'Blake', text: "Hold up, Alex! Coal Harbor is just ahead!" },
+        { speaker: 'Blake', text: "Captain Marina's freight crew is no joke. Prove you're ready by getting past me first!" }
+      ],
+      retryDialogue: [
+        { speaker: 'Blake', text: "Back for another round before Coal Harbor? Let's go!" }
+      ],
+      defeatDialogue: [
+        { speaker: 'Blake', text: "Urgh, derailed again! You've got some serious torque." },
+        { speaker: 'Blake', text: "All right, go take on Marina! Let's see if you can win the Harbor Badge." }
+      ],
+      lossDialogue: [
+        { speaker: 'Blake', text: "Looks like your timing was off, Alex! I got your boiler back up to pressure. Challenge me again when you're ready!" }
+      ],
+      revisitDialogue: function (player) {
+        if (player && player.hasBadge && player.hasBadge('Harbor Badge')) {
+          return [{ speaker: 'Blake', text: "You beat Marina and got the Harbor Badge! I'm heading over to the Coal Harbor docks." }];
+        }
+        return [{ speaker: 'Blake', text: "Captain Marina is waiting in the Coal Harbor Gym. Go show her your hauling power!" }];
+      }
+    },
+    3: {
+      id: 'rival_blake_3',
+      requires: ['Harbor Badge', 'defeated_rival_blake_2'],
+      storyFlag: 'defeated_rival_blake_3',
+      baseReward: 120,
+      defaultParty: [{ speciesId: 20, level: 18 }, { speciesId: 14, level: 19 }, { speciesId: 5, level: 21 }],
+      getParty: function (player) {
+        return [
+          { speciesId: 20, level: 18 },
+          { speciesId: 14, level: 19 },
+          { speciesId: getRivalStarterId(player, 3), level: 21 }
+        ];
+      },
+      blockedDialogue: [
+        { speaker: 'Blake', text: "Only conductors who have proven themselves against Captain Marina can board the luxury passenger line!" }
+      ],
+      dialogue: [
+        { speaker: 'Blake', text: "Alex! Welcome to the S.S. Starlight passenger terminal!" },
+        { speaker: 'Blake', text: "They say the best conductors from across the region ride these rails. Let's see if our training holds up!" }
+      ],
+      retryDialogue: [
+        { speaker: 'Blake', text: "The ship isn't leaving yet! Ready for round two on the pier?" }
+      ],
+      defeatDialogue: [
+        { speaker: 'Blake', text: "Unbelievable! Your crew is running smoother than a streamlined express." },
+        { speaker: 'Blake', text: "The conductor gave me a regional railpass. I'm taking the main line all the way to Crown Central!" }
+      ],
+      lossDialogue: [
+        { speaker: 'Blake', text: "That was close! Your engine just needs a quick tune-up. I fixed your gauges--let's battle again soon!" }
+      ],
+      revisitDialogue: function (player) {
+        if (player && player.hasBadge && player.hasBadge('Crown Badge')) {
+          return [{ speaker: 'Blake', text: "All eight badges?! Then we both know where this ends--Grand Terminus!" }];
+        }
+        return [{ speaker: 'Blake', text: "The luxury rail-ferry is an amazing sight. Keep collecting badges along the line, Alex!" }];
+      }
+    },
+    4: {
+      id: 'rival_blake_4',
+      requires: ['Crown Badge', 'derailDefeated', 'defeated_rival_blake_3'],
+      storyFlag: 'defeated_rival_blake_4',
+      baseReward: 200,
+      defaultParty: [
+        { speciesId: 36, level: 50 },
+        { speciesId: 57, level: 51 },
+        { speciesId: 66, level: 52 },
+        { speciesId: 99, level: 53 },
+        { speciesId: 6, level: 55 }
+      ],
+      getParty: function (player) {
+        return [
+          { speciesId: 36, level: 50 },
+          { speciesId: 57, level: 51 },
+          { speciesId: 66, level: 52 },
+          { speciesId: 99, level: 53 },
+          { speciesId: getRivalStarterId(player, 4), level: 55 }
+        ];
+      },
+      blockedDialogue: [
+        { speaker: 'Blake', text: "The Grand Terminus only admits conductors who have defeated Team Derail and earned all eight badges!" }
+      ],
+      dialogue: [
+        { speaker: 'Blake', text: "I knew you'd make it here, Alex! We started in Piston Town with tiny engines..." },
+        { speaker: 'Blake', text: "Now the Grand Conductors and the Champion are waiting just ahead. But first, let's settle who the true number one is!" }
+      ],
+      retryDialogue: [
+        { speaker: 'Blake', text: "No backing down before the Elite Four! Let's go all out, Alex!" }
+      ],
+      defeatDialogue: [
+        { speaker: 'Blake', text: "What an incredible battle! You really are the greatest conductor on these rails." },
+        { speaker: 'Blake', text: "Go on through, Alex. Become the Champion of the Grand Transit!" }
+      ],
+      lossDialogue: [
+        { speaker: 'Blake', text: "Don't stop now, Alex! If you can't beat me, the Elite Conductors will stop you cold. I healed your crew--let's go again!" }
+      ],
+      revisitDialogue: function (player) {
+        if (player && player.storyFlags && player.storyFlags['gameComplete']) {
+          return [{ speaker: 'Blake', text: "Champion Alex! The entire region is talking about your victory. I'm training for our next rematch!" }];
+        }
+        return [{ speaker: 'Blake', text: "The Four Conductors and Cypress are waiting beyond that gate. Show them what Piston Town can do!" }];
+      }
+    }
+  };
+
+  const cfg = stageConfigs[stage];
+  return {
+    id: cfg.id,
+    name: 'Blake',
+    x: x,
+    y: y,
+    type: 'trainer',
+    isRival: true,
+    rivalStage: stage,
+    direction: direction || 'down',
+    canBattle: true,
+    defeated: false,
+    baseReward: cfg.baseReward,
+    party: cfg.defaultParty,
+    getParty: cfg.getParty,
+    requires: cfg.requires,
+    storyFlag: cfg.storyFlag,
+    blockedDialogue: cfg.blockedDialogue,
+    dialogue: cfg.dialogue,
+    retryDialogue: cfg.retryDialogue,
+    defeatDialogue: cfg.defeatDialogue,
+    lossDialogue: cfg.lossDialogue,
+    revisitDialogue: cfg.revisitDialogue
+  };
+}
+
 // Full Grand Transit campaign. These maps deliberately use the engine's
 // procedural fallback tiles so every location remains playable if optional
 // image assets fail to load. Piston Town, Route 1, Coal Harbor and its gym
@@ -553,11 +748,12 @@ const WORLD_MAPS = {
   const tt = boxed(13, 30, 0, 3); tt[29][6] = 12;
   const eliteNPCs = elite.map((e, i) => ({ id: e.id, name: e.name, x: 6, y: 24 - i * 5,
     type: i === 4 ? 'champion' : 'trainer', canBattle: true, defeated: false, baseReward: 250,
-    requires: i === 0 ? ['Crown Badge', 'derailDefeated'] : [`defeated_${elite[i - 1].id}`],
+    requires: i === 0 ? ['Crown Badge', 'derailDefeated', 'defeated_rival_blake_4'] : [`defeated_${elite[i - 1].id}`],
     storyFlag: i === 4 ? 'gameComplete' : `defeated_${e.id}`,
     party: e.roster.map(r => ({ speciesId: r[0], level: r[1] })),
     dialogue: dialogue(e.name, e.dialogue.intro), defeatDialogue: dialogue(e.name, e.dialogue.defeat) }));
-  WORLD_MAPS.GrandTerminus = runtimeMap('GrandTerminus', 'Grand Terminus', tt, eliteNPCs, [
+  const blake4 = createRivalBlakeNPC(4, 6, 26, 'down');
+  WORLD_MAPS.GrandTerminus = runtimeMap('GrandTerminus', 'Grand Terminus', tt, [blake4, ...eliteNPCs], [
     { from: rect(6, 29), to: { mapId: 'Route8', ...pos(10, 22, 'up') } }
   ]);
 })();
@@ -613,6 +809,7 @@ const WORLD_MAPS = {
       { from: rect(4, 12), to: { mapId: 'TrainMart', ...pos(3, 6, 'down') } },
       { from: rect(9, 14, 2, 1), to: { mapId: 'Route1', ...pos(10, 1, 'down') } }
     ];
+    map.npcs = [createRivalBlakeNPC(1, 10, 13, 'down')];
     map.isWalkable = function (x, y) { return [1, 3, 6, 12].includes(this.getTile(x, y)) && !this.npcs.some(n => n.x === x && n.y === y); };
   }
 
@@ -634,6 +831,8 @@ const WORLD_MAPS = {
       { from: rect(8, 0, 5, 1), to: { mapId: 'PistonTown', ...pos(10, 13, 'up') } },
       { from: rect(8, 23, 5, 1), to: { mapId: 'CoalHarbor', ...pos(10, 1, 'down') } }
     ];
+    map.npcs = (map.npcs || []).filter(n => n.id !== 'rival_blake_2');
+    map.npcs.push(createRivalBlakeNPC(2, 10, 18, 'down'));
     map.isWalkable = function (x, y) { return [1, 2, 3, 6].includes(this.getTile(x, y)) && !this.npcs.some(n => n.x === x && n.y === y); };
   }
 
@@ -668,6 +867,7 @@ const WORLD_MAPS = {
       { from: rect(9, 0, 2, 1), to: { mapId: 'Route1', ...pos(10, 22, 'up') } },
       { from: rect(9, 14, 2, 1), to: { mapId: 'Route2', ...pos(10, 1, 'down') } }
     ];
+    map.npcs = [createRivalBlakeNPC(3, 16, 8, 'right')];
     map.isWalkable = function (x, y) { return [1, 2, 3, 6, 12].includes(this.getTile(x, y)) && !this.npcs.some(n => n.x === x && n.y === y); };
   }
 
@@ -914,3 +1114,6 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
   stamp('Route6', [[15, 10, 3, 3]], [[2, 5, 3, 3]]);
 })();
 
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { WORLD_MAPS, createRivalBlakeNPC, getRivalStarterId };
+}
