@@ -229,19 +229,32 @@ class Battle {
                     this.switchToBenchedTrain();
                     break;
                 case 3:
-                    // RUN
-                    if (this.isWild) {
-                        this.addMessage("Got away safely!");
-                        this.battleEnded = true;
-                        this.playerWon = false;
-                    } else {
-                        this.addMessage("Can't run from a trainer battle!");
-                        this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
-                        this.currentMessage = 0;
-                    }
+                    // RUN - wild battles only; a failed attempt costs the turn.
+                    this.attemptRun();
                     break;
             }
         }
+    }
+
+    // Gen-1 style flee: (player speed / enemy speed) * 128 > random(256).
+    attemptRun() {
+        if (!this.isWild) {
+            this.addMessage("Can't run from a trainer battle!");
+            this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+            this.currentMessage = 0;
+            return;
+        }
+        const odds = (this.effectiveSpeed('player', this.playerActive) /
+            this.effectiveSpeed('enemy', this.enemyActive)) * 128;
+        if (odds > Utils.randomInt(0, 255)) {
+            this.addMessage("Got away safely!");
+            this.battleEnded = true;
+            this.playerWon = false;
+            return;
+        }
+        this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
+        this.addMessage("Can't escape!");
+        this.animationQueue.push({ callback: () => this.enemyFreeTurn() });
     }
 
     handleFightInput(action) {
