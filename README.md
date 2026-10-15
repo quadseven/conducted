@@ -104,7 +104,7 @@ Trainer AI scores move power, accuracy, same-type bonus, type effectiveness, sta
 
 ### Saving
 
-The game saves to browser local storage every 30 seconds. The field controls also provide manual save, load, export, and import actions.
+The game stores up to three save files in browser local storage. Use SAVE in the field menu to choose a slot, or SAVE FILES on the title screen to review, load, or delete a save. Replacing a valid save keeps a recovery copy; if the current file is damaged, loading tries that copy. Existing single-slot saves continue to use slot 1.
 
 Save data includes:
 

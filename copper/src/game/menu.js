@@ -57,7 +57,11 @@
   function* doSave() {
     const r = yield* U.ask('Would you like to save your journey?');
     if (r !== 0) return;
-    const res = CD.save.save();
+    const slots = CD.save.slots();
+    const labels = slots.map(s => s.exists ? 'SLOT ' + s.slot + ': ' + s.summary.name : 'SLOT ' + s.slot + ': EMPTY');
+    const slot = yield* U.choose(labels.concat(['CANCEL']), { x: 44, y: 30, w: 152, cancel: labels.length });
+    if (slot === undefined || slot < 0 || slot >= slots.length) return;
+    const res = CD.save.save(slot + 1);
     if (res.ok) { CD.audio.sfx('save'); yield* U.say('{PLAYER} saved the journey!'); }
     else yield* U.say(res.error);
   }

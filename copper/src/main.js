@@ -12,7 +12,7 @@
     yield* U.fadeIn(24);
   }
   function* continueGame() {
-    const r = CD.save.load();
+    const r = CD.save.load(CD.main.selectedSlot || 1);
     if (!r.ok) { yield* U.say(r.error); return false; }
     CD.audio.setMuted(!CD.state.options.sound);
     yield* U.fadeOut(12);
@@ -21,6 +21,30 @@
     yield* U.fadeIn(16);
     return true;
   }
+  function* manageSaves() {
+    for (;;) {
+      const slots = CD.save.slots();
+      const labels = slots.map(s => s.exists
+        ? 'SLOT ' + s.slot + ': ' + s.summary.name + '  ' + s.summary.badges.length + ' BADGES'
+        : 'SLOT ' + s.slot + ': EMPTY');
+      labels.push('BACK');
+      const pick = yield* U.choose(labels, { x: 36, y: 28, w: 168, cancel: labels.length - 1 });
+      if (pick === undefined || pick < 0 || pick >= slots.length) return;
+      const entry = slots[pick];
+      if (!entry.exists) continue;
+      const action = yield* U.choose(['LOAD', 'DELETE', 'BACK'], { x: 72, y: 48, w: 96, cancel: 2 });
+      if (action === 0) {
+        CD.main.selectedSlot = entry.slot;
+        if (yield* continueGame()) return 'loaded';
+      } else if (action === 1) {
+        const confirm = yield* U.ask('Delete this save file?');
+        if (confirm === 0) {
+          const result = CD.save.remove(entry.slot);
+          if (!result.ok) yield* U.say(result.error);
+        }
+      }
+    }
+  }
   function* flow() {
     for (;;) {
       const t = CD.title.scene;
@@ -28,17 +52,19 @@
       E.push(t);
       while (!t.done) yield;
       const has = CD.save.exists();
-      const items = has ? ['CONTINUE', 'NEW GAME', 'OPTIONS'] : ['NEW GAME', 'OPTIONS'];
+      const items = has ? ['CONTINUE', 'NEW GAME', 'SAVE FILES', 'OPTIONS'] : ['NEW GAME', 'SAVE FILES', 'OPTIONS'];
       let pick;
       for (;;) {
         const r = yield* U.choose(items, { x: 80, y: 88, w: 80, cancel: 'none' });
         pick = items[r];
         if (pick === 'OPTIONS') { yield* CD.menu.options(); continue; }
+        if (pick === 'SAVE FILES') { if ((yield* manageSaves()) === 'loaded') return; continue; }
         if (pick === undefined) { pick = null; }
         break;
       }
       if (!pick) { E.remove(t); continue; }
       if (pick === 'CONTINUE') {
+        CD.main.selectedSlot = 1;
         const s = CD.save.summary();
         const r = yield* U.ask(`Continue as ${s.name}? ${s.badges.length} badge(s), ${CD.menu.fmtTime(s.frames)} played.`);
         if (r !== 0) { E.remove(t); continue; }
@@ -105,7 +131,7 @@
     window.addEventListener('pointerdown', unlock, { once: true });
   }
 
-  CD.main = { boot, flow, startNew, continueGame, layout };
+  CD.main = { boot, flow, startNew, continueGame, manageSaves, selectedSlot: 1, layout };
   if (typeof document !== 'undefined' && document.getElementById && document.getElementById('screen')) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   }
