@@ -6,7 +6,7 @@ const context = { console: { log() {}, error() {} }, module: undefined, Math };
 vm.createContext(context);
 for (const file of [
     'js/constants.js', 'js/utils.js', 'js/types.js', 'js/moves.js',
-    'js/train-data.js', 'js/trainData.js', 'js/npcData.js', 'js/maps.js', 'js/story.js', 'js/world-maps.js'
+    'js/train-data.js', 'js/trainData.js', 'js/npcData.js', 'js/maps.js', 'js/story.js', 'js/map.js', 'js/world-maps.js'
 ]) {
     vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }

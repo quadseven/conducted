@@ -67,6 +67,26 @@ class GameMap {
     }
 }
 
+function addReverseWarp(sourceMap, destinationMap, transition) {
+    const reverse = transition && transition.reverse;
+    if (!reverse || !reverse.from || !reverse.to || !destinationMap) return false;
+
+    destinationMap.warps = destinationMap.warps || [];
+    destinationMap.warps = destinationMap.warps.filter(warp =>
+        warp.from.x !== reverse.from.x || warp.from.y !== reverse.from.y
+    );
+    destinationMap.warps.push({
+        from: reverse.from,
+        to: {
+            mapId: sourceMap.id,
+            x: reverse.to.x,
+            y: reverse.to.y,
+            dir: reverse.to.dir || 'down'
+        }
+    });
+    return true;
+}
+
 // Create starter map
 function createStarterMap() {
     const map = new GameMap("pallet_town", 20, 18);
