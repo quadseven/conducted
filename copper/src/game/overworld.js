@@ -10,8 +10,10 @@
   const SW = CD.gfx.W, SH = CD.gfx.H;
 
   // A walker moves one tile at a time. prog counts pixels travelled into the step.
+  // Normal speed: 1 pixel/frame for 16px tile = 16 frames (256ms at 60fps) for smooth Pokemon-style scrolling
+  // Running speed: 2 pixels/frame = 8 frames (128ms at 60fps)
   function walker(o) {
-    return Object.assign({ x: 0, y: 0, dir: 'down', moving: false, prog: 0, speed: 2, anim: 0, tx: 0, ty: 0, jump: 0, hidden: false }, o);
+    return Object.assign({ x: 0, y: 0, dir: 'down', moving: false, prog: 0, speed: 1, anim: 0, tx: 0, ty: 0, jump: 0, hidden: false }, o);
   }
   const ow = {
     player: walker({ sprite: 'player' }),
@@ -100,7 +102,7 @@
     for (const d of dirs) {
       if (d === 'face') continue;
       let tries = 0;
-      w.speed = opts.speed || (w === ow.player ? 2 : 1);
+      w.speed = opts.speed || (w === ow.player ? 1 : 1);
       while (!w.moving) {
         const r = startStep(w, d, opts.force ? 'script' : (w === ow.player ? 'player' : 'npc'));
         if (!r.ok) {
@@ -232,7 +234,7 @@
       const p = ow.player;
       if (p.scripted) return;
       if (p.moving) {
-        p.speed = p.jump ? 2 : (I.held.b && !ow.locked && CD.state.flags.runningShoes !== false ? 4 : 2);
+        p.speed = p.jump ? 2 : (I.held.b && !ow.locked && CD.state.flags.runningShoes !== false ? 4 : 1);
         const prevDir = p.dir;
         if (advance(p)) onArrive(prevDir);
         if (p.moving || ow.locked) return;
