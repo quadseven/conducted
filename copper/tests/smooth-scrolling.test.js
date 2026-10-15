@@ -47,13 +47,18 @@ function bootOverworld(seed, map, x, y, dir) {
 
 // Test 2: 4-frame walking animation sprites
 (function testWalkingAnimation() {
-  bootOverworld(2, 'PistonTown', 5, 6);
+  bootOverworld(2, 'PistonTown', 5, 6, 'right');
   
   const p = CD.ow.player;
   
+  console.log('Before script: moving=' + p.moving);
   I.script('right', true);
   h.step(1);
+  console.log('After script(true): moving=' + p.moving);
   I.script('right', false);
+  console.log('After script(false): moving=' + p.moving);
+  h.step(1);
+  console.log('After step(1): moving=' + p.moving);
   
   const animFrames = [];
   const maxFrames = 30;
@@ -64,15 +69,17 @@ function bootOverworld(seed, map, x, y, dir) {
       // Get current frame index based on animation state
       const pPos = CD.overworld.pixel(p);
       const t = p.prog / 16;
-      const frameIndex = CD.chars.frameFor(p.anim * 2 + (t >= 0.5 ? 1 : 0));
+      const frameIndex = CD.chars.frameFor(p.anim * 2 + p.animPhase);
       animFrames.push(frameIndex);
     } else if (animFrames.length > 0) {
       // Movement complete but we want to record some post-movement frames too
       if (f > animFrames.length) break;
     }
+    if (f < 5) console.log('f=' + f + ' moving=' + p.moving + ' animPhase=' + p.animPhase);
   }
   
   console.log('Test 2 - Animation frames during movement:', animFrames);
+  console.log('Length of animFrames:', animFrames.length);
   
   // Verify we got multiple animation frames (at least 2 different values)
   const uniqueFrames = new Set(animFrames);
