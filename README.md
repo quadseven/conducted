@@ -157,14 +157,14 @@ It needs no dependencies, only the Node already on `PATH` (18 or newer), because
 Expected output on a healthy tree (the version shown is whichever Node you run it with):
 
 ```
-Running 26 suites headlessly on v22.11.0
+Running 27 suites headlessly on v22.11.0
 
   ok    copper/tests/audio.test.js
   ok    copper/tests/battle.test.js
   ...
   ok    tests/victory-road.test.js
 
-26 passed, 0 failed in 1.9s
+27 passed, 0 failed in 1.9s
 ```
 
 Pass a substring to run part of the suite, for example `npm test -- smoke`.
@@ -172,6 +172,8 @@ Pass a substring to run part of the suite, for example `npm test -- smoke`.
 `copper/tests/smoke.test.js` is the smoke suite. It plays the two loops a session spends all its time in, end to end and through real button presses: entering a building and coming back out, crossing a map connection and crossing it back, winning a battle, losing a battle and waking up at the last depot, and saving then loading a game. The rest of the suites check the rules underneath those loops in more detail -- damage and types in `battle.test.js`, map and warp integrity in `world.test.js`, save-slot handling in `save.test.js` -- and the `tests/` suites cover the data and the earlier browser build in `js/`.
 
 `tests/test-runner-integrity.test.js` guards the runner itself: that it only ever collects suites out of the two suite directories, that every suite it leaves out comes with a reason, and that it never assembles a command line to run one. The last one is a code-scanning rule (CWE-78) rather than a bug we hit, and the test keeps the flag from coming back.
+
+`tests/error-page-escaping.test.js` guards `error-test.html`, the debug page that mirrors window errors and console output into the DOM. It runs that page's own handler code against a stub DOM and checks the captured text is shown as text: an error message or a logged value is runtime input, and pasting it into `innerHTML` would run any markup in it (CWE-79, reported by code scanning as stored cross-site scripting).
 
 A few suites cannot run headlessly and are reported as skipped at the end of every run, with the reason, so the gap stays visible: `tests/menu-navigation.test.js` needs Playwright, and `tests/rival.test.js` and `tests/rail-mart.test.js` build the browser runtime in `js/` or drive shop code that the menu overlays have since replaced.
 
