@@ -26,7 +26,7 @@ function scripts() {
 
 function load(opts) {
   opts = opts || {};
-  const store = new Map();
+  const store = opts.store || new Map();
   const ctx = {
     console, Math, Date, JSON, Object, Array, String, Number, Map, Set, Uint32Array, Uint8Array, Int16Array, Float32Array, Error, RangeError,
     localStorage: {

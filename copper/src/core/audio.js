@@ -13,9 +13,19 @@
 (function (CD) {
   'use strict';
   let ctx = null, master = null, musicBus = null, sfxBus = null;
-  let unlocked = false, muted = false;
+  const MUTE_KEY = 'conducted.audio.muted';
+  let unlocked = false, muted = readMutedPreference();
   const waves = {};
   let noiseBuf = null;
+
+  function readMutedPreference() {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem(MUTE_KEY) === 'true';
+    } catch (error) {
+      console.warn('Audio preference could not be loaded:', error);
+      return false;
+    }
+  }
 
   const NOTE = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
   function freq(midi) { return 440 * Math.pow(2, (midi - 69) / 12); }
@@ -226,6 +236,8 @@
     if (!id) { if (cur) stopCur(0.2); return; }
     if (ctx && unlocked) startSong(id);
   }
+  function playMusic(id) { music(id); }
+  function stopMusic() { music(null); }
   // A short fanfare that interrupts the current song and then restarts it
   function jingle(id, resume) {
     const back = resume === undefined ? want : resume;
@@ -276,6 +288,7 @@
       default: break;
     }
   }
+  function playSfx(name, arg) { sfx(name, arg); }
   // A train's cry: a whistle, horn or buzz chord shaped by its species id and type
   function cry(id, type) {
     if (!ctx || !unlocked || muted) return;
@@ -290,7 +303,15 @@
     if (type === 'ELECTRIC') noise(sfxBus, t, 0.2, 0.15, 'bandpass', 250);
   }
 
-  function setMuted(m) { muted = m; if (master) master.gain.value = m ? 0 : 0.6; }
+  function setMuted(m) {
+    muted = !!m;
+    if (master) master.gain.value = muted ? 0 : 0.6;
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(MUTE_KEY, String(muted));
+    } catch (error) {
+      console.warn('Audio preference could not be saved:', error);
+    }
+  }
 
-  CD.audio = { define, compile, music, jingle, jingleSeconds, sfx, cry, unlock, setMuted, get muted() { return muted; }, get current() { return want; }, songs };
+  CD.audio = { define, compile, music, playMusic, stopMusic, jingle, jingleSeconds, sfx, playSfx, cry, unlock, setMuted, get muted() { return muted; }, get current() { return want; }, songs };
 })(window.CD);
