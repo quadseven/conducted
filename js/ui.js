@@ -253,6 +253,7 @@ class UI {
 
         for (let i = 0; i < player.party.length; i++) {
             const train = player.party[i];
+            if (!train) continue;
             const trainY = y + 80 + i * lineHeight;
 
             // Highlight selected
@@ -266,7 +267,7 @@ class UI {
 
             const hpPercent = Math.floor((train.currentHP / train.maxHP) * 100);
             ctx.fillText(`${train.nickname || train.species.name} Lv${train.level}  HP: ${train.currentHP}/${train.maxHP} (${hpPercent}%)`, x + 20, trainY);
-            this.drawProgressBar(ctx, x + 350, trainY - 14, 160, 12, hpPercent, train.getHPColor ? train.getHPColor() : CONSTANTS.COLORS.HP_GREEN);
+            this.drawProgressBar(ctx, x + 350, trainY - 14, 160, 12, hpPercent, train.getHPColor());
         }
 
         // Instructions
@@ -306,6 +307,7 @@ class UI {
         ctx.font = '15px monospace';
         for (let i = 0; i < party.length; i++) {
             const train = party[i];
+            if (!train) continue;
             const rowY = y + 80 + i * 54;
 
             if (i === trainSelection) {
@@ -351,7 +353,7 @@ class UI {
             ctx.font = '14px monospace';
             ctx.fillText(`HP: ${selectedTrain.currentHP} / ${selectedTrain.maxHP}`, rightX, y + 144);
             const hpPct = Math.floor((selectedTrain.currentHP / selectedTrain.maxHP) * 100);
-            const hpCol = selectedTrain.getHPColor ? selectedTrain.getHPColor() : CONSTANTS.COLORS.HP_GREEN;
+            const hpCol = selectedTrain.getHPColor();
             this.drawProgressBar(ctx, rightX, y + 152, 360, 14, hpPct, hpCol);
 
             // Stats grid

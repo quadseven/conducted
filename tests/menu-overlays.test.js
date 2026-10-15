@@ -345,6 +345,16 @@ function testCleanDismissal() {
     assert.equal(game.player.direction, CONSTANTS.DIRECTIONS.RIGHT);
 }
 
+// Test 8: Overlays tolerate empty party slots and an out-of-range selection
+function testOverlaysSkipEmptySlots() {
+    const game = createTestGame();
+    const ctx = canvasMock.getContext();
+    game.player.party = [null, new Train(1, 10)];
+    assert.doesNotThrow(() => UI.drawTrainsOverlay(ctx, game.player, 0), 'trains overlay skips null slot');
+    assert.doesNotThrow(() => UI.drawTrainsOverlay(ctx, game.player, 5), 'trains overlay handles bad selection');
+    assert.doesNotThrow(() => UI.drawItemTargetOverlay(ctx, game.player, 'potion', 1), 'item target skips null slot');
+}
+
 testMenuOpen();
 testOverlayNavigation();
 testBagUseItem();
@@ -352,5 +362,6 @@ testTrainsMenuStatsAndMoves();
 testSaveMenu();
 testOptionsMenu();
 testCleanDismissal();
+testOverlaysSkipEmptySlots();
 
 console.log('All menu overlay tests passed!');
