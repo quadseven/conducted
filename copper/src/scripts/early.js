@@ -252,7 +252,7 @@
   // ------------------------------------------------------------ Route 1
   map('Route1').npcs = [
     { id: 'r1worker', sprite: 'worker', x: 12, y: 12, dir: 'down', move: 'look', text: 'Stop, look and listen! Trains always have right of way at a level crossing.' },
-    { id: 'r1lass', sprite: 'lass', x: 14, y: 8, move: 'wander', range: 2, text: 'I love watching the freight trains go by. Did you know wild trains hide in the tall grass along the line?' },
+    { id: 'r1grasswatcher', sprite: 'lass', x: 14, y: 8, move: 'wander', range: 2, text: 'I love watching the freight trains go by. Did you know wild trains hide in the tall grass along the line?' },
     { id: 'r1old', sprite: 'oldman', x: 6, y: 27, move: 'look', text: s => s.party.length ? 'Ho! A young Conductor. Walk into tall grass and wild trains will try their luck against you.' : 'The grass is full of wild trains. You\'d best not go in without a partner.' },
   ];
 
