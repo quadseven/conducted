@@ -680,7 +680,7 @@ class Battle {
     useItem(item) {
         const def = Items.get(item.name);
         if (!def) return;
-        if (def.kind === 'capture') this.useBoxcar();
+        if (def.kind === 'capture') this.useBoxcar(def);
         else if (def.kind === 'heal') this.usePotion(item.name);
     }
 
@@ -728,67 +728,47 @@ class Battle {
         });
     }
 
-    useBoxcar() {
+    useBoxcar(ball = Items.get('boxcar')) {
+        // Spending the item is part of the attempt, including a blocked one.
+        this.playerInventory[ball.id] = Math.max(0, (this.playerInventory[ball.id] || 0) - 1);
         // Can't catch trainer's trains
         if (!this.isWild) {
-            this.addMessage("Can't catch a trainer's train!");
+            this.addMessage("The conductor blocked the Trainball! It was used up.");
             this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
             this.currentMessage = 0;
             return;
         }
 
         this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
-        this.addMessage("You threw a Boxcar!");
-
-        this.playerInventory.boxcar = Math.max(0, (this.playerInventory.boxcar || 0) - 1);
-
-        // Gen 3-style four-shake capture check. Low HP and status matter, while
-        // a common full-health train still has a fair (not near-zero) chance.
-        const catchRate = this.enemyActive.species.catchRate || 45;
-        const maxHP = this.enemyActive.maxHP;
-        const currentHP = this.enemyActive.currentHP;
-
-        // Formula: ((HPmax * 3 - HP * 2) * CatchRate) / (HPmax * 3)
-        const statusBonus = this.enemyActive.status ? 1.5 : 1;
-        const a = Math.min(255, Math.floor(((maxHP * 3 - currentHP * 2) * catchRate * statusBonus) / (maxHP * 3)));
-
-        this.animationQueue.push({
-            callback: () => {
-                const shakeThreshold = a >= 255
-                    ? 65536
-                    : Math.floor(1048560 / Math.sqrt(Math.sqrt(16711680 / Math.max(1, a))));
-                let shakes = 0;
-                for (let i = 0; i < 4; i++) {
-                    if (Utils.randomInt(0, 65535) < shakeThreshold) {
-                        shakes++;
-                    } else {
-                        break;
-                    }
-                }
-
-                if (shakes === 4) {
-                    // Caught!
-                    this.addMessage(`Got it! ${this.enemyActive.species.name} was caught!`);
-                    this.caughtTrain = this.enemyActive;
-                    if (this.game && this.game.audio) this.game.audio.playSound('catch');
-                    this.state = CONSTANTS.BATTLE_STATES.VICTORY;
-                    this.battleEnded = true;
-                    this.playerWon = true;
-                } else {
-                    // Failed
-                    const shakeMessages = [
-                        "Oh no! The train broke free!",
-                        "Aww! It appeared to be caught!",
-                        "Aargh! Almost had it!",
-                        "Shoot! It was so close too!"
-                    ];
-                    this.addMessage(shakeMessages[shakes] || "Oh no! The train broke free!");
-
-                    // The wild train gets a free turn after a failed catch.
-                    this.enemyFreeTurn();
-                }
+        this.addMessage(`You threw a ${ball.name}!`);
+        const threshold = Utils.calculateCatchValue(this.enemyActive, ball.catchMultiplier);
+        let shakes = 0;
+        const shake = () => {
+            if (Utils.randomInt(0, 255) < threshold) {
+                shakes++;
+                this.enemyShake = 0.6;
+                if (shakes < 4) this.animationQueue.push({ callback: shake });
+                else this.finishCapture(true, shakes);
+            } else {
+                this.finishCapture(false, shakes);
             }
-        });
+        };
+        this.animationQueue.push({ callback: shake });
+    }
+
+    finishCapture(caught, shakes) {
+        if (caught) {
+            this.addMessage(`Got it! ${this.enemyActive.species.name} was caught!`);
+            this.caughtTrain = this.enemyActive;
+            if (this.game && this.game.audio) this.game.audio.playSound('catch');
+            this.state = CONSTANTS.BATTLE_STATES.VICTORY;
+            this.battleEnded = true;
+            this.playerWon = true;
+            return;
+        }
+        const messages = ["The train broke free!", "It almost got away!", "The Trainball shook twice!", "The Trainball shook three times!"];
+        this.addMessage(messages[shakes] || messages[0]);
+        this.enemyFreeTurn();
     }
 
     // Rounded-rect path helper.

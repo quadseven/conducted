@@ -3,6 +3,18 @@
  */
 
 const Utils = {
+    /** Calculate the adapted Gen 1 catch value (0-255). */
+    calculateCatchValue(train, ballMultiplier = 1) {
+        const maxHP = Math.max(1, train.maxHP || 1);
+        const currentHP = Math.max(0, Math.min(maxHP, train.currentHP || 0));
+        const catchRate = Math.max(1, train.catchRate || (train.species && train.species.catchRate) || 45);
+        const statusMultiplier = ['slp', 'frz', 'sleep', 'frozen'].includes(train.status)
+            ? 2
+            : train.status ? 1.5 : 1;
+        const value = ((maxHP * 3 - currentHP * 2) * catchRate * statusMultiplier * ballMultiplier) / (maxHP * 3);
+        return Math.floor(this.clamp(value, 1, 255));
+    },
+
     /**
      * Random integer between min and max (inclusive)
      */
