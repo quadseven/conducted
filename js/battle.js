@@ -663,6 +663,7 @@ class Battle {
         this.state = CONSTANTS.BATTLE_STATES.DEFEAT;
         this.battleEnded = true;
         this.playerWon = false;
+        this.whiteout = true;
     }
 
     // THE single owner of end-of-battle resolution. Called once per drained
@@ -1048,6 +1049,16 @@ class Battle {
         if (this.state === CONSTANTS.BATTLE_STATES.ITEM) {
             const items = this.getUsableItems();
             this.drawMenuGrid(ctx, items.slice(0, 4).map(it => `${it.displayName} x${it.quantity}`), this.itemSelection, () => '#75502d');
+        }
+
+        if (this.state === CONSTANTS.BATTLE_STATES.DEFEAT || this.whiteout) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#181818';
+            ctx.font = 'bold 28px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('You blacked out!', canvas.width / 2, canvas.height / 2);
+            ctx.textAlign = 'left';
         }
     }
 

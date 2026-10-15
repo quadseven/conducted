@@ -103,7 +103,9 @@ const CONSTANTS = {
         FAST_TRAVEL_TRANSITION: 'fast_travel_transition',
         MENU: 'menu',
         DIALOGUE: 'dialogue',
-        TRANSITION: 'transition'
+        TRANSITION: 'transition',
+        WHITEOUT: 'whiteout',
+        WHITE_OUT: 'whiteout'
     },
 
     // Directions

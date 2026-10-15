@@ -36,6 +36,15 @@ class Player {
         this.defeatedGymLeaders = [];
         this.storyFlags = {};
 
+        // Last visited Train Depot for defeat respawn
+        this.lastDepot = {
+            map: 'HealingDepot',
+            mapId: 'HealingDepot',
+            x: 3,
+            y: 6,
+            direction: CONSTANTS.DIRECTIONS.UP
+        };
+
         // Animation
         this.isMoving = false;
         this.moveProgress = 0;
@@ -207,6 +216,16 @@ class Player {
         return this.techniques.includes(technique);
     }
 
+    setLastDepot(map, x = 3, y = 6, direction = CONSTANTS.DIRECTIONS.UP) {
+        this.lastDepot = {
+            map: map,
+            mapId: map,
+            x: typeof x === 'number' ? x : 3,
+            y: typeof y === 'number' ? y : 6,
+            direction: direction
+        };
+    }
+
     // Alias kept for backwards compatibility - delegates to the canonical heal.
     healAllTrains() {
         this.healParty();
@@ -221,6 +240,13 @@ class Player {
             direction: this.direction,
             currentMap: this.currentMap,
             visitedMaps: this.visitedMaps,
+            lastDepot: this.lastDepot ? {
+                map: this.lastDepot.map || this.lastDepot.mapId,
+                mapId: this.lastDepot.mapId || this.lastDepot.map,
+                x: this.lastDepot.x,
+                y: this.lastDepot.y,
+                direction: this.lastDepot.direction !== undefined ? this.lastDepot.direction : CONSTANTS.DIRECTIONS.UP
+            } : null,
             party: this.party.map(t => t.toJSON()),
             storage: this.storage.map(t => t.toJSON()),
             seenSpecies: this.seenSpecies,
@@ -249,6 +275,24 @@ class Player {
         player.currentMap = savedMap === 'piston_town' || savedMap === 'pallet_town' ? 'PistonTown' : savedMap;
         player.visitedMaps = Array.isArray(data.visitedMaps) ? data.visitedMaps : [player.currentMap];
         if (!player.visitedMaps.includes(player.currentMap)) player.visitedMaps.push(player.currentMap);
+
+        if (data.lastDepot) {
+            player.lastDepot = {
+                map: data.lastDepot.map || data.lastDepot.mapId || 'HealingDepot',
+                mapId: data.lastDepot.mapId || data.lastDepot.map || 'HealingDepot',
+                x: typeof data.lastDepot.x === 'number' ? data.lastDepot.x : 3,
+                y: typeof data.lastDepot.y === 'number' ? data.lastDepot.y : 6,
+                direction: data.lastDepot.direction !== undefined ? data.lastDepot.direction : CONSTANTS.DIRECTIONS.UP
+            };
+        } else {
+            player.lastDepot = {
+                map: 'HealingDepot',
+                mapId: 'HealingDepot',
+                x: 3,
+                y: 6,
+                direction: CONSTANTS.DIRECTIONS.UP
+            };
+        }
 
         // Party: guard against missing/empty and drop any entry that fails to
         // deserialize rather than throwing out the whole save.
