@@ -131,7 +131,7 @@ function testMenuOpen() {
     game.input.simulateKeyPress('start');
     game.updateOverworld(0.016);
     assert.equal(game.state, CONSTANTS.STATES.MENU, 'start button opens menu');
-    assert.deepEqual(game.menuOptions, ['BAG', 'TRAINS', 'SAVE', 'OPTIONS'], 'four core menu options');
+    assert.deepEqual([...game.menuOptions], ['BAG', 'TRAINS', 'SAVE', 'OPTIONS'], 'four core menu options');
     assert.equal(game.menuOverlay, null, 'no overlay open initially');
 
     // Dismiss menu
