@@ -37,12 +37,13 @@ class Player {
         this.storyFlags = {};
 
         // Last visited Train Depot for defeat respawn
+        const defaultUp = (typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0;
         this.lastDepot = {
             map: 'HealingDepot',
             mapId: 'HealingDepot',
             x: 3,
             y: 6,
-            direction: CONSTANTS.DIRECTIONS.UP
+            direction: defaultUp
         };
 
         // Animation
@@ -216,14 +217,23 @@ class Player {
         return this.techniques.includes(technique);
     }
 
-    setLastDepot(map, x = 3, y = 6, direction = CONSTANTS.DIRECTIONS.UP) {
+    setLastDepot(map, x = 3, y = 6, direction = 0) {
+        let dir = direction;
+        if (typeof dir === 'string' && typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS[dir.toUpperCase()] !== undefined) {
+            dir = CONSTANTS.DIRECTIONS[dir.toUpperCase()];
+        }
+        const defaultUp = (typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0;
         this.lastDepot = {
             map: map,
             mapId: map,
             x: typeof x === 'number' ? x : 3,
             y: typeof y === 'number' ? y : 6,
-            direction: direction
+            direction: dir !== undefined ? dir : defaultUp
         };
+    }
+
+    updateLastDepot(map, x = 3, y = 6, direction = 0) {
+        this.setLastDepot(map, x, y, direction);
     }
 
     // Alias kept for backwards compatibility - delegates to the canonical heal.
@@ -245,7 +255,7 @@ class Player {
                 mapId: this.lastDepot.mapId || this.lastDepot.map,
                 x: this.lastDepot.x,
                 y: this.lastDepot.y,
-                direction: this.lastDepot.direction !== undefined ? this.lastDepot.direction : CONSTANTS.DIRECTIONS.UP
+                direction: this.lastDepot.direction !== undefined ? this.lastDepot.direction : ((typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0)
             } : null,
             party: this.party.map(t => t.toJSON()),
             storage: this.storage.map(t => t.toJSON()),
@@ -276,13 +286,18 @@ class Player {
         player.visitedMaps = Array.isArray(data.visitedMaps) ? data.visitedMaps : [player.currentMap];
         if (!player.visitedMaps.includes(player.currentMap)) player.visitedMaps.push(player.currentMap);
 
+        const defaultUp = (typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0;
         if (data.lastDepot) {
+            let dir = data.lastDepot.direction !== undefined ? data.lastDepot.direction : defaultUp;
+            if (typeof dir === 'string' && typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS[dir.toUpperCase()] !== undefined) {
+                dir = CONSTANTS.DIRECTIONS[dir.toUpperCase()];
+            }
             player.lastDepot = {
                 map: data.lastDepot.map || data.lastDepot.mapId || 'HealingDepot',
                 mapId: data.lastDepot.mapId || data.lastDepot.map || 'HealingDepot',
                 x: typeof data.lastDepot.x === 'number' ? data.lastDepot.x : 3,
                 y: typeof data.lastDepot.y === 'number' ? data.lastDepot.y : 6,
-                direction: data.lastDepot.direction !== undefined ? data.lastDepot.direction : CONSTANTS.DIRECTIONS.UP
+                direction: dir
             };
         } else {
             player.lastDepot = {
@@ -290,7 +305,7 @@ class Player {
                 mapId: 'HealingDepot',
                 x: 3,
                 y: 6,
-                direction: CONSTANTS.DIRECTIONS.UP
+                direction: defaultUp
             };
         }
 

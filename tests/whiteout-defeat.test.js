@@ -18,7 +18,9 @@ function createGameContext() {
       removeItem: k => store.delete(k)
     },
     Image: function () { this.onload = null; this.onerror = null; this.src = ''; },
-    Audio: function () { this.play = () => Promise.resolve(); this.pause = () => {}; }
+    Audio: function () { this.play = () => Promise.resolve(); this.pause = () => {}; },
+    addEventListener: () => {},
+    removeEventListener: () => {}
   };
   ctx.window = ctx;
   ctx.globalThis = ctx;
