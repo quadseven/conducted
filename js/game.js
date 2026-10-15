@@ -553,14 +553,18 @@ Game.prototype.checkNPCInteraction = function () {
             return;
         }
         if (npc.type === 'healer') {
-            for (const train of this.player.party) {
-                train.currentHP = train.maxHP;
-                train.status = null;
-                train.fainted = false;
-                train.restorePP();
-            }
+            this.player.healParty();
             this.save();
             this.audio.playSound('heal');
+            this.state = CONSTANTS.STATES.DIALOGUE;
+            this.dialogueBox.show([
+                { speaker: npc.name, text: 'Welcome to the Train Depot. Shall I service your crew?' },
+                { speaker: npc.name, text: 'Your trains are ready for service! Please wait while I finish.' },
+                { speaker: npc.name, text: 'All done! Your trains are back in fighting shape.' }
+            ], () => {
+                this.state = CONSTANTS.STATES.OVERWORLD;
+            });
+            return;
         }
         // Start trainer battle if applicable
         if ((npc.type === 'trainer' || npc.type === 'gym_leader' || npc.type === 'champion') && npc.canBattle && !npc.defeated) {
