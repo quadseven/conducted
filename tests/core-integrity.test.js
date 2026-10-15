@@ -80,6 +80,8 @@ assert.deepEqual(restored.movePP, train.movePP);
 const learner = new Train(1, 6, ['Ram', 'Smoke Screen', 'Coal Throw', 'Pressure Blast']);
 learner.levelUp();
 assert.equal(learner.moves.length, 4);
+assert.ok(!learner.moves.includes('Steam Jet'), 'a full move list waits for the player to choose');
+learner.learnMove('Steam Jet', 3);
 assert.equal(learner.moves.at(-1), 'Steam Jet');
 assert.equal(learner.movePP['Steam Jet'], 20);
 const player = new Player();
