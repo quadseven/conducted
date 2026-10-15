@@ -57,6 +57,10 @@ function createGameContext() {
     vm.runInContext(code, ctx, { filename: rel });
   }
 
+  ctx.Train = ctx.Train || vm.runInContext('typeof Train !== "undefined" ? Train : undefined', ctx);
+  ctx.Player = ctx.Player || vm.runInContext('typeof Player !== "undefined" ? Player : undefined', ctx);
+  ctx.Battle = ctx.Battle || vm.runInContext('typeof Battle !== "undefined" ? Battle : undefined', ctx);
+
   function mockCanvas() {
     return {
       width: 768,

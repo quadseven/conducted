@@ -347,3 +347,6 @@ Player.SAVE_VERSION = 3;
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Player;
 }
+if (typeof window !== 'undefined') {
+    window.Player = Player;
+}

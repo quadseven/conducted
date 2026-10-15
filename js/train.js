@@ -326,3 +326,6 @@ class Train {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Train;
 }
+if (typeof window !== 'undefined') {
+    window.Train = Train;
+}
