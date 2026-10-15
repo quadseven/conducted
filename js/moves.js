@@ -1,4 +1,5 @@
 const MOVES_DB = Object.freeze({
+    "Struggle": { type: "PASSENGER", category: "physical", power: 50, accuracy: 100, pp: Infinity, effect: null },
     "Ram": { type: "PASSENGER", category: "physical", power: 40, accuracy: 100, pp: 35, effect: null },
     "Express Shunt": { type: "PASSENGER", category: "physical", power: 40, accuracy: 100, pp: 30, effect: { priority: 1 } },
     "Full Throttle": { type: "PASSENGER", category: "physical", power: 85, accuracy: 100, pp: 15, effect: { paralyzeChance: 30 } },
