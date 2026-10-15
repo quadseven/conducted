@@ -1093,7 +1093,23 @@ Game.prototype.renderBattleSummary = function (ctx) {
         ctx.fillText(msg, this.canvas.width / 2, boxY + 140);
     }
 
+    this.drawSummaryExp(ctx, boxX, boxY + boxHeight - 28, boxWidth);
+
     ctx.textAlign = 'left'; // Reset text align
+};
+
+// Post-battle EXP line: what the lead train earned and how full its bar is.
+Game.prototype.drawSummaryExp = function (ctx, boxX, y, boxWidth) {
+    const trainee = this.battle.expTrain;
+    if (!trainee) return;
+    ctx.font = '13px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${trainee.nickname} Lv${trainee.level} +${this.battle.expGained} EXP`, boxX + 16, y);
+    ctx.fillStyle = '#4b5553';
+    ctx.fillRect(boxX + 16, y + 6, boxWidth - 32, 6);
+    ctx.fillStyle = '#4aa3df';
+    ctx.fillRect(boxX + 16, y + 6, (boxWidth - 32) * trainee.expProgress(), 6);
+    ctx.fillStyle = '#000000';
 };
 
 Game.prototype.handleDefeat = function () {
