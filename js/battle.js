@@ -71,6 +71,11 @@ class Battle {
         this.effectivenessFlash = 0;
         this.capturePulse = 0;
         this.hpDisplay = new WeakMap();
+        this.expDisplay = new WeakMap();
+        this.pendingMoves = [];
+        this.victoryPending = false;
+        this.expGained = 0;
+        this.expTrain = null;
         this.hpDisplay.set(this.playerActive, this.playerActive.currentHP);
         this.hpDisplay.set(this.enemyActive, this.enemyActive.currentHP);
 
@@ -102,6 +107,8 @@ class Battle {
         if (this.criticalFlash > 0) this.criticalFlash = Math.max(0, this.criticalFlash - deltaTime * 2.5);
         if (this.effectivenessFlash > 0) this.effectivenessFlash = Math.max(0, this.effectivenessFlash - deltaTime * 2.2);
         if (this.capturePulse > 0) this.capturePulse = Math.max(0, this.capturePulse - deltaTime * 2.5);
+
+        this.updateExpDisplay(deltaTime);
 
         // Handle state-based updates
         switch (this.state) {
@@ -193,11 +200,11 @@ class Battle {
 
             case CONSTANTS.BATTLE_STATES.MESSAGE:
                 this.currentMessage++;
-                if (this.currentMessage >= this.messages.length) {
-                    this.state = CONSTANTS.BATTLE_STATES.MENU;
-                    this.messages = [];
-                    this.currentMessage = 0;
-                }
+                if (this.currentMessage >= this.messages.length) this.finishMessages();
+                break;
+
+            case CONSTANTS.BATTLE_STATES.LEARN_MOVE:
+                this.handleLearnMoveInput(action);
                 break;
         }
     }
@@ -612,25 +619,87 @@ class Battle {
 
     // Grant EXP for a defeated enemy to the active train (and evolve if eligible).
     awardExp(enemyTrain) {
+        const trainee = this.playerActive;
         const expGained = Math.floor(enemyTrain.species.expYield * enemyTrain.level / 7);
-        this.addMessage(`${this.playerActive.species.name} gained ${expGained} EXP!`);
-        const beforeLevel = this.playerActive.level;
-        this.playerActive.gainStatExp(enemyTrain.species);
-        this.playerActive.gainExp(expGained);
-        if (this.playerActive.level > beforeLevel) {
-            this.addMessage(`${this.playerActive.species.name} grew to Lv${this.playerActive.level}!`);
-        }
-        // Level-up evolution.
-        const evolution = this.playerActive.species.evolution;
+        this.addMessage(`${trainee.species.name} gained ${expGained} EXP!`);
+        this.expGained = (this.expGained || 0) + expGained;
+        this.expTrain = trainee;
+        trainee.gainStatExp(enemyTrain.species);
+        const records = trainee.gainExp(expGained);
+        records.forEach(record => this.announceLevelUp(trainee, record));
+        if (records.length > 0) this.playSound('levelup');
+        this.evolveIfEligible(trainee);
+        return records.length > 0;
+    }
+
+    announceLevelUp(trainee, record) {
+        const g = record.gains;
+        this.addMessage(`${trainee.species.name} grew to Lv${record.level}!`);
+        this.addMessage(`HP +${g.hp}  ATK +${g.attack}  DEF +${g.defense}  SPD +${g.speed}  SPC +${g.special}`);
+        record.learnedMoves.forEach(move => this.addMessage(`${trainee.species.name} learned ${move}!`));
+        record.pendingMoves.forEach(move => this.pendingMoves.push({ train: trainee, move }));
+    }
+
+    evolveIfEligible(trainee) {
+        const evolution = trainee.species.evolution;
         const evolutionContext = evolution && evolution.method === 'branch'
             ? { choice: evolution.defaultTarget }
             : {};
-        if (this.playerActive.canEvolve(evolutionContext)) {
-            const oldName = this.playerActive.species.name;
-            if (this.playerActive.evolve(evolutionContext)) {
-                this.addMessage(`${oldName} evolved into ${this.playerActive.species.name}!`);
-            }
+        if (!trainee.canEvolve(evolutionContext)) return;
+        const oldName = trainee.species.name;
+        if (trainee.evolve(evolutionContext)) {
+            this.addMessage(`${oldName} evolved into ${trainee.species.name}!`);
         }
+    }
+
+    playSound(name) {
+        if (this.game && this.game.audio) this.game.audio.playSound(name);
+    }
+
+    // Moves past the end of the queued messages: the next pending move prompt,
+    // a victory held back for the level-up text, or the action menu.
+    finishMessages() {
+        this.messages = [];
+        this.currentMessage = 0;
+        if (this.pendingMoves.length > 0) {
+            this.moveSelection = 0;
+            this.state = CONSTANTS.BATTLE_STATES.LEARN_MOVE;
+        } else if (this.victoryPending) {
+            this.victoryPending = false;
+            this.handleVictory();
+        } else {
+            this.state = CONSTANTS.BATTLE_STATES.MENU;
+        }
+    }
+
+    handleLearnMoveInput(action) {
+        const { train, move } = this.pendingMoves[0];
+        const last = train.moves.length - 1;
+        if (action === 'up' || action === 'left') {
+            this.moveSelection = Math.max(0, this.moveSelection - 1);
+        } else if (action === 'down' || action === 'right') {
+            this.moveSelection = Math.min(last, this.moveSelection + 1);
+        } else if (action === 'a') {
+            const forgotten = train.learnMove(move, this.moveSelection);
+            this.resolveLearnMove(`${train.species.name} forgot ${forgotten} and learned ${move}!`);
+        } else if (action === 'b') {
+            this.resolveLearnMove(`${train.species.name} did not learn ${move}.`);
+        }
+    }
+
+    resolveLearnMove(text) {
+        this.pendingMoves.shift();
+        this.messages = [text];
+        this.currentMessage = 0;
+        this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+    }
+
+    // Eases the EXP bar toward the lead train's real EXP, like the HP bar.
+    updateExpDisplay(deltaTime) {
+        const trainee = this.playerActive;
+        const shown = this.expDisplay.has(trainee) ? this.expDisplay.get(trainee) : trainee.exp;
+        const eased = shown + (trainee.exp - shown) * Math.min(1, deltaTime * 3);
+        this.expDisplay.set(trainee, Math.abs(trainee.exp - eased) < 0.5 ? trainee.exp : eased);
     }
 
     handleVictory() {
@@ -684,13 +753,16 @@ class Battle {
 
         if (this.enemyActive.fainted) {
             // Award EXP for THIS defeated enemy before sending out the next one.
-            this.awardExp(this.enemyActive);
+            const leveledUp = this.awardExp(this.enemyActive);
             const nextTrain = this.enemyTrains.find(t => !t.fainted);
             if (nextTrain) {
             this.enemyActive = nextTrain;
             if (this.game && this.game.player) this.game.player.registerSeen(nextTrain.speciesId);
                 this.resetStages('enemy');
                 this.addMessage(`Enemy sent out ${this.enemyActive.species.name}!`);
+            } else if (leveledUp) {
+                // Let the level-up text and move prompts play before the win.
+                this.victoryPending = true;
             } else {
                 this.handleVictory();
                 return;
@@ -871,7 +943,7 @@ class Battle {
 
     // One combatant's status panel: framed card, name + Lv, HP bar, type chips.
     drawStatusPanel(ctx, train, px, py, pw, showNumbers) {
-        const ph = 92;
+        const ph = showNumbers ? 104 : 92;
         const primary = CONSTANTS.TYPE_COLORS[train.types[0]] || '#bf8c42';
         ctx.fillStyle = 'rgba(4, 10, 14, .55)';
         this.rr(ctx, px + 7, py + 7, pw, ph, 3); ctx.fill();
@@ -933,7 +1005,29 @@ class Battle {
             ctx.textAlign = 'right';
             ctx.fillText(`${train.currentHP}/${train.maxHP}`, px + pw - 16, py + 79);
             ctx.textAlign = 'left';
+            this.drawExpBar(ctx, train, px + 24, py + 88, pw - 48);
         }
+    }
+
+    // Thin EXP strip: how far the train is toward its next level.
+    drawExpBar(ctx, train, x, y, w) {
+        const shown = this.expDisplay.has(train) ? this.expDisplay.get(train) : train.exp;
+        ctx.fillStyle = '#4b5553';
+        ctx.fillRect(x, y, w, 6);
+        ctx.fillStyle = '#4aa3df';
+        ctx.fillRect(x, y, w * train.expProgress(shown), 6);
+    }
+
+    // Prompt for swapping a known move out for the one just earned.
+    drawLearnMove(ctx) {
+        const { train, move } = this.pendingMoves[0];
+        ctx.fillStyle = '#142328';
+        ctx.font = 'bold 17px monospace';
+        this.wrapText(ctx, `${train.species.name} wants to learn ${move}. Forget which move? (B: skip)`, 40, 595, ctx.canvas.width - 410, 24);
+        this.drawMenuGrid(ctx, train.moves, this.moveSelection, (i) => {
+            const md = MOVES_DB[train.moves[i]];
+            return (md && CONSTANTS.TYPE_COLORS[md.type]) || CONSTANTS.COLORS.UI_HIGHLIGHT;
+        });
     }
 
     drawMenuGrid(ctx, items, selectedIndex, colorFor) {
@@ -993,7 +1087,7 @@ class Battle {
             if (this.playerFlash > 0) {
                 this.drawImpactBurst(ctx, 196 + playerShakeX, 388, this.visualMoveType, this.playerFlash);
             }
-            this.drawStatusPanel(ctx, this.playerActive, canvas.width - 346, 449, 324, true);
+            this.drawStatusPanel(ctx, this.playerActive, canvas.width - 346, 437, 324, true);
         }
 
         if (this.visualMoveTimer > 0) this.drawMoveTrail(ctx);
@@ -1034,6 +1128,8 @@ class Battle {
         if (this.state === CONSTANTS.BATTLE_STATES.MENU) {
             this.drawMenuGrid(ctx, ['FIGHT', 'TRAIN', 'ITEM', 'RUN'], this.menuSelection);
         }
+
+        if (this.state === CONSTANTS.BATTLE_STATES.LEARN_MOVE) this.drawLearnMove(ctx);
 
         // Move menu - each button tinted by the move's type.
         if (this.state === CONSTANTS.BATTLE_STATES.FIGHT) {

@@ -78,6 +78,7 @@ class AudioManager {
             hit: () => { this.noise(0.12, 0.25); this.tone(110, 0.12, "sawtooth", 0.18); },
             whistle: () => { this.tone(880, 0.2, "square", 0.18); this.tone(1175, 0.35, "square", 0.16, 0.18); },
             catch: () => [523, 659, 784, 1047].forEach((note, i) => this.tone(note, 0.12, "square", 0.16, i * 0.1)),
+            levelup: () => [523, 659, 784, 1047, 1319].forEach((note, i) => this.tone(note, 0.14, "square", 0.18, i * 0.09)),
             heal: () => [392, 494, 587, 784].forEach((note, i) => this.tone(note, 0.18, "triangle", 0.2, i * 0.12)),
             chug: () => { this.noise(0.05, 0.16); this.tone(82, 0.06, "square", 0.14); }
         };
