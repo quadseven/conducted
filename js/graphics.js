@@ -123,6 +123,39 @@ const WorldArt = (() => {
     if (typeof map === 'string') return map;
     return String((map && (map.id || map.name)) || '');
   }
+
+  function findInMapRegistry(registry, name) {
+    if (!registry || !name) return null;
+    if (registry[name]) return registry[name];
+    const lower = name.toLowerCase();
+    for (const key of Object.keys(registry)) {
+      if (key.toLowerCase() === lower) return registry[key];
+    }
+    return null;
+  }
+
+  function resolveMap(map, options = {}) {
+    if (!map) return null;
+    if (typeof map === 'object') return map;
+    if (typeof map !== 'string') return null;
+    if (options.maps && options.maps[map]) return options.maps[map];
+    if (options.game && options.game.maps && options.game.maps[map]) return options.game.maps[map];
+
+    const world = (typeof WORLD_MAPS !== 'undefined' && WORLD_MAPS) ||
+      (typeof globalThis !== 'undefined' && globalThis.WORLD_MAPS) ||
+      (typeof window !== 'undefined' && window.WORLD_MAPS);
+    const fromWorld = findInMapRegistry(world, map);
+    if (fromWorld) return fromWorld;
+
+    const gt = (typeof GT_MAPS !== 'undefined' && GT_MAPS) ||
+      (typeof globalThis !== 'undefined' && globalThis.GT_MAPS) ||
+      (typeof window !== 'undefined' && window.GT_MAPS);
+    const fromGt = findInMapRegistry(gt, map);
+    if (fromGt) return fromGt;
+
+    return map;
+  }
+
   function districtNumber(map) {
     const id = mapId(map);
     const match = id.match(/(?:City|Route|Gym)(\d+)/i);
@@ -138,8 +171,9 @@ const WorldArt = (() => {
   function city(map) { return /City\d|PistonTown|CoalHarbor/i.test(mapId(map)); }
   function route(map) { return /Route\d/i.test(mapId(map)); }
   function tileAt(map, x, y) {
-    if (!map || x < 0 || y < 0 || x >= map.width || y >= map.height) return -1;
-    return typeof map.getTile === 'function' ? map.getTile(x, y) : map.tiles[y][x];
+    const resolved = resolveMap(map);
+    if (!resolved || typeof resolved !== 'object' || !resolved.tiles || x < 0 || y < 0 || x >= resolved.width || y >= resolved.height) return -1;
+    return typeof resolved.getTile === 'function' ? resolved.getTile(x, y) : (resolved.tiles[y] ? resolved.tiles[y][x] : -1);
   }
   function same(map, x, y, ids) { return ids.includes(tileAt(map, x, y)); }
   function pathAt(map, x, y) {
@@ -295,11 +329,13 @@ const WorldArt = (() => {
   }
 
   function isBuildingCell(map, tx, ty) {
-    const id = mapId(map);
-    const tile = tileAt(map, tx, ty);
+    const resolved = resolveMap(map);
+    if (!resolved || typeof resolved !== 'object' || !resolved.tiles) return false;
+    const id = mapId(resolved);
+    const tile = tileAt(resolved, tx, ty);
     const buildingTile = tile === 0 || (/CoalHarbor/i.test(id) && tile === 5) || (/PistonTown/i.test(id) && tile === 163);
-    if (!city(map) || !buildingTile) return false;
-    if (tx <= 1 || ty <= 1 || tx >= map.width - 2 || ty >= map.height - 2) return false;
+    if (!city(resolved) || !buildingTile) return false;
+    if (tx <= 1 || ty <= 1 || tx >= resolved.width - 2 || ty >= resolved.height - 2) return false;
     return true;
   }
 
@@ -595,10 +631,11 @@ const WorldArt = (() => {
   }
 
   function isBuildingAt(map, tx, ty) {
-    if (!map) return false;
-    if (isBuildingCell(map, tx, ty)) return true;
-    if (map.decorations) {
-      for (const d of map.decorations) {
+    const resolved = resolveMap(map);
+    if (!resolved || typeof resolved !== 'object') return false;
+    if (isBuildingCell(resolved, tx, ty)) return true;
+    if (resolved.decorations) {
+      for (const d of resolved.decorations) {
         if (d && String(d.type || '').toLowerCase() === 'building') {
           const w = d.w || 4;
           const h = d.h || 4;
@@ -612,15 +649,18 @@ const WorldArt = (() => {
   }
 
   function isSolidCell(map, tx, ty) {
-    if (!map) return false;
-    if (map.collisions && map.collisions.has(`${tx},${ty}`)) return true;
-    const tile = tileAt(map, tx, ty);
+    const resolved = resolveMap(map);
+    if (!resolved || typeof resolved !== 'object') return false;
+    if (resolved.collisions && resolved.collisions.has(`${tx},${ty}`)) return true;
+    const tile = tileAt(resolved, tx, ty);
     if (tile < 0) return true;
     if (tile === 0 || tile === 5 || tile === 7 || tile === 163) return true;
-    return isBuildingAt(map, tx, ty);
+    return isBuildingAt(resolved, tx, ty);
   }
 
   function hasLineOfSight(map, x0, y0, x1, y1) {
+    const resolved = resolveMap(map);
+    if (!resolved || typeof resolved !== 'object') return true;
     const dx = Math.abs(x1 - x0);
     const dy = Math.abs(y1 - y0);
     const sx = x0 < x1 ? 1 : -1;
@@ -640,7 +680,7 @@ const WorldArt = (() => {
         currY += sy;
       }
       if (currX === x1 && currY === y1) break;
-      if (isSolidCell(map, currX, currY)) {
+      if (isSolidCell(resolved, currX, currY)) {
         return false;
       }
     }
@@ -654,8 +694,10 @@ const WorldArt = (() => {
     if (character.hidden) return true;
     if (character.inBuilding || character.insideBuilding || character.inside) return true;
 
-    const map = options.map || options.currentMap;
-    if (!map) return false;
+    const rawMap = options.map || options.currentMap;
+    if (!rawMap) return false;
+    const map = resolveMap(rawMap, options);
+    if (!map || typeof map !== 'object') return false;
 
     const tx = Number.isFinite(character.x) ? character.x : (character.pos && character.pos.x);
     const ty = Number.isFinite(character.y) ? character.y : (character.pos && character.pos.y);
@@ -691,8 +733,10 @@ const WorldArt = (() => {
   // figure moves as a unit instead of re-rounding every limb per frame.
   function drawWorldCharacter(ctx, character, sx, sy, size, options = {}) {
     if (!shouldRenderCharacter(character, options)) return;
-    const c = palette(options.map), look = characterLook(character, options, c);
-    const key = `char:${size}:${districtNumber(options.map)}:${look.role}:${look.direction}:${look.step}:${look.shirt}:${look.hat}`;
+    const resolved = resolveMap(options.map || options.currentMap, options);
+    const map = (resolved && typeof resolved === 'object') ? resolved : options.map;
+    const c = palette(map), look = characterLook(character, options, c);
+    const key = `char:${size}:${districtNumber(map)}:${look.role}:${look.direction}:${look.step}:${look.shirt}:${look.hat}`;
     spriteAtlas.draw(ctx, key, size, size, (bake, ox, oy) => paintCharacter(bake, look, ox, oy, size, c), sx, sy);
   }
 
@@ -775,7 +819,7 @@ const WorldArt = (() => {
     drawRail, drawTree, drawFence: drawFenceTile, drawDoor, drawSign, drawLamp,
     drawPlatform, drawBuilding: buildingCell, drawInteriorFloor, drawInteriorWall: interiorWall,
     drawWorldDecoration, drawWorldCharacter,
-    shouldRenderCharacter, isSameMap, hasLineOfSight, isBuildingAt, isSolidCell
+    shouldRenderCharacter, isSameMap, hasLineOfSight, isBuildingAt, isSolidCell, resolveMap
   };
 })();
 

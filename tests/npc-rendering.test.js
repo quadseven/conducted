@@ -41,8 +41,8 @@ function createTestContext() {
     'js/constants.js',
     'js/utils.js',
     'js/types.js',
-    'js/maps.js',
     'js/npcData.js',
+    'js/maps.js',
     'js/world-maps.js',
     'js/sprite-atlas.js',
     'js/graphics.js'
@@ -91,6 +91,18 @@ function createTestContext() {
     true,
     'NPC with no map property on current map should be rendered'
   );
+
+  // NPC on the same map should render when options.map is a string id
+  assert.equal(
+    WorldArt.shouldRenderCharacter(townNpc, { map: 'PistonTown' }),
+    true,
+    'NPC on the same map should render when options.map is a string id'
+  );
+  assert.equal(
+    WorldArt.shouldRenderCharacter(labNpc, { map: 'PistonTown' }),
+    false,
+    'NPC on different map should not render when options.map is a string id'
+  );
 }
 
 // 2. NPCs not visible through solid tiles from outside
@@ -135,6 +147,18 @@ function createTestContext() {
     false,
     'NPC obstructed by solid building along line of sight should not render'
   );
+
+  // Obstructions are detected even when options.map is a string id
+  assert.equal(
+    WorldArt.shouldRenderCharacter(npcInsideBuilding, { map: 'PistonTown' }),
+    false,
+    'NPC inside building decoration should not render when options.map is a string id'
+  );
+  assert.equal(
+    WorldArt.shouldRenderCharacter(targetBehindBuilding, { map: 'PistonTown', player: observer }),
+    false,
+    'NPC obstructed by solid building along line of sight should not render when options.map is a string id'
+  );
 }
 
 // 3. Existing same-map NPC rendering remains unaffected
@@ -151,6 +175,11 @@ function createTestContext() {
     WorldArt.shouldRenderCharacter(joey, { map: route, player: { x: 10, y: 4 } }),
     true,
     'Open-path NPC with clear line of sight should render normally'
+  );
+  assert.equal(
+    WorldArt.shouldRenderCharacter(joey, { map: 'Route1', player: { x: 10, y: 4 } }),
+    true,
+    'Open-path NPC with clear line of sight should render normally when options.map is a string id'
   );
 
   drawnSprites.length = 0;
