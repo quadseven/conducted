@@ -224,17 +224,19 @@
   // Helper function to scale species levels by badge tier
   function scaleSpeciesByTier(speciesTables, badgeTier, tierConfig) {
     const levelOffset = (badgeTier - 1) * 3;
-    const minLvl = tierConfig ? tierConfig.minLevel + levelOffset : 1;
-    const maxLvl = tierConfig ? tierConfig.maxLevel + levelOffset : 20;
 
     return speciesTables.map(table => ({
       ...table,
-      slots: table.slots.map(slot => [
-        slot[0], // species ID
-        Math.max(1, slot[1] + levelOffset), // min level
-        Math.min(100, slot[2] + levelOffset), // max level
-        slot[3], // weight
-      ]),
+      slots: table.slots.map(slot => {
+        const minLevel = slot.species !== undefined ? slot.minLevel : slot[1];
+        const maxLevel = slot.species !== undefined ? slot.maxLevel : slot[2];
+        return [
+          slot.species !== undefined ? slot.species : slot[0],
+          Math.max(1, minLevel + levelOffset),
+          Math.min(100, maxLevel + levelOffset),
+          slot.weight !== undefined ? slot.weight : slot[3],
+        ];
+      }),
     }));
   }
 
