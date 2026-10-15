@@ -21,7 +21,7 @@
     trainer: { id: 'r1lass', cls: 'LASS', name: 'PENNY', sight: 3, prize: 18, party: [[10, 5], [13, 5]],
       intro: 'Our eyes met! That means we battle. Those are the rules of the rails!', defeat: "Oh! You're strong. My Cargoat's all tuckered out.", post: 'Cargoat climb anything. Mine climbed my dad\'s shed last week.' } });
   add('Route1', { id: 'r1bugkid', sprite: 'bugkid', x: 12, y: 24, dir: 'left', move: 'still',
-    trainer: { id: 'r1bugkid', cls: 'RAIL FAN', name: 'RORY', sight: 3, prize: 12, party: [[10, 3], [10, 4], [11, 6]],
+    trainer: { id: 'r1bugkid', cls: 'RAIL FAN', name: 'RORY', sight: 3, prize: 12, party: [[10, 5], [10, 6], [11, 7]],
       intro: "I've been spotting trains all morning! Let me see yours up close!", defeat: 'Wow! I have to write that down in my spotter book.', post: 'Trackie turn into Coachoon, and then something amazing. Keep training and see!' } });
 
   // ---------- the first rival battle, right there in the lab ----------
