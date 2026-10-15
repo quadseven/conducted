@@ -355,6 +355,7 @@ const WORLD_MAPS = {
         canBattle: true,
         defeated: false,
         badge: 'Harbor Badge',
+        techniqueReward: 'Track Clear',
         party: [
           { speciesId: 7, level: 12 },
           { speciesId: 8, level: 14 },
@@ -725,6 +726,7 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     t[h - 1][6] = 12;
     const npc = { id: leader.id, name: leader.name, x: 6, y: 1, type: 'gym_leader', canBattle: true,
       defeated: false, badge: leader.badge, baseReward: 120,
+      techniqueReward: ({ 2: 'River Ferry', 3: 'Tunnel Bore' })[n],
       requires: n === 1 ? [] : [NPC_DATA.stationmasters[n - 2].badge],
       party: leader.roster.map(r => ({ speciesId: r[0], level: r[1] })),
       dialogue: dialogue(leader.name, leader.dialogue.intro), defeatDialogue: dialogue(leader.name, leader.dialogue.defeat) };
@@ -1109,8 +1111,7 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
   const encounterRanges = [[1, 20], [16, 38], [31, 56], [45, 72], [64, 94], [82, 116], [103, 139], [124, 151]];
   for (let n = 1; n <= 8; n++) WORLD_MAPS[`Route${n}`].encounterRange = encounterRanges[n - 1];
 
-  // Obstacles reserved for future track techniques (Surf/Cut analogs):
-  // water (5) and tree (7) tiles, kept clear of the rail path and NPCs.
+  // Track technique gates sit on obstacle tiles away from the rail path.
   const stamp = (mapId, waters, trees) => {
     const map = WORLD_MAPS[mapId];
     for (const [x, y, w, h] of waters) fillRectTiles(map.tiles, x, y, w, h, 5);
@@ -1119,6 +1120,24 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
   };
   stamp('Route5', [[2, 5, 3, 3]], [[15, 15, 3, 3]]);
   stamp('Route6', [[15, 10, 3, 3]], [[2, 5, 3, 3]]);
+  const addTechniqueGates = (mapId, gates) => {
+    const map = WORLD_MAPS[mapId];
+    map.techniqueObstacles = gates;
+    const canWalk = map.isWalkable.bind(map);
+    map.getTechniqueObstacle = (x, y) => gates.find(gate => gate.x === x && gate.y === y) || null;
+    map.isWalkable = function (x, y, player) {
+      const gate = this.getTechniqueObstacle(x, y);
+      if (gate) return Boolean(player && player.hasTechnique(gate.technique));
+      return canWalk(x, y);
+    };
+  };
+  addTechniqueGates('Route5', [
+    { x: 2, y: 5, technique: 'River Ferry', clearedMessage: 'River Ferry carries you across the water.' },
+    { x: 15, y: 15, technique: 'Track Clear', clearedMessage: 'Track Clear opens a path through the trees.' }
+  ]);
+  addTechniqueGates('Route6', [
+    { x: 2, y: 5, technique: 'Tunnel Bore', clearedMessage: 'Tunnel Bore cuts through the rockfall.' }
+  ]);
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
