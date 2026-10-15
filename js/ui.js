@@ -3,13 +3,23 @@
  */
 
 class UI {
+    // Pixel-art panel: notched dark-brown border, gold inner rule and a
+    // parchment fill, all snapped to whole pixels so it stays crisp when the
+    // canvas is scaled up on mobile.
+    static drawPanel(ctx, x, y, width, height) {
+        const px = Math.round(x), py = Math.round(y), w = Math.round(width), h = Math.round(height);
+        const colors = CONSTANTS.COLORS;
+        ctx.fillStyle = colors.PANEL_BORDER;
+        ctx.fillRect(px + 1, py, w - 2, h);
+        ctx.fillRect(px, py + 1, w, h - 2);
+        ctx.fillStyle = colors.PANEL_ACCENT;
+        ctx.fillRect(px + 3, py + 3, w - 6, h - 6);
+        ctx.fillStyle = colors.PANEL_FILL;
+        ctx.fillRect(px + 4, py + 4, w - 8, h - 8);
+    }
+
     static drawTextBox(ctx, x, y, width, height, text) {
-        // Draw box
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Draw text
         if (text) {
@@ -24,12 +34,7 @@ class UI {
     }
 
     static drawMenu(ctx, x, y, width, height, options, selectedIndex) {
-        // Draw box
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Draw options
         ctx.font = '20px monospace';
@@ -72,11 +77,7 @@ class UI {
         const width = 400;
         const height = 200;
 
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Train name and level
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
@@ -117,12 +118,7 @@ class UI {
         const width = 250;
         const height = 300;
 
-        // Draw box
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Header
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
@@ -161,12 +157,7 @@ class UI {
         const width = 650;
         const height = 480;
 
-        // Draw box
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Title
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
@@ -233,12 +224,7 @@ class UI {
         const width = 550;
         const height = 400;
 
-        // Draw box
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Title
         const def = (typeof Items !== 'undefined' && typeof Items.get === 'function') ? Items.get(itemName) : null;
@@ -286,11 +272,7 @@ class UI {
         const height = 612;
 
         // Main frame
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 4;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Header
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
@@ -414,11 +396,7 @@ class UI {
         const height = 430;
 
         // Main frame
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 4;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Header
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
@@ -491,11 +469,7 @@ class UI {
         const height = 370;
 
         // Main frame
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 4;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Header
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
@@ -542,12 +516,7 @@ class UI {
         const width = 600;
         const height = 400;
 
-        // Draw box
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Title
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
@@ -599,12 +568,7 @@ class UI {
         const width = 550;
         const height = 350;
 
-        // Draw box
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
 
         // Title
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
@@ -640,11 +604,7 @@ class UI {
 
     static drawDepot(ctx, player, selectedIndex) {
         const x = 70, y = 55, width = 628, height = 560;
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 4;
-        ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
         ctx.font = 'bold 24px monospace';
         ctx.fillText('GRAND TRANSIT DEPOT', x + 24, y + 38);
@@ -675,8 +635,7 @@ class UI {
 
     static drawTrainDex(ctx, player, selectedIndex) {
         const x = 70, y = 45, width = 628, height = 580;
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE; ctx.fillRect(x, y, width, height);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK; ctx.lineWidth = 4; ctx.strokeRect(x, y, width, height);
+        UI.drawPanel(ctx, x, y, width, height);
         ctx.fillStyle = CONSTANTS.COLORS.BLACK; ctx.font = 'bold 24px monospace';
         ctx.fillText(`TRAINDEX  SEEN ${player.seenSpecies.length}/151  CAUGHT ${player.caughtSpecies.length}/151`, x + 20, y + 38);
         const start = Math.max(0, Math.min(selectedIndex - 7, 141));

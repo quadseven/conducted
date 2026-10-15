@@ -27,6 +27,8 @@ jobs:
         run: node tests/train-storage.test.js
       - name: Menu overlays
         run: node tests/menu-overlays.test.js
+      - name: Sprite atlas rendering pipeline
+        run: node tests/sprite-atlas.test.js
       - name: Runaway Junction logic, art and music
         run: node tests/dispatch-logic.test.js
       - name: Copper Version syntax check

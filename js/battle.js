@@ -2,6 +2,16 @@
  * Battle System - Turn-based Pokemon-style battles
  */
 
+// Battle train sprites. The logical design space spans these bounds; each
+// facing bakes it at `bake` pixels per unit and blits it `scale`x, which keeps
+// the on-screen size of the old vector art (1.12x enemy, 1.35x player).
+const LOCO_BOUNDS = { left: -10, right: 170, top: -30, bottom: 124 };
+const LOCO_VIEWS = {
+    front: { bake: 0.56, scale: 2, mirror: true },
+    back: { bake: 0.45, scale: 3, mirror: false }
+};
+const LOCO_FRAMES = 6;
+
 class Battle {
     constructor(game, playerTrains, enemyTrains, isWild = true, trainerNPC = null) {
         this.game = game;
@@ -1046,11 +1056,6 @@ class Battle {
         return { body: base[0], dark: base[1], metal: base[2], glow: base[3], shift };
     }
 
-    trainSeed(id, n) {
-        let v = (id * 1103515245 + n * 12345) >>> 0;
-        v ^= v >>> 13; return (v >>> 0) / 4294967295;
-    }
-
     poly(ctx, color, points) {
         ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(points[0], points[1]);
         for (let i = 2; i < points.length; i += 2) ctx.lineTo(points[i], points[i + 1]);
@@ -1065,24 +1070,43 @@ class Battle {
         if (claw) { ctx.fillStyle = '#11191d'; ctx.fillRect(x - 8, y + r, 16, 9); ctx.fillRect(x - 13, y + r + 6, 7, 6); }
     }
 
+    // Each species, facing and steam frame is baked once into the sprite atlas
+    // at a low pixel resolution, then blitted at an integer upscale (Gen 1
+    // style chunky pixels). Bob and shake move the sprite in whole pixels.
     drawLoco(ctx, x, y, facing, train) {
+        const id = train ? train.speciesId : 1;
+        const types = (train && train.types) || ['STEAM'];
+        const view = LOCO_VIEWS[facing];
+        const s = view.bake * view.scale;
+        const anchorX = view.mirror ? x + 194 - LOCO_BOUNDS.right * s : x + LOCO_BOUNDS.left * s;
+        const frame = Math.floor(this.animationTimer * 1.7 / (Math.PI * 2) * LOCO_FRAMES) % LOCO_FRAMES;
+        const bob = Math.round(Math.sin(this.animationTimer * 2.4 + id)) * view.scale;
+        const shadowX = view.mirror ? x + 194 - 83 * s : x + 83 * s;
+        ctx.fillStyle = 'rgba(0,0,0,.36)';
+        ctx.beginPath(); ctx.ellipse(Math.round(shadowX), Math.round(y + 111 * s), Math.round(76 * s), Math.round(12 * s), 0, 0, Math.PI * 2); ctx.fill();
+        const w = Math.ceil((LOCO_BOUNDS.right - LOCO_BOUNDS.left) * view.bake);
+        const h = Math.ceil((LOCO_BOUNDS.bottom - LOCO_BOUNDS.top) * view.bake);
+        const phase = frame / LOCO_FRAMES * Math.PI * 2;
+        spriteAtlas.draw(ctx, `loco:${id}:${types.join('/')}:${facing}:${frame}`, w, h,
+            (bake, ox, oy) => this.paintLoco(bake, ox, oy, view, train, phase),
+            anchorX, y + LOCO_BOUNDS.top * s + bob, { scale: view.scale, crisp: true });
+    }
+
+    // Paints the train in its logical 180x154 design space. `phase` drives the
+    // steam puffs so each baked frame is one step of the loop.
+    paintLoco(ctx, ox, oy, view, train, phase) {
         const id = train ? train.speciesId : 1;
         const types = (train && train.types) || ['STEAM'];
         const type = types[0];
         const p = this.speciesPalette(train);
-        const enemy = facing === 'front';
-        const s = enemy ? 1.12 : 1.35;
-        const bob = Math.sin(this.animationTimer * 2.4 + id) * 1.5;
+        const k = view.bake;
         ctx.save();
-        ctx.translate(x + (enemy ? 194 : 0), y + bob);
-        ctx.scale(enemy ? -s : s, s);
+        ctx.translate(ox + (view.mirror ? LOCO_BOUNDS.right : -LOCO_BOUNDS.left) * k, oy - LOCO_BOUNDS.top * k);
+        ctx.scale(view.mirror ? -k : k, k);
         ctx.lineJoin = 'miter';
 
         // Every species gets a stable silhouette recipe from its ID.
-        const long = 142 + Math.floor(this.trainSeed(id, 2) * 18);
-        const tall = 46 + Math.floor(this.trainSeed(id, 3) * 13);
         const outline = '#081014';
-        ctx.fillStyle = 'rgba(0,0,0,.36)'; ctx.beginPath(); ctx.ellipse(83, 111, 76, 12, 0, 0, Math.PI * 2); ctx.fill();
 
         if (type === 'MAGLEV' || type === 'MONORAIL') {
             // Sleek hovering beasts: long nose, segmented canopy, luminous lift pads.
@@ -1160,7 +1184,7 @@ class Battle {
                 ctx.beginPath(); ctx.moveTo(54,21); ctx.lineTo(69,13); ctx.lineTo(77,20); ctx.lineTo(92,10); ctx.stroke();
             } else {
                 ctx.fillStyle = 'rgba(225,235,225,.82)';
-                for (let i = 0; i < 4; i++) { const drift = Math.sin(this.animationTimer * 1.7 + i) * 3; ctx.beginPath(); ctx.arc(29 - i * 7 + drift, 6 - i * 7, 6 + i * 2, 0, Math.PI*2); ctx.fill(); }
+                for (let i = 0; i < 4; i++) { const drift = Math.sin(phase + i) * 3; ctx.beginPath(); ctx.arc(29 - i * 7 + drift, 6 - i * 7, 6 + i * 2, 0, Math.PI*2); ctx.fill(); }
             }
         }
 
