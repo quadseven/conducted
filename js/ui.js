@@ -370,6 +370,11 @@ class UI {
             ctx.fillText(`Lv${entry.train.level}`, x + width - 30, ry + 25);
             ctx.textAlign = 'left';
         }
+        if (player.menuMessage) {
+            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            ctx.font = '14px monospace';
+            ctx.fillText(player.menuMessage, x + 24, y + height - 18);
+        }
     }
 
     static drawTrainDex(ctx, player, selectedIndex) {

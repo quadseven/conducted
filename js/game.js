@@ -531,6 +531,14 @@ Game.prototype.checkNPCInteraction = function () {
     const npc = this.currentMap.npcs.find(n => n.x === facingX && n.y === facingY);
 
     if (npc) {
+        if (npc.type === 'storage') {
+            this.setState(CONSTANTS.STATES.MENU);
+            this.menuSelection = this.menuOptions.indexOf('DEPOT');
+            this.trainSelection = 0;
+            this.bagMode = 'depot';
+            this.player.menuMessage = '';
+            return;
+        }
         const flags = this.player.storyFlags || (this.player.storyFlags = {});
         const requirements = npc.requires || [];
         const hasReq = (req) => {
@@ -1701,12 +1709,13 @@ Game.prototype.updateMenu = function () {
         } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
             this.trainSelection = Math.min(Math.max(0, total - 1), this.trainSelection + 1);
         } else if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
-            if (this.trainSelection < this.player.party.length && this.player.party.length > 1) {
-                this.player.storage.push(this.player.party.splice(this.trainSelection, 1)[0]);
-            } else if (this.player.party.length < CONSTANTS.MAX_PARTY_SIZE) {
+            if (this.trainSelection < this.player.party.length) {
+                this.player.menuMessage = this.player.depositTrain(this.trainSelection);
+            } else {
                 const storageIndex = this.trainSelection - this.player.party.length;
-                if (storageIndex >= 0 && this.player.storage[storageIndex]) this.player.party.push(this.player.storage.splice(storageIndex, 1)[0]);
+                this.player.menuMessage = this.player.withdrawTrain(storageIndex);
             }
+            this.save();
             this.trainSelection = 0;
         }
         if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
