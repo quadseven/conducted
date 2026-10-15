@@ -173,6 +173,13 @@ const CONSTANTS = {
 };
 
 // Export for use in other files
+if (typeof window !== 'undefined') {
+    window.CONSTANTS = CONSTANTS;
+}
+if (typeof globalThis !== 'undefined') {
+    globalThis.CONSTANTS = CONSTANTS;
+}
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = CONSTANTS;
 }
+

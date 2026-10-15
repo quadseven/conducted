@@ -68,6 +68,7 @@ const sandbox = {
     Image: class { constructor() { this.src = ''; } },
     module: { exports: {} }
 };
+sandbox.globalThis = sandbox;
 
 vm.createContext(sandbox);
 
@@ -102,10 +103,15 @@ for (const file of scriptFiles) {
     vm.runInContext(code, sandbox, { filename: file });
 }
 
-const Game = sandbox.Game || sandbox.module.exports;
-const CONSTANTS = sandbox.CONSTANTS;
-const Train = sandbox.Train;
-const UI = sandbox.UI;
+const Game = sandbox.Game || vm.runInContext('Game', sandbox) || sandbox.module.exports;
+const CONSTANTS = sandbox.CONSTANTS || vm.runInContext('CONSTANTS', sandbox);
+const Train = sandbox.Train || vm.runInContext('Train', sandbox);
+const UI = sandbox.UI || vm.runInContext('UI', sandbox);
+
+sandbox.Game = Game;
+sandbox.CONSTANTS = CONSTANTS;
+sandbox.Train = Train;
+sandbox.UI = UI;
 
 function createTestGame() {
     localStorageMock.clear();
