@@ -7,6 +7,18 @@ const h = H.load();
 const songs = h.CD.audio.songs;
 const ids = Object.keys(songs);
 assert(ids.length >= 9, 'songs defined');
+const maps = Object.values(h.CD.world.maps);
+for (const map of maps) {
+  assert(map.music, `${map.id} has location music`);
+  assert(songs[map.music], `${map.id} references a defined song: ${map.music}`);
+}
+for (const id of ['title', 'lab', 'piston', 'route1', 'harbor', 'depot', 'gym', 'wild', 'trainer', 'leader', 'victoryWild', 'victoryTrainer', 'heal', 'levelup', 'caught']) {
+  assert(songs[id], `required music or event cue exists: ${id}`);
+}
+const fs = require('fs');
+const path = require('path');
+const assetMap = fs.readFileSync(path.join(__dirname, '..', 'AUDIO_ASSET_MAP.md'), 'utf8');
+for (const id of ids) assert(assetMap.includes(`\`${id}\``), `asset map documents ${id}`);
 for (const id of ids) {
   const s = songs[id];
   assert(s.chans.length >= 2, id + ' has parts');
