@@ -338,6 +338,10 @@ Game.prototype.updateDebugMenu = function () {
         }
 
         if (option.action === 'heal') {
+            if (this.player.storyFlags.leagueChallengeActive) {
+                this.player.menuMessage = 'Use the League healing room between battles.';
+                return;
+            }
             this.player.healParty();
             console.log('→ PARTY HEALED');
             this.state = CONSTANTS.STATES.OVERWORLD;
@@ -591,6 +595,13 @@ Game.prototype.checkNPCInteraction = function () {
             return;
         }
         if (npc.type === 'healer') {
+            if (flags.leagueChallengeActive && npc.id !== 'league_healer') {
+                this.state = CONSTANTS.STATES.DIALOGUE;
+                this.dialogueBox.show([{ speaker: npc.name, text: 'The League challenge only permits service at its healing room.' }], () => {
+                    this.state = CONSTANTS.STATES.OVERWORLD;
+                });
+                return;
+            }
             this.player.healParty();
             this.save();
             this.audio.playSound('heal');
@@ -661,6 +672,9 @@ Game.prototype.startTrainerBattle = function (npc) {
     }
 
     console.log(`Starting trainer battle with ${npc.name}...`);
+    if (NPC_DATA.eliteConductors.some(conductor => conductor.id === npc.id)) {
+        this.player.storyFlags.leagueChallengeActive = true;
+    }
     this.player.storyFlags['attempted_' + npc.id] = true;
 
     // Generate enemy trains from NPC party data. Train(speciesId, level) takes
@@ -690,6 +704,12 @@ Game.prototype.startTrainerBattle = function (npc) {
         npc.defeated = true;
         const storyFlag = npc.storyFlag || `defeated_${npc.id}`;
         this.player.storyFlags[storyFlag] = true;
+        if (npc.type === 'champion') {
+            this.player.storyFlags.leagueChallengeActive = false;
+            this.player.storyFlags.creditsSeen = true;
+            this.player.storyFlags.epilogueSeen = true;
+            this.player.storyFlags.postgameUnlocked = true;
+        }
         if (npc.isRival && npc.rivalStage) {
             this.player.storyFlags['rival_blake_stage'] = Math.max(
                 this.player.storyFlags['rival_blake_stage'] || 0,
@@ -918,6 +938,10 @@ Game.prototype.renderBattleSummary = function (ctx) {
 Game.prototype.handleDefeat = function () {
     const trainer = this.battle ? this.battle.trainerNPC : null;
     const isRival = trainer && (trainer.isRival || (trainer.id && trainer.id.includes('blake')));
+
+    if (trainer && (trainer.type === 'champion' || NPC_DATA.eliteConductors.some(conductor => conductor.id === trainer.id))) {
+        this.player.storyFlags.leagueChallengeActive = false;
+    }
 
     // Heal all trains to full HP (and clear status).
     this.player.healParty();
@@ -1728,6 +1752,11 @@ Game.prototype.updateMenu = function () {
         if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
             const train = this.player.party[this.trainSelection];
             const def = Items.get(this.selectedItem);
+
+            if (def && def.kind === 'heal' && this.player.storyFlags.leagueChallengeActive) {
+                this.player.menuMessage = 'Use the League healing room between battles.';
+                return;
+            }
 
             // Train has `maxHP`, NOT `stats.hp` (that property does not exist and
             // threw here previously). Heal amount comes from the Items registry.

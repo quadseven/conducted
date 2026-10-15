@@ -55,7 +55,7 @@ assert.equal(report.types, 8);
 assert.equal(report.matchups, 64);
 assert.equal(report.stationmasters, 8);
 assert.equal(report.elite, 4);
-assert.equal(report.storyEvents, 10);
+assert.equal(report.storyEvents, 12);
 assert.equal(report.specificationMaps, 25);
 assert.equal(report.cities, 8);
 assert.equal(report.routes, 8);
