@@ -14,7 +14,11 @@ const TRAIN_DATA = Object.freeze(Object.fromEntries(
             spc: species.baseStats.special
         }),
         evolutionLevel: species.evolution && species.evolution.method === "level" ? species.evolution.level : null,
+        evolutionMethod: species.evolution ? species.evolution.method : null,
         evolutionTarget: species.evolution ? species.evolution.evolvesTo : null,
+        evolutionChoices: species.evolution && species.evolution.choices ? Object.freeze(species.evolution.choices.map(choice => Object.freeze({ ...choice }))) : Object.freeze([]),
+        evolutionForms: species.evolution && species.evolution.forms ? Object.freeze(species.evolution.forms.map(form => Object.freeze({ ...form }))) : Object.freeze([]),
+        spritePlaceholder: species.spritePlaceholder || null,
         evolutionItem: species.evolution && species.evolution.method === "item" ? species.evolution.item : null,
         learnset: Object.freeze(species.learnset.map(entry => Object.freeze({ ...entry })))
     })])
