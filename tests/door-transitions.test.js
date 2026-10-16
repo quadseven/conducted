@@ -41,6 +41,22 @@ assert.deepEqual([game.player.x, game.player.y, game.player.targetX, game.player
 assert.equal(game.player.direction, 1, 'entry facing follows the interior warp');
 assert.equal(game.player.isMoving, false, 'warp cancels movement animation');
 assert.ok(game.player.visitedMaps.includes('LabInterior'));
+let interiorEncounterChecks = 0;
+context.WORLD_MAPS.LabInterior.checkForEncounter = () => { interiorEncounterChecks++; return false; };
+game.currentMap = context.WORLD_MAPS.PistonTown;
+game.player.currentMap = 'PistonTown';
+game.player.x = 10;
+game.player.y = 5;
+game.player.isMoving = true;
+game.player.update = () => { game.player.isMoving = false; };
+game.player.party = [];
+game.input = {
+    isMenuJustPressed: () => false,
+    isVirtualKeyJustPressed: () => false,
+    isKeyJustPressed: () => false
+};
+game.updateOverworld(16);
+assert.equal(interiorEncounterChecks, 0, 'a successful warp ends processing for the completed outdoor move');
 const missingMapGame = Object.create(context.Game.prototype);
 missingMapGame.maps = context.WORLD_MAPS;
 missingMapGame.player = { x: 1, y: 1 };

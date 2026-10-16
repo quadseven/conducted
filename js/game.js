@@ -532,7 +532,7 @@ Game.prototype.updateOverworld = function (deltaTime) {
 
     // Check for warp transitions after movement animation completes
     if (justStopped) {
-        this.checkWarpTransition();
+        if (this.checkWarpTransition()) return;
 
         // Check for wild encounters in grass (not on paths)
         if (this.currentMap.checkForEncounter && this.currentMap.checkForEncounter(this.player.x, this.player.y) && this.player.party.length > 0) {
