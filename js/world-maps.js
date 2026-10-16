@@ -533,7 +533,7 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     },
     4: {
       id: 'rival_blake_4',
-      requires: ['Crown Badge', 'derailDefeated', 'defeated_rival_blake_3'],
+      requires: ['Crown Badge', 'derailDefeated', 'steamPunkDefeated', 'defeated_rival_blake_3'],
       storyFlag: 'defeated_rival_blake_4',
       baseReward: 200,
       defaultParty: [

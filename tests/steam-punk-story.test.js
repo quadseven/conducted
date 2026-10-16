@@ -103,4 +103,12 @@ function finishDialogue(game) { game.dialogueBox.callback(); }
   assert.equal(fresh.transitionToMap(roadExit), true);
   assert.equal(fresh.player.currentMap, 'GrandTerminus');
 }
+{
+  const finalRival = vm.runInContext('STORY_EVENTS', context).find(event => event.id === 'final_rival');
+  const npcs = maps.GrandTerminus.npcs;
+  const firstElite = npcs.find(n => n.id === vm.runInContext('NPC_DATA', context).eliteConductors[0].id);
+  for (const gate of [finalRival, npcs.find(n => n.id === 'rival_blake_4'), firstElite]) {
+    assert.ok(gate.requires.includes('derailDefeated') && gate.requires.includes('steamPunkDefeated'), `${gate.id} needs both villain arcs`);
+  }
+}
 console.log('steam-punk-story.test: ok');
