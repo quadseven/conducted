@@ -1235,6 +1235,15 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
   }
 })();
 
+if (typeof window !== 'undefined') {
+  window.WORLD_MAPS = WORLD_MAPS;
+  window.createRivalBlakeNPC = createRivalBlakeNPC;
+  window.getRivalStarterId = getRivalStarterId;
+}
+if (typeof globalThis !== 'undefined') {
+  globalThis.WORLD_MAPS = WORLD_MAPS;
+}
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { WORLD_MAPS, createRivalBlakeNPC, getRivalStarterId };
 }
+
