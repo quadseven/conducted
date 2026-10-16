@@ -84,8 +84,12 @@ function typeAll(box) { for (let i = 0; i < 400 && !box.typed(); i++) box.update
   assert(new U.TextBox('Up here.', { top: true }).offset() < 0, 'a top box slides down from above');
 }
 
-// a box that replaces one closing this frame stays put, as one conversation
+// frame zero is a valid close frame, while the initial state is not a close
+// marker; same-frame replacement stays put and a later conversation slides
 {
+  const initial = E.push(new U.TextBox('Initial.'));
+  assert(initial.offset() > 0, 'no close marker exists before the first box');
+  E.remove(initial);
   const first = E.push(new U.TextBox('One.'));
   E.remove(first);
   const next = E.push(new U.TextBox('Two.'));
