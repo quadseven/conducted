@@ -936,39 +936,37 @@ Game.prototype.checkWarpTransition = function () {
     if (warp) {
         const to = warp.to;
         console.log(`🚪 Warp: ${this.currentMap.id} → ${to.mapId} (${to.x},${to.y})`);
-
-        // Change map
-        if (this.maps[to.mapId]) {
-            this.currentMap = this.maps[to.mapId];
-            this.player.currentMap = to.mapId;
-            this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), to.mapId]));
-            const isDepot = typeof this.isDepotMap === 'function' ? this.isDepotMap(to.mapId) : (to.mapId && to.mapId.includes('Depot'));
-            if (isDepot) {
-                if (typeof this.updateLastDepot === 'function') {
-                    this.updateLastDepot(to.mapId, to.x, to.y, to.dir);
-                } else if (this.player && typeof this.player.updateLastDepot === 'function') {
-                    this.player.updateLastDepot(to.mapId, to.x, to.y, to.dir);
-                } else if (this.player && typeof this.player.setLastDepot === 'function') {
-                    this.player.setLastDepot(to.mapId, to.x, to.y, to.dir);
-                }
-            }
-        } else {
-            console.error(`Map not found: ${to.mapId}`);
-            return;
-        }
-
-        // Teleport player
-        this.player.x = to.x;
-        this.player.y = to.y;
-        this.player.targetX = to.x;
-        this.player.targetY = to.y;
-
-        // Set direction if specified
-        if (to.dir) {
-            const dirMap = { 'up': 0, 'down': 1, 'left': 2, 'right': 3 };
-            this.player.direction = dirMap[to.dir] ?? CONSTANTS.DIRECTIONS.DOWN;
-        }
+        this.enterBuilding(to.mapId, to.x, to.y, to.dir);
     }
+};
+
+Game.prototype.enterBuilding = function (mapId, x, y, direction = 'down') {
+    const destination = this.maps[mapId];
+    if (!destination) {
+        console.error(`Map not found: ${mapId}`);
+        return false;
+    }
+
+    this.currentMap = destination;
+    this.player.currentMap = mapId;
+    this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), mapId]));
+    this.player.x = x;
+    this.player.y = y;
+    this.player.targetX = x;
+    this.player.targetY = y;
+    this.player.isMoving = false;
+    this.player.moveProgress = 0;
+
+    const directionMap = { up: 0, down: 1, left: 2, right: 3 };
+    this.player.direction = directionMap[direction] ?? CONSTANTS.DIRECTIONS.DOWN;
+
+    const isDepot = typeof this.isDepotMap === 'function' ? this.isDepotMap(mapId) : mapId.includes('Depot');
+    if (isDepot) {
+        if (typeof this.updateLastDepot === 'function') this.updateLastDepot(mapId, x, y, direction);
+        else if (typeof this.player.updateLastDepot === 'function') this.player.updateLastDepot(mapId, x, y, direction);
+        else if (typeof this.player.setLastDepot === 'function') this.player.setLastDepot(mapId, x, y, direction);
+    }
+    return true;
 };
 
 Game.prototype.findWarp = function (map, x, y) {
