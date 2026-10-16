@@ -12,7 +12,7 @@
   // A walker moves one tile at a time. prog counts pixels travelled into the step.
   // Normal speed: 1 pixel/frame for 16px tile = 16 frames (256ms at 60fps) for smooth Pokemon-style scrolling
   // Running speed: 2 pixels/frame = 8 frames (128ms at 60fps)
-  // animPhase: 0-3 cycle for walking animation (stand, step-left, stand, step-right)
+  // animPhase: current walking frame (0-3) - set to 0 in startStep, cycles during advance
   function walker(o) {
     return Object.assign({ x: 0, y: 0, dir: 'down', moving: false, prog: 0, speed: 1, anim: 0, tx: 0, ty: 0, jump: 0, hidden: false, animPhase: 0 }, o);
   }
