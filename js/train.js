@@ -7,6 +7,7 @@ class Train {
         this.speciesId = speciesId;
         this.species = TRAIN_SPECIES[speciesId];
         this.nickname = this.species.name;
+        this.sprite = this.species.sprite || this.species.spritePlaceholder || null;
         this.level = level;
         this.exp = this.calculateExpForLevel(level);
 
@@ -153,6 +154,7 @@ class Train {
         const pendingMoves = [];
         for (const moveData of this.species.learnset) {
             if (moveData.level !== this.level) continue;
+            if (this.moves.includes(moveData.move)) continue;
             if (this.moves.length < CONSTANTS.MAX_MOVES) {
                 this.addMove(moveData.move);
                 learnedMoves.push(moveData.move);
@@ -241,18 +243,30 @@ class Train {
         return false;
     }
 
+    getEvolutionTarget(context = {}) {
+        const evolution = this.species.evolution;
+        if (!evolution || !this.canEvolve(context)) return null;
+        if (evolution.method === 'branch') return context.choice;
+        if (evolution.method === 'form') {
+            const form = evolution.forms.find(f => f.name === context.form);
+            return form ? form.evolvesTo : null;
+        }
+        return evolution.evolvesTo;
+    }
+
     evolve(context = {}) {
         const evolution = this.species.evolution;
         if (evolution && this.canEvolve(context)) {
-            const target = evolution.method === 'branch'
-                ? context.choice
-                : evolution.method === 'form'
-                    ? evolution.forms.find(form => form.name === context.form).evolvesTo
-                    : evolution.evolvesTo;
+            const target = this.getEvolutionTarget(context);
+            if (!target || !TRAIN_SPECIES[target]) return false;
+            const oldSpeciesName = this.species ? this.species.name : null;
             this.speciesId = target;
             this.species = TRAIN_SPECIES[this.speciesId];
-            this.nickname = this.species.name;
+            if (!this.nickname || this.nickname === oldSpeciesName) {
+                this.nickname = this.species.name;
+            }
             this.types = [...this.species.types];
+            this.sprite = this.species.sprite || this.species.spritePlaceholder || null;
 
             // Update base stats
             this.baseHP = this.species.baseStats.hp;
@@ -262,6 +276,7 @@ class Train {
             this.baseSpecial = this.species.baseStats.special;
 
             this.recalculateStats();
+            this.evolutionMoveResults = this.checkForNewMoves();
 
             return true;
         }
@@ -310,6 +325,7 @@ class Train {
         train.movePP = { ...train.movePP, ...(data.movePP || {}) };
         train.status = data.status;
         train.fainted = data.fainted;
+        train.sprite = train.species.sprite || train.species.spritePlaceholder || null;
 
         // Recalculate stats
         train.maxHP = train.calculateStat('hp');

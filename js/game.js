@@ -255,6 +255,9 @@ Game.prototype.update = function (deltaTime) {
         case CONSTANTS.STATES.WHITEOUT:
             this.updateWhiteout(deltaTime);
             break;
+        case CONSTANTS.STATES.EVOLUTION:
+            this.updateEvolution(deltaTime);
+            break;
         case 'debug':
             this.updateDebugMenu();
             break;
@@ -1410,6 +1413,9 @@ Game.prototype.render = function () {
         case CONSTANTS.STATES.WHITEOUT:
             this.renderWhiteout(ctx);
             break;
+        case CONSTANTS.STATES.EVOLUTION:
+            this.renderEvolution(ctx);
+            break;
         case 'debug':
             this.renderDebugMenu(ctx);
             break;
@@ -2263,8 +2269,55 @@ Game.prototype.useItemOnTrain = function (itemId, trainIndex) {
         this.player.menuMessage = `Restored PP for ${train.nickname || train.species.name}!`;
         this.bagMode = 'list';
         this.selectedItem = null;
+    } else if (train.canEvolve && train.canEvolve({ item: itemId })) {
+        this.player.items[itemId] = Math.max(0, (this.player.items[itemId] || 0) - 1);
+        this.bagMode = null;
+        this.menuOverlay = null;
+        this.selectedItem = null;
+        this.triggerEvolution(train, { item: itemId }, () => {
+            this.save();
+        });
+        return;
     } else {
         this.player.menuMessage = "Can't use that here!";
+    }
+};
+
+Game.prototype.triggerEvolution = function (train, context = {}, onComplete = null) {
+    const EvoClass = (typeof Evolution !== 'undefined') ? Evolution : (typeof globalThis !== 'undefined' && globalThis.Evolution);
+    if (!EvoClass) return null;
+    this.evolution = new EvoClass(train, {
+        context,
+        game: this,
+        onComplete: (t) => {
+            this.save();
+            if (typeof onComplete === 'function') onComplete(t);
+        }
+    });
+    this.state = CONSTANTS.STATES.EVOLUTION;
+    return this.evolution;
+};
+
+Game.prototype.updateEvolution = function (deltaTime) {
+    if (!this.evolution) {
+        this.state = CONSTANTS.STATES.OVERWORLD;
+        return;
+    }
+    this.evolution.update(deltaTime);
+    if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+        this.evolution.handleInput('b');
+    } else if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+        this.evolution.handleInput('a');
+    }
+    if (this.evolution.isFinished()) {
+        this.evolution = null;
+        this.state = CONSTANTS.STATES.OVERWORLD;
+    }
+};
+
+Game.prototype.renderEvolution = function (ctx) {
+    if (this.evolution) {
+        this.evolution.render(ctx);
     }
 };
 

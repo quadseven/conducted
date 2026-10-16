@@ -12,6 +12,20 @@ const LOCO_VIEWS = {
 };
 const LOCO_FRAMES = 6;
 
+function getEvolutionClass() {
+    if (typeof Evolution !== 'undefined') return Evolution;
+    if (typeof globalThis !== 'undefined' && globalThis.Evolution) return globalThis.Evolution;
+    if (typeof window !== 'undefined' && window.Evolution) return window.Evolution;
+    if (typeof require !== 'undefined') {
+        try {
+            return require('./evolution.js');
+        } catch (_) {
+            return null;
+        }
+    }
+    return null;
+}
+
 class Battle {
     constructor(game, playerTrains, enemyTrains, isWild = true, trainerNPC = null) {
         this.game = game;
@@ -136,6 +150,12 @@ class Battle {
                 // Showing message
                 break;
 
+            case CONSTANTS.BATTLE_STATES.EVOLUTION:
+                if (this.evolution) {
+                    this.evolution.update(deltaTime);
+                }
+                break;
+
             case CONSTANTS.BATTLE_STATES.VICTORY:
             case CONSTANTS.BATTLE_STATES.DEFEAT:
                 this.battleEnded = true;
@@ -206,6 +226,15 @@ class Battle {
 
             case CONSTANTS.BATTLE_STATES.LEARN_MOVE:
                 this.handleLearnMoveInput(action);
+                break;
+
+            case CONSTANTS.BATTLE_STATES.EVOLUTION:
+                if (this.evolution) {
+                    this.evolution.handleInput(action);
+                    if (this.evolution.isFinished()) {
+                        this.finishEvolution();
+                    }
+                }
                 break;
         }
     }
@@ -618,6 +647,66 @@ class Battle {
         this.processNextAction();
     }
 
+    canTrainEvolve(train) {
+        if (!train) return false;
+        const evolution = train.species && train.species.evolution;
+        const ctx = evolution && evolution.method === 'branch' ? { choice: evolution.defaultTarget } : {};
+        return train.canEvolve(ctx);
+    }
+
+    prepareEvolution(trainee) {
+        const evolution = trainee.species.evolution;
+        const evolutionContext = evolution && evolution.method === 'branch'
+            ? { choice: evolution.defaultTarget }
+            : {};
+        this.pendingEvolution = { train: trainee, context: evolutionContext };
+        this.addMessage(`What? ${trainee.nickname || trainee.species.name} is evolving!`);
+    }
+
+    startEvolution(train, context = null) {
+        const evoContext = context || (train.species.evolution && train.species.evolution.method === 'branch'
+            ? { choice: train.species.evolution.defaultTarget }
+            : {});
+        const Evo = getEvolutionClass();
+        if (Evo) {
+            this.evolution = new Evo(train, {
+                context: evoContext,
+                game: this.game,
+                battle: this,
+                onComplete: (t) => {
+                    if (t.evolutionMoveResults && t.evolutionMoveResults.pendingMoves && t.evolutionMoveResults.pendingMoves.length > 0) {
+                        t.evolutionMoveResults.pendingMoves.forEach(m => this.pendingMoves.push({ train: t, move: m }));
+                    }
+                }
+            });
+        }
+        this.state = CONSTANTS.BATTLE_STATES.EVOLUTION;
+        return this.evolution;
+    }
+
+    cancelEvolution() {
+        if (this.evolution) {
+            return this.evolution.cancel();
+        }
+        return false;
+    }
+
+    finishEvolution() {
+        this.evolution = null;
+        if (this.pendingMoves.length > 0) {
+            this.moveSelection = 0;
+            this.state = CONSTANTS.BATTLE_STATES.LEARN_MOVE;
+        } else if (this.victoryPending) {
+            this.victoryPending = false;
+            this.handleVictory();
+        } else if (this.defeatPending || (this.playerTrains && !this.playerTrains.some(t => !t.fainted))) {
+            this.defeatPending = false;
+            this.handleDefeat();
+        } else {
+            this.state = CONSTANTS.BATTLE_STATES.MENU;
+        }
+    }
+
     // Grant EXP for a defeated enemy to the active train (and evolve if eligible).
     awardExp(enemyTrain) {
         const trainee = this.playerActive;
@@ -629,7 +718,9 @@ class Battle {
         const records = trainee.gainExp(expGained);
         records.forEach(record => this.announceLevelUp(trainee, record));
         if (records.length > 0) this.playSound('levelup');
-        this.evolveIfEligible(trainee);
+        if (records.length > 0 && this.canTrainEvolve(trainee)) {
+            this.prepareEvolution(trainee);
+        }
         return records.length > 0;
     }
 
@@ -642,15 +733,10 @@ class Battle {
     }
 
     evolveIfEligible(trainee) {
-        const evolution = trainee.species.evolution;
-        const evolutionContext = evolution && evolution.method === 'branch'
-            ? { choice: evolution.defaultTarget }
-            : {};
-        if (!trainee.canEvolve(evolutionContext)) return;
-        const oldName = trainee.species.name;
-        if (trainee.evolve(evolutionContext)) {
-            this.addMessage(`${oldName} evolved into ${trainee.species.name}!`);
-        }
+        if (!this.canTrainEvolve(trainee)) return false;
+        this.prepareEvolution(trainee);
+        this.startEvolution(trainee);
+        return true;
     }
 
     playSound(name) {
@@ -662,6 +748,12 @@ class Battle {
     finishMessages() {
         this.messages = [];
         this.currentMessage = 0;
+        if (this.pendingEvolution) {
+            const { train, context } = this.pendingEvolution;
+            this.pendingEvolution = null;
+            this.startEvolution(train, context);
+            return;
+        }
         if (this.pendingMoves.length > 0) {
             this.moveSelection = 0;
             this.state = CONSTANTS.BATTLE_STATES.LEARN_MOVE;
@@ -1097,6 +1189,10 @@ class Battle {
     }
 
     render(ctx) {
+        if (this.state === CONSTANTS.BATTLE_STATES.EVOLUTION && this.evolution) {
+            this.evolution.render(ctx);
+            return;
+        }
         const canvas = ctx.canvas;
         ctx.imageSmoothingEnabled = false;
         this.drawStationArena(ctx, canvas.width, canvas.height);

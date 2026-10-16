@@ -105,7 +105,8 @@ const CONSTANTS = {
         DIALOGUE: 'dialogue',
         TRANSITION: 'transition',
         WHITEOUT: 'whiteout',
-        WHITE_OUT: 'whiteout'
+        WHITE_OUT: 'whiteout',
+        EVOLUTION: 'evolution'
     },
 
     // Directions
@@ -171,7 +172,8 @@ const CONSTANTS = {
         VICTORY: 'victory',
         DEFEAT: 'defeat',
         BATTLE_SUMMARY: 'battle_summary',
-        LEARN_MOVE: 'learn_move'
+        LEARN_MOVE: 'learn_move',
+        EVOLUTION: 'evolution'
     },
 
     // Player starting position

@@ -35,6 +35,7 @@ function createGameContext() {
     'js/items.js',
     'js/moves.js',
     'js/train.js',
+    'js/evolution.js',
     'js/battle.js',
     'js/player.js',
     'js/map.js',
