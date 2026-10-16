@@ -153,6 +153,7 @@ function createGameContext(sharedStore = null) {
 
   // Render whiteout screen during message phase
   operations.length = 0;
+  game.renderOverworld = () => {};
   game.render(game.ctx);
 
   const textCalls = operations.filter(op => op.type === 'fillText');
@@ -160,7 +161,7 @@ function createGameContext(sharedStore = null) {
   assert.strictEqual(hasBlackoutText, true, 'Renders "You blacked out!" on screen');
 
   // Confirm key press triggers fade_out
-  game.input.pressKey('Enter');
+  game.input.keyJustPressed.Enter = true;
   game.updateWhiteout(0.016);
   assert.strictEqual(game.whiteoutPhase, 'fade_out', 'Confirm input advances to fade_out phase');
 
@@ -263,8 +264,6 @@ function createGameContext(sharedStore = null) {
   game.currentMap = game.maps.CoalHarbor;
   game.player.x = 16;
   game.player.y = 5;
-  game.player.isMoving = true;
-  game.player.update(0.5); // finish move to trigger justStopped
   game.checkWarpTransition();
 
   assert.strictEqual(game.player.lastDepot.map, 'CoalDepot', 'Warping into CoalDepot updates lastDepot');
@@ -289,6 +288,13 @@ function createGameContext(sharedStore = null) {
   game.player.party = [damagedTrain];
   assert.strictEqual(damagedTrain.currentHP < damagedTrain.maxHP, true, 'Train is damaged before healing');
 
+  game.maps.CoalDepot.npcs = [{ ...healerNPC, type: 'npc', dialogue: [{ speaker: 'Depot Attendant', text: 'Welcome.' }] }];
+  game.player.lastDepot = { map: 'HealingDepot', mapId: 'HealingDepot', x: 3, y: 6 };
+  game.checkNPCInteraction();
+  assert.strictEqual(game.player.lastDepot.map, 'HealingDepot', 'Ordinary NPC does not update last depot');
+  assert.ok(damagedTrain.currentHP < damagedTrain.maxHP, 'Ordinary NPC does not heal the party');
+
+  game.maps.CoalDepot.npcs = [healerNPC];
   game.checkNPCInteraction();
 
   assert.strictEqual(game.player.lastDepot.map, 'CoalDepot', 'Talking to healer updates lastDepot');

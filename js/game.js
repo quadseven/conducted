@@ -1010,10 +1010,10 @@ Game.prototype.updateBattle = function (deltaTime) {
 
     // Check if player active train or party fainted to detect defeat
     if (!this.battle.battleEnded && typeof this.battle.checkBattleEnd === 'function') {
-        if (this.battle.playerActive && this.battle.playerActive.fainted) {
-            this.battle.checkBattleEnd();
-        } else if (this.battle.playerTrains && !this.battle.playerTrains.some(t => !t.fainted)) {
+        if (this.battle.playerTrains && !this.battle.playerTrains.some(t => !t.fainted)) {
             this.battle.handleDefeat();
+        } else if (this.battle.playerActive && this.battle.playerActive.fainted) {
+            this.battle.checkBattleEnd();
         }
     }
 
