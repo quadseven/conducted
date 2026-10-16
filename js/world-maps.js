@@ -888,9 +888,9 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     ];
     map.warps = [
       { from: rect(4, 5), to: { mapId: 'PlayerHouse', ...pos(3, 6, 'down') } },
-      { from: rect(10, 5), to: { mapId: 'LabInterior', ...pos(4, 7, 'down') }, reverse: { from: rect(4, 9), to: pos(10, 6, 'down') } },
-      { from: rect(16, 6), to: { mapId: 'HealingDepot', ...pos(3, 6, 'down') } },
-      { from: rect(4, 12), to: { mapId: 'TrainMart', ...pos(3, 6, 'down') } },
+      { from: rect(10, 5), to: { mapId: 'LabInterior', ...pos(4, 7, 'up') }, reverse: { from: rect(4, 9), to: pos(10, 6, 'down') } },
+      { from: rect(16, 6), to: { mapId: 'HealingDepot', ...pos(3, 6, 'up') } },
+      { from: rect(4, 12), to: { mapId: 'TrainMart', ...pos(3, 6, 'up') } },
       { from: rect(9, 14, 2, 1), to: { mapId: 'Route1', ...pos(10, 1, 'down') } }
     ];
     map.npcs = [createRivalBlakeNPC(1, 10, 13, 'down'),
