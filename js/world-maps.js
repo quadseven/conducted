@@ -619,7 +619,7 @@ function createRivalBlakeNPC(stage, x, y, direction) {
   function dialogue(speaker, text) { return [{ speaker, text }]; }
   function runtimeMap(id, name, tiles, npcs, warps, encounterRange) {
     return {
-      id, name, tiles, npcs: npcs || [], warps: warps || [],
+      id, name, tiles, npcs: npcs || [], warps: warps || [], encounterRange: encounterRange || null,
       width: tiles[0].length, height: tiles.length,
       getTile(x, y) { return x < 0 || y < 0 || x >= this.width || y >= this.height ? 0 : this.tiles[y][x]; },
       isWalkable(x, y) {
@@ -778,6 +778,60 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     WORLD_MAPS[`Gym${n}`] = makeGym(n);
   }
 
+  function lateArea(id, name, width, height, encounterRange, exits, npcs) {
+    const tiles = boxed(width, height, 0, 1);
+    for (let x = 2; x < width - 2; x++) {
+      if (x % 3 !== 0) for (let y = 3; y < height - 3; y += 5) tiles[y][x] = 2;
+    }
+    for (const exit of exits) tiles[exit.from.y][exit.from.x] = 12;
+    return runtimeMap(id, name, tiles, npcs, exits, encounterRange);
+  }
+  function door(fromX, fromY, toMap, toX, toY, direction) {
+    return { from: rect(fromX, fromY), to: { mapId: toMap, ...pos(toX, toY, direction) } };
+  }
+  function interior(id, name, returnMap, returnX, returnY, width, height, npcs, encounterRange) {
+    const map = lateArea(id, name, width, height, encounterRange,
+      [door(Math.floor(width / 2), height - 1, returnMap, returnX, returnY, 'down')], npcs);
+    map.tiles[height - 1][Math.floor(width / 2)] = 12;
+    return map;
+  }
+  function areaNPC(id, name, x, y, type, extra) {
+    return Object.assign({ id, name, x, y, type, dialogue: dialogue(name, 'The old rails still have stories to tell.') }, extra || {});
+  }
+  const graveyard = lateArea('GhostRailGraveyard', 'Ghost Rail Graveyard', 20, 18, [103, 139], [
+    door(10, 0, 'Route6', 10, 22, 'up'), door(10, 17, 'Route7', 10, 1, 'down'),
+    door(4, 9, 'GhostCrypt', 4, 6, 'up')
+  ], [areaNPC('graveyard_keeper', 'Crypt Keeper', 6, 5, 'npc')]);
+  const crypt = interior('GhostCrypt', 'Ghost Rail Crypt', 'GhostRailGraveyard', 4, 9, 10, 8, [
+    areaNPC('old_iron_encounter', 'Old Iron', 5, 3, 'encounter_marker', { encounterId: 'old_iron', battleScript: null })
+  ], [124, 151]);
+  WORLD_MAPS.GhostRailGraveyard = graveyard;
+  WORLD_MAPS.GhostCrypt = crypt;
+
+  const station = lateArea('NuclearStation', 'Nuclear Station', 20, 18, [115, 145], [
+    door(10, 0, 'Route7', 18, 12, 'up'), door(10, 17, 'Route8', 10, 1, 'down'),
+    door(4, 8, 'NuclearResearchLab', 4, 8, 'up'), door(15, 8, 'RadioactiveCaves', 5, 8, 'up')
+  ], [areaNPC('station_researcher', 'Researcher', 7, 5, 'npc')]);
+  WORLD_MAPS.NuclearStation = station;
+  WORLD_MAPS.NuclearResearchLab = interior('NuclearResearchLab', 'Nuclear Research Lab', 'NuclearStation', 4, 8, 12, 10,
+    [areaNPC('lab_scientist', 'Lab Scientist', 6, 3, 'npc')], [124, 151]);
+  WORLD_MAPS.RadioactiveCaves = interior('RadioactiveCaves', 'Radioactive Caves', 'NuclearStation', 15, 8, 14, 12,
+    [areaNPC('cavern_explorer', 'Cavern Explorer', 7, 3, 'npc')], [120, 151]);
+
+  const mountain = lateArea('MonorailMountaintop', 'Monorail Mountaintop', 20, 18, [124, 151], [
+    door(10, 0, 'Route8', 10, 22, 'up'), door(10, 17, 'VictoryRoad', 10, 1, 'down'),
+    door(15, 7, 'MonorailSummit', 4, 8, 'up')
+  ], [areaNPC('summit_conductor', 'Summit Conductor', 6, 5, 'npc')]);
+  WORLD_MAPS.MonorailMountaintop = mountain;
+  WORLD_MAPS.MonorailSummit = interior('MonorailSummit', 'Monorail Summit Platform', 'MonorailMountaintop', 15, 7, 12, 10,
+    [areaNPC('summit_signal_operator', 'Signal Operator', 6, 3, 'npc')], [124, 151]);
+
+  WORLD_MAPS.Route7.warps.push({ from: rect(18, 12), to: { mapId: 'NuclearStation', ...pos(10, 1, 'down') } });
+  WORLD_MAPS.Route8.warps = WORLD_MAPS.Route8.warps.map(warp => warp.to.mapId === 'GrandTerminus'
+    ? { ...warp, to: { mapId: 'MonorailMountaintop', ...pos(10, 1, 'down') } } : warp);
+  WORLD_MAPS.City6.warps = WORLD_MAPS.City6.warps.map(warp => warp.to.mapId === 'Route7'
+    ? { ...warp, to: { mapId: 'GhostRailGraveyard', ...pos(10, 1, 'down') } } : warp);
+
   const victoryRoadTiles = grid(20, 24, 2);
   for (let y = 0; y < 24; y++) {
     victoryRoadTiles[y][0] = 0;
@@ -813,9 +867,7 @@ function createRivalBlakeNPC(stage, x, y, direction) {
   };
   victoryRoad.puzzles = [{ id: 'signal-switches', description: 'Three signal gates require the side paths to be crossed.' }];
   WORLD_MAPS.VictoryRoad = victoryRoad;
-  WORLD_MAPS.Route8.warps = WORLD_MAPS.Route8.warps.map(warp => warp.to.mapId === 'GrandTerminus'
-    ? { ...warp, to: { mapId: 'VictoryRoad', ...pos(10, 1, 'down') } }
-    : warp);
+  victoryRoad.warps[0] = { from: rect(10, 0), to: { mapId: 'MonorailMountaintop', ...pos(10, 16, 'up') } };
 
   const elite = NPC_DATA.eliteConductors.concat([NPC_DATA.champion]);
   const tt = boxed(13, 30, 0, 3); tt[29][6] = 12;
