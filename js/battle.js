@@ -783,13 +783,16 @@ class Battle {
         return "";
     }
 
+    // Same 2x2 grid moves as FIGHT; stepping past a page of four scrolls to the next.
     handleItemInput(action) {
         const items = this.getUsableItems();
-
-        if (action === 'up' && this.itemSelection > 0) {
-            this.itemSelection--;
-        } else if (action === 'down' && this.itemSelection < items.length - 1) {
-            this.itemSelection++;
+        const directions = { up: -2, down: 2, left: -1, right: 1 };
+        if (directions[action] !== undefined) {
+            const last = items.length - 1;
+            let next = this.itemSelection + directions[action];
+            // Down into a shorter last row lands on its final item instead of stopping.
+            if (action === 'down' && next > last && Math.floor(last / 2) > Math.floor(this.itemSelection / 2)) next = last;
+            if (next >= 0 && next <= last) this.itemSelection = next;
         } else if (action === 'a') {
             if (items.length > 0) {
                 this.useItem(items[this.itemSelection]);
@@ -803,8 +806,15 @@ class Battle {
     getUsableItems() {
         if (!this.game || !this.game.player) return [];
         return Items.battleUsable(this.game.player).map(it => ({
-            name: it.id, displayName: it.name, quantity: it.quantity
+            name: it.id, displayName: it.name, quantity: it.quantity,
+            pocket: it.pocket, description: it.description
         }));
+    }
+
+    // The page of up to four items that holds the current selection.
+    visibleItems() {
+        const start = Math.floor(this.itemSelection / 4) * 4;
+        return this.getUsableItems().slice(start, start + 4);
     }
 
     useItem(item) {
@@ -813,6 +823,27 @@ class Battle {
         if (def.kind === 'capture') this.useBoxcar(def);
         else if (def.kind === 'heal') this.usePotion(item.name);
         else if (def.kind === 'pp') this.usePPItem(def);
+        else if (def.kind === 'status') this.useStatusItem(def);
+    }
+
+    // Cures the active train's matching status; any other case spends nothing.
+    useStatusItem(def) {
+        const train = this.playerActive;
+        if (train.status !== def.cures) {
+            this.addMessage("It won't have any effect.");
+            this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+            this.currentMessage = 0;
+            return;
+        }
+        train.status = null;
+        this.playerInventory[def.id] = Math.max(0, (this.playerInventory[def.id] || 0) - 1);
+        this.addMessage(`You used ${def.name}!`);
+        this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
+        this.currentMessage = 0;
+        this.animationQueue.push({ callback: () => {
+            this.addMessage(`${train.species.name} is back on track!`);
+            this.enemyFreeTurn();
+        } });
     }
 
     usePPItem(def) {
@@ -1142,8 +1173,10 @@ class Battle {
         }
 
         if (this.state === CONSTANTS.BATTLE_STATES.ITEM) {
-            const items = this.getUsableItems();
-            this.drawMenuGrid(ctx, items.slice(0, 4).map(it => `${it.displayName} x${it.quantity}`), this.itemSelection, () => '#75502d');
+            const page = this.visibleItems();
+            const selected = page[this.itemSelection % 4];
+            if (selected) this.wrapText(ctx, `${selected.pocket}: ${selected.description}`, 40, 595, canvas.width - 410, 24);
+            this.drawMenuGrid(ctx, page.map(it => `${it.displayName} x${it.quantity}`), this.itemSelection % 4, () => '#75502d');
         }
     }
 
