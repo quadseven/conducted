@@ -1008,6 +1008,15 @@ Game.prototype.updateBattle = function (deltaTime) {
         return;
     }
 
+    // Check if player active train or party fainted to detect defeat
+    if (!this.battle.battleEnded && typeof this.battle.checkBattleEnd === 'function') {
+        if (this.battle.playerActive && this.battle.playerActive.fainted) {
+            this.battle.checkBattleEnd();
+        } else if (this.battle.playerTrains && !this.battle.playerTrains.some(t => !t.fainted)) {
+            this.battle.handleDefeat();
+        }
+    }
+
     // Update battle animations
     this.battle.update(deltaTime);
 
@@ -1029,7 +1038,7 @@ Game.prototype.updateBattle = function (deltaTime) {
     // Handle battle completion
     if (this.battle.isComplete && this.battle.isComplete()) {
         // Check if player was defeated
-        if (this.battle.state === CONSTANTS.BATTLE_STATES.DEFEAT) {
+        if (this.battle.state === CONSTANTS.BATTLE_STATES.DEFEAT || this.battle.whiteout) {
             this.handleDefeat();
         } else if (this.battle.state === CONSTANTS.BATTLE_STATES.VICTORY) {
             // Award money from battle (funnelled through the single accessor).
@@ -1144,6 +1153,77 @@ Game.prototype.drawSummaryExp = function (ctx, boxX, y, boxWidth) {
     ctx.fillStyle = '#000000';
 };
 
+Game.prototype.respawnAtLastDepot = function () {
+    const defaultUp = (typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0;
+    const rawDepot = (this.player && this.player.lastDepot) ? this.player.lastDepot : null;
+    let respawnKey = 'HealingDepot';
+    if (rawDepot && typeof (rawDepot.map || rawDepot.mapId) === 'string') {
+        const candidateKey = rawDepot.map || rawDepot.mapId;
+        if ((this.maps && this.maps[candidateKey]) || (typeof WORLD_MAPS !== 'undefined' && WORLD_MAPS[candidateKey])) {
+            respawnKey = candidateKey;
+        }
+    }
+    let targetMap = (this.maps && this.maps[respawnKey]) || (typeof WORLD_MAPS !== 'undefined' ? WORLD_MAPS[respawnKey] : null);
+    if (!targetMap) {
+        respawnKey = (this.maps && this.maps['HealingDepot']) ? 'HealingDepot' : 'PistonTown';
+        targetMap = (this.maps && this.maps[respawnKey]) || (typeof WORLD_MAPS !== 'undefined' ? WORLD_MAPS[respawnKey] : null);
+    }
+
+    let targetX = (rawDepot && typeof rawDepot.x === 'number') ? rawDepot.x : 3;
+    let targetY = (rawDepot && typeof rawDepot.y === 'number') ? rawDepot.y : 6;
+    let targetDir = (rawDepot && rawDepot.direction !== undefined) ? rawDepot.direction : defaultUp;
+
+    if (targetMap && typeof targetMap.isWalkable === 'function') {
+        if (!targetMap.isWalkable(targetX, targetY)) {
+            let safeFound = false;
+            const candidates = [[3, 6], [4, 6], [4, 7], [3, 5], [4, 5], [4, 3], [4, 2], [5, 5]];
+            for (let i = 0; i < candidates.length; i++) {
+                const sx = candidates[i][0];
+                const sy = candidates[i][1];
+                if (targetMap.isWalkable(sx, sy)) {
+                    targetX = sx;
+                    targetY = sy;
+                    safeFound = true;
+                    break;
+                }
+            }
+            if (!safeFound) {
+                const mw = targetMap.width || 10;
+                const mh = targetMap.height || 10;
+                for (let y = 0; y < mh && !safeFound; y++) {
+                    for (let x = 0; x < mw && !safeFound; x++) {
+                        if (targetMap.isWalkable(x, y)) {
+                            targetX = x;
+                            targetY = y;
+                            safeFound = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (targetMap && this.player) {
+        this.currentMap = targetMap;
+        this.player.currentMap = respawnKey;
+        this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), respawnKey]));
+        this.player.x = targetX;
+        this.player.y = targetY;
+        this.player.targetX = targetX;
+        this.player.targetY = targetY;
+        this.player.isMoving = false;
+        this.player.direction = targetDir;
+        this.player.lastDepot = {
+            map: respawnKey,
+            mapId: respawnKey,
+            x: targetX,
+            y: targetY,
+            direction: targetDir
+        };
+    }
+    return respawnKey;
+};
+
 Game.prototype.handleDefeat = function () {
     const trainer = this.battle ? this.battle.trainerNPC : null;
     const isRival = trainer && (trainer.isRival || (trainer.id && trainer.id.includes('blake')));
@@ -1181,27 +1261,7 @@ Game.prototype.handleDefeat = function () {
     }
 
     // Teleport back to the last visited Train Depot.
-    const defaultUp = (typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0;
-    const depot = (this.player && this.player.lastDepot) || {
-        map: 'HealingDepot',
-        mapId: 'HealingDepot',
-        x: 3,
-        y: 6,
-        direction: defaultUp
-    };
-    const respawnKey = depot.map || depot.mapId || (this.maps && this.maps['HealingDepot'] ? 'HealingDepot' : 'PistonTown');
-    const targetMap = (this.maps && this.maps[respawnKey]) || (typeof WORLD_MAPS !== 'undefined' ? WORLD_MAPS[respawnKey] : null) || (this.maps && this.maps['HealingDepot']) || (this.maps && this.maps['PistonTown']);
-    if (targetMap && this.player) {
-        this.currentMap = targetMap;
-        this.player.currentMap = respawnKey;
-        this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), respawnKey]));
-        this.player.x = typeof depot.x === 'number' ? depot.x : 3;
-        this.player.y = typeof depot.y === 'number' ? depot.y : 6;
-        this.player.targetX = this.player.x;
-        this.player.targetY = this.player.y;
-        this.player.isMoving = false;
-        this.player.direction = depot.direction !== undefined ? depot.direction : defaultUp;
-    }
+    const respawnKey = this.respawnAtLastDepot();
 
     this.battle = null;
     this.startWhiteout();
@@ -1270,8 +1330,9 @@ Game.prototype.updateWhiteout = function (deltaTime) {
 };
 
 Game.prototype.renderWhiteout = function (ctx) {
-    const w = this.canvas.width;
-    const h = this.canvas.height;
+    const canvas = (ctx && ctx.canvas) || this.canvas;
+    const w = canvas ? canvas.width : 768;
+    const h = canvas ? canvas.height : 672;
 
     if (this.currentMap) {
         this.renderOverworld(ctx);
@@ -1640,7 +1701,7 @@ Game.prototype.renderOverworld = function (ctx) {
     }
 
     const tileSize = CONSTANTS.TILE_SIZE * CONSTANTS.SCALE;
-    const canvas = ctx.canvas;
+    const canvas = (ctx && ctx.canvas) || this.canvas;
     const displayPosition = this.player.getDisplayPosition ? this.player.getDisplayPosition() : this.player;
 
     // Camera system - center on player

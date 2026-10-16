@@ -733,6 +733,7 @@ class Battle {
         if (this.battleEnded) return;
         this.addMessage("You have no more trains!");
         this.addMessage("You blacked out!");
+        if (typeof this.onDefeat === 'function') this.onDefeat();
         this.state = CONSTANTS.BATTLE_STATES.DEFEAT;
         this.battleEnded = true;
         this.playerWon = false;
