@@ -241,14 +241,18 @@ class Train {
         return false;
     }
 
-    evolve(context = {}) {
+    // The species id this train would become in `context`, or null if it can't evolve.
+    evolutionTarget(context = {}) {
+        if (!this.canEvolve(context)) return null;
         const evolution = this.species.evolution;
-        if (evolution && this.canEvolve(context)) {
-            const target = evolution.method === 'branch'
-                ? context.choice
-                : evolution.method === 'form'
-                    ? evolution.forms.find(form => form.name === context.form).evolvesTo
-                    : evolution.evolvesTo;
+        if (evolution.method === 'branch') return context.choice;
+        if (evolution.method === 'form') return evolution.forms.find(form => form.name === context.form).evolvesTo;
+        return evolution.evolvesTo;
+    }
+
+    evolve(context = {}) {
+        const target = this.evolutionTarget(context);
+        if (target !== null) {
             this.speciesId = target;
             this.species = TRAIN_SPECIES[this.speciesId];
             this.nickname = this.species.name;

@@ -12,6 +12,11 @@ const LOCO_VIEWS = {
 };
 const LOCO_FRAMES = 6;
 
+// How long the evolution animation runs before the new form holds, and how
+// many times the old and new forms swap places over that run.
+const EVOLUTION_SECONDS = 2.4;
+const EVOLUTION_SWAPS = 24;
+
 class Battle {
     constructor(game, playerTrains, enemyTrains, isWild = true, trainerNPC = null) {
         this.game = game;
@@ -73,6 +78,8 @@ class Battle {
         this.hpDisplay = new WeakMap();
         this.expDisplay = new WeakMap();
         this.pendingMoves = [];
+        this.pendingEvolutions = [];
+        this.evolution = null;
         this.victoryPending = false;
         this.defeatPending = false;
         this.expGained = 0;
@@ -134,6 +141,10 @@ class Battle {
 
             case CONSTANTS.BATTLE_STATES.MESSAGE:
                 // Showing message
+                break;
+
+            case CONSTANTS.BATTLE_STATES.EVOLUTION:
+                this.updateEvolution(deltaTime);
                 break;
 
             case CONSTANTS.BATTLE_STATES.VICTORY:
@@ -206,6 +217,10 @@ class Battle {
 
             case CONSTANTS.BATTLE_STATES.LEARN_MOVE:
                 this.handleLearnMoveInput(action);
+                break;
+
+            case CONSTANTS.BATTLE_STATES.EVOLUTION:
+                this.handleEvolutionInput(action);
                 break;
         }
     }
@@ -618,7 +633,8 @@ class Battle {
         this.processNextAction();
     }
 
-    // Grant EXP for a defeated enemy to the active train (and evolve if eligible).
+    // Grant EXP for a defeated enemy to the active train (and queue its evolution
+    // if the level-up made it eligible).
     awardExp(enemyTrain) {
         const trainee = this.playerActive;
         const expGained = Math.floor(enemyTrain.species.expYield * enemyTrain.level / 7);
@@ -628,8 +644,10 @@ class Battle {
         trainee.gainStatExp(enemyTrain.species);
         const records = trainee.gainExp(expGained);
         records.forEach(record => this.announceLevelUp(trainee, record));
-        if (records.length > 0) this.playSound('levelup');
-        this.evolveIfEligible(trainee);
+        if (records.length > 0) {
+            this.playSound('levelup');
+            this.queueEvolution(trainee);
+        }
         return records.length > 0;
     }
 
@@ -641,16 +659,60 @@ class Battle {
         record.pendingMoves.forEach(move => this.pendingMoves.push({ train: trainee, move }));
     }
 
-    evolveIfEligible(trainee) {
+    // Level-up evolutions play once the battle is won. Only a level-up queues
+    // one, so a cancelled evolution is offered again at the next level.
+    queueEvolution(trainee) {
         const evolution = trainee.species.evolution;
-        const evolutionContext = evolution && evolution.method === 'branch'
-            ? { choice: evolution.defaultTarget }
-            : {};
-        if (!trainee.canEvolve(evolutionContext)) return;
-        const oldName = trainee.species.name;
-        if (trainee.evolve(evolutionContext)) {
-            this.addMessage(`${oldName} evolved into ${trainee.species.name}!`);
-        }
+        const context = evolution && evolution.method === 'branch' ? { choice: evolution.defaultTarget } : {};
+        const target = trainee.evolutionTarget(context);
+        if (target === null || this.pendingEvolutions.some(e => e.train === trainee)) return;
+        this.pendingEvolutions.push({ train: trainee, context, target });
+    }
+
+    // Opens the evolution scene on its announcement; A starts the animation.
+    startEvolution(pending) {
+        this.evolution = { ...pending, fromName: pending.train.species.name, timer: 0, animating: false };
+        this.messages = [`What? ${this.evolution.fromName} is evolving!`];
+        this.currentMessage = 0;
+        this.state = CONSTANTS.BATTLE_STATES.EVOLUTION;
+    }
+
+    // B stops the evolution at any point in the scene.
+    handleEvolutionInput(action) {
+        if (action === 'b') this.cancelEvolution();
+        else if (action === 'a') this.evolution.animating = true;
+    }
+
+    updateEvolution(deltaTime) {
+        if (!this.evolution.animating) return;
+        this.evolution.timer += deltaTime;
+        if (this.evolution.timer >= EVOLUTION_SECONDS) this.completeEvolution();
+    }
+
+    completeEvolution() {
+        const { train, context, fromName } = this.evolution;
+        this.evolution = null;
+        train.evolve(context);
+        const player = this.game && this.game.player;
+        if (player && player.registerCaught) player.registerCaught(train.speciesId);
+        this.playSound('whistle');
+        this.showMessage(`Congratulations! Your ${fromName} evolved into ${train.species.name}!`);
+        const { learnedMoves, pendingMoves } = train.checkForNewMoves();
+        learnedMoves.forEach(move => this.addMessage(`${train.species.name} learned ${move}!`));
+        pendingMoves.forEach(move => this.pendingMoves.push({ train, move }));
+    }
+
+    cancelEvolution() {
+        const { fromName } = this.evolution;
+        this.evolution = null;
+        this.playSound('cancel');
+        this.showMessage(`Huh? ${fromName} stopped evolving!`);
+    }
+
+    showMessage(text) {
+        this.messages = [text];
+        this.currentMessage = 0;
+        this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
     }
 
     playSound(name) {
@@ -658,13 +720,17 @@ class Battle {
     }
 
     // Moves past the end of the queued messages: the next pending move prompt,
-    // a victory held back for the level-up text, or the action menu.
+    // an evolution held back for the win, a victory held back for the level-up
+    // text, or the action menu.
     finishMessages() {
         this.messages = [];
         this.currentMessage = 0;
+        if (this.victoryPending) this.pendingEvolutions = this.pendingEvolutions.filter(e => !e.train.fainted);
         if (this.pendingMoves.length > 0) {
             this.moveSelection = 0;
             this.state = CONSTANTS.BATTLE_STATES.LEARN_MOVE;
+        } else if (this.victoryPending && this.pendingEvolutions.length > 0) {
+            this.startEvolution(this.pendingEvolutions.shift());
         } else if (this.victoryPending) {
             this.victoryPending = false;
             this.handleVictory();
@@ -693,9 +759,7 @@ class Battle {
 
     resolveLearnMove(text) {
         this.pendingMoves.shift();
-        this.messages = [text];
-        this.currentMessage = 0;
-        this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+        this.showMessage(text);
     }
 
     // Eases the EXP bar toward the lead train's real EXP, like the HP bar.
@@ -768,8 +832,8 @@ class Battle {
             if (this.game && this.game.player) this.game.player.registerSeen(nextTrain.speciesId);
                 this.resetStages('enemy');
                 this.addMessage(`Enemy sent out ${this.enemyActive.species.name}!`);
-            } else if (leveledUp) {
-                // Let the level-up text and move prompts play before the win.
+            } else if (leveledUp || this.pendingEvolutions.length > 0) {
+                // Let the level-up text, move prompts and evolutions play before the win.
                 this.victoryPending = true;
             } else {
                 this.handleVictory();
@@ -1145,6 +1209,7 @@ class Battle {
                 ctx.fillText('CRITICAL!', canvas.width / 2, 52); ctx.textAlign = 'left';
             }
         }
+        if (this.state === CONSTANTS.BATTLE_STATES.EVOLUTION) this.drawEvolution(ctx);
 
         ctx.fillStyle = '#071116';
         ctx.fillRect(0, 548, canvas.width, 124);
@@ -1451,6 +1516,20 @@ class Battle {
     drawEnemyTrain(ctx, x, y) { this.drawLoco(ctx, x, y, 'front', this.enemyActive); }
 
     drawPlayerTrain(ctx, x, y) { this.drawLoco(ctx, x, y, 'back', this.playerActive); }
+
+    // Placeholder evolution animation: on a dusk backdrop the old and new forms
+    // swap faster and faster as a glow behind them brightens.
+    drawEvolution(ctx) {
+        const { train, target, timer } = this.evolution;
+        const progress = Math.min(1, timer / EVOLUTION_SECONDS);
+        ctx.fillStyle = '#1a1430';
+        ctx.fillRect(0, 0, ctx.canvas.width, 548);
+        ctx.fillStyle = `rgba(248,232,176,${0.15 + 0.6 * progress})`;
+        ctx.beginPath(); ctx.ellipse(ctx.canvas.width / 2, 250, 170, 120, 0, 0, Math.PI * 2); ctx.fill();
+        const showNew = Math.floor(progress * progress * EVOLUTION_SWAPS) % 2 === 1;
+        const shown = showNew ? { speciesId: target, types: TRAIN_SPECIES[target].types } : train;
+        this.drawLoco(ctx, ctx.canvas.width / 2 - 97, 150, 'front', shown);
+    }
 
     wrapText(ctx, text, x, y, maxWidth, lineHeight) {
         const words = text.split(' ');
