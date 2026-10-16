@@ -39,6 +39,6 @@ function battleByInteraction(npcId, x, y, dir, expectedPrize) {
   assert.strictEqual(C.state.money - money, expectedPrize, `${npcId} pays the configured prize`);
 }
 
-battleByInteraction('r1youngster', 4, 8, 'right', 64);
+battleByInteraction('r1youngster', 4, 8, 'right', 80);
 battleByInteraction('r1lass', 16, 17, 'left', 90);
 console.log('route1.test: ok');

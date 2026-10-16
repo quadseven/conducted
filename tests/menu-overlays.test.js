@@ -355,6 +355,65 @@ function testOverlaysSkipEmptySlots() {
     assert.doesNotThrow(() => UI.drawBagUseOnTrain(ctx, game.player, 1, 'potion'), 'item target skips null slot');
 }
 
+// Test 9: Depot menu allows depositing and withdrawing trains
+function testDepotMenu() {
+    const game = createTestGame();
+    game.setState(CONSTANTS.STATES.MENU);
+    game.bagMode = 'depot';
+    game.trainSelection = 0;
+
+    // Verify drawing does not throw
+    const ctx = canvasMock.getContext();
+    assert.doesNotThrow(() => UI.drawDepot(ctx, game.player, game.trainSelection), 'depot overlay renders');
+
+    // Navigate to a different train
+    game.input.keyJustPressed['ArrowUp'] = true;
+    game.updateMenu();
+    assert.equal(game.trainSelection, 0, 'train selection does not go negative');
+    game.input.keyJustPressed['ArrowUp'] = false;
+
+    // Only one train exists, so down should stay at 0
+    game.input.keyJustPressed['ArrowDown'] = true;
+    game.updateMenu();
+    assert.equal(game.trainSelection, 0, 'can navigate down but stays at 0 when only one train');
+    game.input.keyJustPressed['ArrowDown'] = false;
+
+    // Try to deposit the only train - should fail because we need at least one healthy train
+    game.input.keyJustPressed['Enter'] = true;
+    game.updateMenu();
+    assert.ok(game.player.menuMessage.includes('Keep at least one healthy train'), 'depot prevents depositing last train');
+    assert.equal(game.player.party.length, 1, 'party train remains');
+
+    // Add a second train to allow deposit
+    game.player.party.push(new Train(2, 10));
+    game.player.party[1].currentHP = 100; // Ensure healthy
+
+    // Now deposit the first train
+    game.input.keyJustPressed['Enter'] = true;
+    game.updateMenu();
+    // Check party/storage state instead of message (message gets overwritten)
+    assert.equal(game.player.party.length, 1, 'party train removed');
+    assert.equal(game.player.storage.length, 1, 'storage train added');
+    assert.equal(game.player.storage[0].species.id, 1, 'correct train stored');
+    assert.equal(game.player.storage[0].level, 10, 'train level preserved');
+
+    // Set trainSelection to point to storage (party.length = 1, so storage starts at index 1)
+    game.trainSelection = 1;
+    game.input.keyJustPressed['Enter'] = true;
+    game.updateMenu();
+    // Check state instead of message
+    assert.equal(game.player.party.length, 2, 'party train added back');
+    assert.equal(game.player.party[1].species.id, 1, 'correct train returned');
+    assert.equal(game.player.party[1].level, 10, 'train level preserved');
+    assert.equal(game.player.storage.length, 0, 'storage train removed');
+
+    // Close depot menu
+    game.input.keyJustPressed['Backspace'] = true;
+    game.updateMenu();
+    assert.equal(game.bagMode, null, 'depot mode closes');
+    assert.equal(game.state, CONSTANTS.STATES.OVERWORLD, 'returns to overworld');
+}
+
 testMenuOpen();
 testOverlayNavigation();
 testBagUseItem();
@@ -363,5 +422,6 @@ testSaveMenu();
 testOptionsMenu();
 testCleanDismissal();
 testOverlaysSkipEmptySlots();
+testDepotMenu();
 
 console.log('All menu overlay tests passed!');
