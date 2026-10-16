@@ -227,9 +227,9 @@
 
   // ---------- playback helpers ----------
   function* msg(text, wait) {
-    // battle text auto-advances after a pause; A skips ahead
-    const tb = new U.TextBox(text, { auto: wait || 50 });
-    tb.update = (function (orig) { return function (a) { if (this.shown >= this.pageText().join('').length && a && (I.pressed.a || I.pressed.b)) { this.done = true; return; } orig.call(this, a); }; })(tb.update);
+    // battle text auto-advances after a pause; A skips ahead. It sits in the HUD, so it does not slide in
+    const tb = new U.TextBox(text, { auto: wait || 50, slide: false });
+    tb.update = (function (orig) { return function (a) { if (this.typed() && a && (I.pressed.a || I.pressed.b)) { this.done = true; return; } orig.call(this, a); }; })(tb.update);
     yield* E.run(tb);
   }
   function* hpTo(sc, si, to) {
