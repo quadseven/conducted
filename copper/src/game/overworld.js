@@ -10,8 +10,11 @@
   const SW = CD.gfx.W, SH = CD.gfx.H;
 
   // A walker moves one tile at a time. prog counts pixels travelled into the step.
+  // Normal speed: 1 pixel/frame for 16px tile = 16 frames (256ms at 60fps) for smooth Pokemon-style scrolling
+  // Running speed: 2 pixels/frame = 8 frames (128ms at 60fps)
+  // animPhase: 0-3 cycle for walking animation (stand, step-left, stand, step-right)
   function walker(o) {
-    return Object.assign({ x: 0, y: 0, dir: 'down', moving: false, prog: 0, speed: 2, anim: 0, tx: 0, ty: 0, jump: 0, hidden: false }, o);
+    return Object.assign({ x: 0, y: 0, dir: 'down', moving: false, prog: 0, speed: 1, anim: 0, tx: 0, ty: 0, jump: 0, hidden: false, animPhase: 0 }, o);
   }
   const ow = {
     player: walker({ sprite: 'player' }),
@@ -63,7 +66,7 @@
     const m = W.get(w.map || CD.state.map);
     const r = W.canStep(stateView(), m, w.x, w.y, dir, who);
     if (!r.ok) return r;
-    w.moving = true; w.prog = 0; w.tx = r.tx; w.ty = r.ty; w.jump = r.ledge ? 1 : 0; w.cross = r.crossMap || null;
+    w.moving = true; w.prog = 0; w.tx = r.tx; w.ty = r.ty; w.jump = r.ledge ? 1 : 0; w.cross = r.crossMap || null; w.animPhase = 0;
     if (r.ledge) CD.audio.sfx('ledge');
     return r;
   }
@@ -71,8 +74,10 @@
     if (!w.moving) return false;
     const dist = w.jump ? 32 : 16;
     w.prog += w.speed;
+    const t = w.prog / dist;
+    w.animPhase = Math.floor(t * 4);
     if (w.prog >= dist) {
-      w.x = w.tx; w.y = w.ty; w.moving = false; w.prog = 0; w.jump = 0; w.anim++;
+      w.x = w.tx; w.y = w.ty; w.moving = false; w.prog = 0; w.jump = 0; w.anim++; w.animPhase = 0;
       return true;
     }
     return false;
@@ -100,7 +105,7 @@
     for (const d of dirs) {
       if (d === 'face') continue;
       let tries = 0;
-      w.speed = opts.speed || (w === ow.player ? 2 : 1);
+      w.speed = opts.speed || (w === ow.player ? 1 : 1);
       while (!w.moving) {
         const r = startStep(w, d, opts.force ? 'script' : (w === ow.player ? 'player' : 'npc'));
         if (!r.ok) {
@@ -232,7 +237,7 @@
       const p = ow.player;
       if (p.scripted) return;
       if (p.moving) {
-        p.speed = p.jump ? 2 : (I.held.b && !ow.locked && CD.state.flags.runningShoes !== false ? 4 : 2);
+        p.speed = p.jump ? 2 : (I.held.b && !ow.locked && CD.state.flags.runningShoes !== false ? 4 : 1);
         const prevDir = p.dir;
         if (advance(p)) onArrive(prevDir);
         if (p.moving || ow.locked) return;
@@ -334,7 +339,13 @@
   function drawWalker(s, w, camX, camY) {
     const f = CD.chars.frames(w.sprite, w.look);
     let fr = 0;
-    if (w.moving) { const t = w.prog / (w.jump ? 32 : 16); fr = CD.chars.frameFor(w.anim * 2 + (t >= 0.5 ? 1 : 0) + 1); }
+    if (w.moving) {
+      const t = w.prog / (w.jump ? 32 : 16);
+      w.animPhase = Math.floor(t * 4);
+      fr = CD.chars.frameFor(w.anim * 2 + w.animPhase);
+    } else {
+      fr = CD.chars.frameFor(w.anim * 2);
+    }
     const q = pixel(w);
     const x = Math.round(q.px - camX), y = Math.round(q.py - camY) - 4 - q.lift;
     CD.gfx.shadow(s, x + 8, Math.round(q.py - camY) + 14, 5, 2, w.jump ? 0.18 : 0.25);
