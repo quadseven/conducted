@@ -1561,7 +1561,8 @@ Game.prototype.renderOverworld = function (ctx) {
                 if (typeof drawWorldCharacter === 'function') {
                     drawWorldCharacter(ctx, npc, npcScreenX, npcScreenY, tileSize, {
                         map: this.currentMap, clock: this.animClock,
-                        direction: npc.direction || CONSTANTS.DIRECTIONS.DOWN
+                        direction: npc.direction || CONSTANTS.DIRECTIONS.DOWN,
+                        player: this.player
                     });
                 } else {
                     const shirt = npc.defeated ? '#8A8A8A' : npc.type === 'trainer' ? '#D64545' : '#5878A8';
