@@ -921,6 +921,7 @@ function createRivalBlakeNPC(stage, x, y, direction) {
 
   const elite = NPC_DATA.eliteConductors.concat([NPC_DATA.champion]);
   const tt = boxed(13, 30, 0, 3); tt[29][6] = 12;
+  // The first Elite Four gate needs both villain arcs: derailDefeated (Team Derail, Route 7) and steamPunkDefeated (Team Steam Punk, Victory Road).
   const eliteNPCs = elite.map((e, i) => ({ id: e.id, name: e.name, x: 6, y: 24 - i * 5,
     type: i === 4 ? 'champion' : 'trainer', canBattle: true, defeated: false, baseReward: 250,
     requires: i === 0 ? ['Crown Badge', 'derailDefeated', 'steamPunkDefeated', 'defeated_rival_blake_4'] : [`defeated_${elite[i - 1].id}`],

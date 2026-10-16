@@ -15,6 +15,7 @@ for (const id of ['PistonTown', 'CoalHarbor', 'City2', 'City3', 'City4', 'Diesel
 const guide = maps.City2.npcs.find(npc => npc.id === 'city2_guide');
 assert.ok(typeof guide.dialogue === 'function');
 assert.ok(guide.dialogue({ badges: [], storyFlags: {} }).length >= 2);
+// steamPunkDefeated (Team Steam Punk) drives the 'stopped' line; derailDefeated is the separate Team Derail arc and must not.
 assert.match(guide.dialogue({ badges: ['Harbor Badge'], storyFlags: { steamPunkDefeated: true, rival_blake_stage: 2 } }).map(line => line.text).join(' '), /1 badge.*Team Steam Punk stopped.*rival/i);
 assert.doesNotMatch(guide.dialogue({ badges: [], storyFlags: { derailDefeated: true } }).map(line => line.text).join(' '), /Steam Punk stopped/i);
 
