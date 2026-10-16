@@ -198,7 +198,7 @@
       { x: 11, y: 15, to: 'HarborMart', tx: 3, ty: 7, dir: 'up' },
       { x: 22, y: 15, to: 'HarborHouse', tx: 3, ty: 7, dir: 'up' },
     ],
-    connections: { south: { map: 'Route1', offset: 2 } },
+    connections: { south: { map: 'Route1', offset: 2 }, north: { map: 'Route2', offset: 0 } },
     ambientTrain: { row: 11, dir: -1, speed: 2, cars: 4, every: 900 },
     signs: [
       { x: 17, y: 13, text: 'COAL HARBOR\nThe tide brings trains to our door.' },
@@ -271,4 +271,93 @@
     carpetTint: '#2f3f6a',
     warps: [{ x: 5, y: 13, to: 'CoalHarbor', tx: 18, ty: 9, dir: 'down' }],
   });
+
+  // The main line grows east from the harbor through increasingly rugged
+  // regions before reaching the summit. Each outdoor map has a clear rail-side
+  // path and a walkable grass area for exploration.
+  function makeOutdoorRows(theme) {
+    const rows = [
+      'TTTTTTTTT==TTTTTTTTT',
+      'T........==........T',
+      'T..RR....==....RR..T',
+      'T........==........T',
+      'T..""....==....""..T',
+      'T........==........T',
+      'TTTT.....==.....TTTT',
+      'TT.................TT',
+      'TT..f......f......TT',
+      'TT.................TT',
+      'TT.....i...........TT',
+      'TT.................TT',
+      'TT""......==....""TT',
+      'TT........==.......TT',
+      'TT........==.......TT',
+      'TT........==.......TT',
+      'TTTT.....==.....TTTT',
+      'TTTTTTTTT==TTTTTTTTT',
+    ];
+    if (theme === 'coast') rows[3] = 'T..~~~~..==..~~~~..T';
+    if (theme === 'city') rows[7] = 'TT...++++==++++...TT';
+    if (theme === 'mountain' || theme === 'snow') rows[2] = 'T..RRR...==...RRR.T';
+    if (theme === 'industrial') rows[6] = 'TT...####==####..TT';
+    if (theme === 'haunted') rows[8] = 'TT...l....==...l..TT';
+    if (theme === 'facility') rows[7] = 'TT...++++==++++...TT';
+    return rows.map(row => row.length > 20 ? row.slice(0, 20) : row.padEnd(20, 'T'));
+  }
+  function addTown(id, name, theme, route, direction, nextRoute) {
+    const rows = makeOutdoorRows(theme);
+    const connections = {};
+    connections[direction] = { map: route, offset: 0 };
+    if (nextRoute) connections[direction === 'south' ? 'north' : 'south'] = { map: nextRoute, offset: 0 };
+    D(id, {
+      name, music: theme === 'snow' || theme === 'haunted' ? 'route1' : 'harbor',
+      base: theme === 'coast' ? 'sand' : theme === 'industrial' ? 'cobble' : 'grass',
+      rows,
+      connections,
+      signs: [{ x: 7, y: 10, text: name + '\nA station on the Locomotia main line.' }],
+    });
+  }
+  function addRoute(id, name, from, to, theme) {
+    D(id, {
+      name, music: 'route1', base: theme === 'coast' ? 'sand' : 'grass',
+      rows: makeOutdoorRows(theme),
+      connections: { south: { map: from, offset: 0 }, north: { map: to, offset: 0 } },
+      signs: [{ x: 7, y: 10, text: name + '\nKeep to the marked railway path.' }],
+    });
+  }
+  function addSpecial(id, name, theme) {
+    const rows = makeOutdoorRows(theme);
+    rows[0] = 'TTTTTTTTT==TTTTTTTTT';
+    rows[17] = 'TTTTTTTTT==TTTTTTTTT';
+    D(id, { name, music: 'route1', base: theme === 'snow' ? 'snow' : 'grass', rows,
+      signs: [{ x: 7, y: 10, text: name + '\nWild trains gather near the old tracks.' }] });
+  }
+
+  addRoute('Route2', 'ROUTE 2 - COASTAL LINE', 'CoalHarbor', 'VoltageCity', 'coast');
+  addTown('VoltageCity', 'VOLTAGE CITY', 'city', 'Route2', 'south', 'Route3');
+  addRoute('Route3', 'ROUTE 3 - VOLTAGE VALLEY', 'VoltageCity', 'SteamspringVillage', 'city');
+  addSpecial('VoltageValley', 'VOLTAGE VALLEY', 'city', null);
+  addTown('SteamspringVillage', 'STEAMSPRING VILLAGE', 'historic', 'Route3', 'south', 'Route4');
+  addRoute('Route4', 'ROUTE 4 - WHISTLESTOP WAY', 'SteamspringVillage', 'DieselDen', 'forest');
+  addSpecial('WhistlestopForest', 'WHISTLESTOP FOREST', 'forest', null);
+  addTown('DieselDen', 'DIESEL DEN', 'industrial', 'Route4', 'south', 'Route5');
+  addRoute('Route5', 'ROUTE 5 - IRON MOUNTAIN', 'DieselDen', 'MaglevHeights', 'mountain');
+  addSpecial('IronMountainRange', 'IRON MOUNTAIN RANGE', 'mountain', null);
+  addTown('MaglevHeights', 'MAGLEV HEIGHTS', 'city', 'Route5', 'south', 'Route6');
+  addRoute('Route6', 'ROUTE 6 - THE OLD SIDING', 'MaglevHeights', 'GhostRailGraveyard', 'haunted');
+  addTown('GhostRailGraveyard', 'GHOST RAIL GRAVEYARD', 'haunted', 'Route6', 'south', 'Route7');
+  addSpecial('MysteryTower', 'MYSTERY TOWER', 'haunted', null);
+  addRoute('Route7', 'ROUTE 7 - SUNSET DESERT', 'GhostRailGraveyard', 'NuclearStation', 'desert');
+  addSpecial('SunsetDesert', 'SUNSET DESERT', 'desert', null);
+  addTown('NuclearStation', 'NUCLEAR STATION', 'facility', 'Route7', 'south', 'Route8');
+  addSpecial('PowerPlant', 'POWER PLANT', 'facility', null);
+  addSpecial('RadioactiveCaves', 'RADIOACTIVE CAVES', 'facility', null);
+  addRoute('Route8', 'ROUTE 8 - FROZEN TUNDRA', 'NuclearStation', 'MonorailMountaintop', 'snow');
+  addSpecial('FrozenTundra', 'FROZEN TUNDRA', 'snow', null);
+  addTown('MonorailMountaintop', 'MONORAIL MOUNTAINTOP', 'snow', 'Route8', 'south');
+  addSpecial('VictoryRoad', 'VICTORY ROAD', 'mountain', null);
+  addSpecial('SpaceStation', 'SPACE STATION', 'city', null);
+  addSpecial('WeatherInstitute', 'WEATHER RESEARCH INSTITUTE', 'city', null);
+  addSpecial('TrainMuseum', 'TRAIN MUSEUM', 'historic', null);
+  addSpecial('HotSprings', 'HOT SPRINGS', 'historic', null);
 })(window.CD);

@@ -13,6 +13,25 @@
     yard: { rate: 30, slots: [[43, 5, 8, 24], [52, 6, 8, 18], [25, 5, 7, 18], [16, 5, 7, 14], [141, 5, 7, 10], [40, 6, 8, 8], [78, 7, 8, 5], [34, 6, 7, 3]] },
   };
 
+  const expansionTables = {
+    grass: CD.encounterConfig.ENCOUNTER_TABLES.MID_GAME_GRASS,
+    mountain: CD.encounterConfig.ENCOUNTER_TABLES.MOUNTAIN_TRAILS,
+    cave: CD.encounterConfig.ENCOUNTER_TABLES.CAVE_DUNGEONS,
+    late: CD.encounterConfig.ENCOUNTER_TABLES.LATE_GAME,
+  };
+  const expansionMaps = {
+    Route2: 'grass', Route3: 'grass', Route4: 'grass', Route5: 'mountain',
+    Route6: 'late', Route7: 'late', Route8: 'mountain',
+    WhistlestopForest: 'grass', VoltageValley: 'grass', IronMountainRange: 'mountain',
+    SunsetDesert: 'late', FrozenTundra: 'mountain', VictoryRoad: 'cave',
+    RadioactiveCaves: 'cave', MysteryTower: 'late', PowerPlant: 'late',
+    SpaceStation: 'late', WeatherInstitute: 'grass', TrainMuseum: 'grass', HotSprings: 'grass',
+  };
+  for (const [id, tableName] of Object.entries(expansionMaps)) {
+    const table = expansionTables[tableName];
+    map(id).encounters = { grass: { slots: table.map(slot => [slot.species, slot.minLevel, slot.maxLevel, slot.weight]), rate: tableName === 'late' ? 30 : 26 } };
+  }
+
   const add = (id, n) => { (map(id).npcs = map(id).npcs || []).push(n); };
   add('Route1', { id: 'r1youngster', sprite: 'youngster', x: 5, y: 8, dir: 'right', move: 'still',
     trainer: { id: 'r1youngster', cls: 'YOUNGSTER', name: 'TOBY', sight: 4, prize: 16, party: [[10, 5], [10, 5]],
