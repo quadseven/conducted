@@ -33,6 +33,84 @@ class UI {
         }
     }
 
+    static drawDialogueBox(ctx, speaker, text, options = {}) {
+        const w = ctx.canvas ? ctx.canvas.width : 768;
+        const x = options.x !== undefined ? options.x : 20;
+        const width = options.width !== undefined ? options.width : w - 40;
+        const height = options.height !== undefined ? options.height : 104;
+        const y = options.y !== undefined ? options.y : ((ctx.canvas ? ctx.canvas.height : 672) - height - 16);
+
+        UI.drawPanel(ctx, x, y, width, height);
+
+        if (speaker) {
+            const badgeW = Math.max(120, speaker.length * 12 + 24);
+            const badgeH = 28;
+            const badgeY = y - 18;
+            UI.drawPanel(ctx, x + 16, badgeY, badgeW, badgeH);
+            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            ctx.font = 'bold 15px monospace';
+            ctx.fillText(speaker, x + 28, badgeY + 19);
+        }
+
+        if (text) {
+            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            ctx.font = '16px monospace';
+            const lines = Utils.wrapText(text, width - 40, ctx, 16);
+            for (let i = 0; i < lines.length && i < 3; i++) {
+                ctx.fillText(lines[i], x + 20, y + (speaker ? 34 : 28) + i * 22);
+            }
+        }
+    }
+
+    static drawCutscene(ctx, title, dialogue, options = {}) {
+        const w = ctx.canvas ? ctx.canvas.width : 768;
+        const h = ctx.canvas ? ctx.canvas.height : 672;
+
+        // Cinematic widescreen borders
+        ctx.fillStyle = '#0c1520';
+        ctx.fillRect(0, 0, w, 56);
+        ctx.fillRect(0, h - 56, w, 56);
+
+        // Story act / scene banner
+        if (title) {
+            const plateW = 500;
+            const plateH = 38;
+            const plateX = (w - plateW) / 2;
+            const plateY = 10;
+            UI.drawPanel(ctx, plateX, plateY, plateW, plateH);
+            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            ctx.font = 'bold 16px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(title.toUpperCase(), w / 2, plateY + 24);
+            ctx.textAlign = 'left';
+        }
+
+        if (dialogue) {
+            const boxY = h - 165;
+            const boxH = 100;
+            UI.drawDialogueBox(ctx, dialogue.speaker, dialogue.text || '', { y: boxY, height: boxH });
+        }
+    }
+
+    static drawEventBanner(ctx, title, subtitle) {
+        const w = ctx.canvas ? ctx.canvas.width : 768;
+        const panelW = 460;
+        const panelH = 64;
+        const x = (w - panelW) / 2;
+        const y = 80;
+        UI.drawPanel(ctx, x, y, panelW, panelH);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#173d47';
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText(title, w / 2, y + 26);
+        if (subtitle) {
+            ctx.fillStyle = '#485048';
+            ctx.font = '14px monospace';
+            ctx.fillText(subtitle, w / 2, y + 48);
+        }
+        ctx.textAlign = 'left';
+    }
+
     static drawMenu(ctx, x, y, width, height, options, selectedIndex) {
         UI.drawPanel(ctx, x, y, width, height);
 
@@ -662,31 +740,75 @@ class DialogueBox {
         this.charIndex = 0;
         this.textSpeed = 30; // Characters per second
         this.currentText = '';
+        this.cutsceneTitle = null;
     }
 
     show(dialogues, onComplete = null) {
-        this.queue = Array.isArray(dialogues) ? dialogues : [dialogues];
+        const raw = Array.isArray(dialogues) ? dialogues : [dialogues];
+        this.queue = raw.map(d => {
+            if (typeof d === 'string') {
+                const colonIdx = d.indexOf(': ');
+                if (colonIdx > 0 && colonIdx < 30) {
+                    return { speaker: d.slice(0, colonIdx), text: d.slice(colonIdx + 2) };
+                }
+                return { speaker: '', text: d };
+            }
+            if (d && typeof d === 'object') {
+                return {
+                    speaker: d.speaker || '',
+                    text: d.text || '',
+                    speed: d.speed,
+                    choices: d.choices
+                };
+            }
+            return { speaker: '', text: '' };
+        });
+
         this.currentIndex = 0;
         this.active = true;
         this.onComplete = onComplete;
         this.charIndex = 0;
         this.currentText = '';
-        this.startDialogue(this.queue[this.currentIndex]);
+
+        if (this.queue.length > 0) {
+            this.startDialogue(this.queue[0]);
+        } else {
+            this.active = false;
+            if (onComplete) onComplete();
+        }
+    }
+
+    startCutscene(title, dialogues, onComplete = null) {
+        this.cutsceneTitle = title || 'CUTSCENE';
+        this.show(dialogues, () => {
+            this.cutsceneTitle = null;
+            if (onComplete) onComplete();
+        });
+    }
+
+    isCutscene() {
+        return Boolean(this.cutsceneTitle);
+    }
+
+    getCurrentSpeaker() {
+        const current = this.getCurrentDialogue();
+        return current ? (current.speaker || '') : '';
     }
 
     startDialogue(dialogue) {
         this.charIndex = 0;
         this.currentText = '';
-        this.textSpeed = dialogue.speed || 30;
+        this.textSpeed = (dialogue && dialogue.speed) || 30;
     }
 
     update(deltaTime) {
         if (!this.active || this.isFinished()) return;
 
         const dialogue = this.getCurrentDialogue();
-        if (dialogue && this.currentText.length < dialogue.text.length) {
+        const text = (dialogue && dialogue.text) || '';
+        if (dialogue && this.currentText.length < text.length) {
             this.charIndex += this.textSpeed * deltaTime;
-            this.currentText = dialogue.text.substring(0, Math.floor(this.charIndex));
+            this.currentText = text.substring(0, Math.floor(this.charIndex));
         }
     }
 
@@ -695,15 +817,15 @@ class DialogueBox {
             this.currentIndex++;
             if (this.currentIndex >= this.queue.length) {
                 this.active = false;
-                if (this.onComplete) {
-                    this.onComplete();
-                    this.onComplete = null;
-                }
+                const done = this.onComplete;
+                this.onComplete = null;
+                if (done) done();
             } else {
                 this.startDialogue(this.queue[this.currentIndex]);
             }
         } else {
-            this.currentText = this.getCurrentDialogue().text;
+            const dialogue = this.getCurrentDialogue();
+            this.currentText = (dialogue && dialogue.text) || '';
         }
     }
 
@@ -719,7 +841,8 @@ class DialogueBox {
 
     isFinished() {
         const dialogue = this.getCurrentDialogue();
-        return !dialogue || this.currentText.length === dialogue.text.length;
+        const text = (dialogue && dialogue.text) || '';
+        return !dialogue || this.currentText.length >= text.length;
     }
 
     getCurrentDialogue() {

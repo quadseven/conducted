@@ -39,6 +39,7 @@ function Game(canvas) {
     this.animClock = 0;        // seconds, drives subtle idle animations
     this.techniqueNotice = '';
     this.techniqueNoticeTime = 0;
+    this.currentCutscene = null;
 
     // Whiteout defeat system
     this.whiteoutTimer = 0;
@@ -136,6 +137,7 @@ Game.prototype.setupMaps = function () {
         this.currentMap = this.maps['PistonTown'];
         console.log('✅ Set initial map to PistonTown');
     }
+    this.initStoryMaps();
 };
 
 Game.prototype.loadTilesets = async function () {
@@ -533,9 +535,10 @@ Game.prototype.updateOverworld = function (deltaTime) {
     // Check for warp transitions after movement animation completes
     if (justStopped) {
         this.checkWarpTransition();
+        const eventTriggered = this.checkStoryEvents();
 
         // Check for wild encounters in grass (not on paths)
-        if (this.currentMap.checkForEncounter && this.currentMap.checkForEncounter(this.player.x, this.player.y) && this.player.party.length > 0) {
+        if (!eventTriggered && this.currentMap && this.currentMap.checkForEncounter && this.currentMap.checkForEncounter(this.player.x, this.player.y) && this.player.party.length > 0) {
             if (this.currentMap.getRandomEncounter) {
                 const wildTrain = this.currentMap.getRandomEncounter();
                 this.startBattle(wildTrain, false);
@@ -655,10 +658,36 @@ Game.prototype.checkNPCInteraction = function () {
             this.dialogueBox.show(lines, () => { this.state = CONSTANTS.STATES.OVERWORLD; });
             return;
         }
+        if (npc.id === 'steampunk_grunts_act1' && !npc.defeated && !flags.steampunk_act1_complete) {
+            this.triggerSteamPunkAct1();
+            return;
+        }
+        if (npc.id === 'steampunk_thieves_act2' && !npc.defeated && !flags.steampunk_act2_complete) {
+            this.triggerSteamPunkAct2();
+            return;
+        }
+        if (npc.id === 'boss_grease' && !npc.defeated && !flags.steampunk_act3_complete) {
+            this.triggerSteamPunkAct3();
+            return;
+        }
+        if (npc.id === 'old_iron') {
+            if (!flags.old_iron_unlocked && !flags.oldIronUnlocked) {
+                this.state = CONSTANTS.STATES.DIALOGUE;
+                this.dialogueBox.show([{ speaker: 'Old Iron', text: 'The spectral steam engine rests quietly on the siding. It awaits the rails to be made safe.' }], () => {
+                    this.state = CONSTANTS.STATES.OVERWORLD;
+                });
+                return;
+            }
+        }
         const requirements = npc.requires || [];
         const hasReq = (req) => {
             if (flags[req] || this.player.hasBadge(req)) return true;
             if (req === 'hasStarter' && (this.player.hasStarterTrain || (this.player.party && this.player.party.length > 0))) return true;
+            if (req === 'derailDefeated' && (flags.derailDefeated || flags.steampunk_act3_complete || flags.steampunk_arc_complete)) return true;
+            if (req === 'steampunk_act1_complete' && (flags.steampunk_act1_complete || flags.steampunk_act1_defeated)) return true;
+            if (req === 'steampunk_act2_complete' && flags.steampunk_act2_complete) return true;
+            if (req === 'steampunk_act3_complete' && (flags.steampunk_act3_complete || flags.steampunk_arc_complete)) return true;
+            if (req === 'old_iron_unlocked' && (flags.old_iron_unlocked || flags.oldIronUnlocked)) return true;
             return false;
         };
         const missing = requirements.filter(req => !hasReq(req));
@@ -917,6 +946,28 @@ Game.prototype.startTrainerBattle = function (npc) {
                 this.player.menuMessage = `Learned ${npc.techniqueReward}!`;
                 this.showTechniqueNotice(this.player.menuMessage);
             }
+        }
+
+        if (npc.id === 'steampunk_grunts_act1') {
+            this.player.storyFlags.steampunk_act1_complete = true;
+            this.player.storyFlags.steampunk_act1_defeated = true;
+            this.player.storyFlags.defeated_steampunk_grunts = true;
+        } else if (npc.id === 'steampunk_thieves_act2') {
+            this.player.storyFlags.steampunk_act2_complete = true;
+            this.player.storyFlags.steampunk_act2_theft_attempt = true;
+            this.player.storyFlags.steampunk_theft_prevented = true;
+            this.player.storyFlags.old_iron_unlocked = true;
+            this.player.storyFlags.oldIronUnlocked = true;
+            this.unlockOldIronEncounter();
+        } else if (npc.id === 'boss_grease') {
+            this.player.storyFlags.steampunk_act3_complete = true;
+            this.player.storyFlags.steampunk_arc_complete = true;
+            this.player.storyFlags.steampunk_defeated = true;
+            this.player.storyFlags.elite_four_unlocked = true;
+            this.player.storyFlags.eliteFourUnlocked = true;
+            this.player.storyFlags.derailDefeated = true;
+        } else if (npc.id === 'old_iron') {
+            this.player.storyFlags.old_iron_defeated = true;
         }
 
         if (typeof npc.onVictory === 'function') {
@@ -1376,6 +1427,8 @@ Game.prototype.render = function () {
             this.renderStarterSelection(ctx);
             break;
         case CONSTANTS.STATES.OVERWORLD:
+        case CONSTANTS.STATES.DIALOGUE:
+        case 'cutscene':
             this.renderOverworld(ctx);
             break;
         case CONSTANTS.STATES.BATTLE:
@@ -1807,23 +1860,13 @@ Game.prototype.renderOverworld = function (ctx) {
         ctx.textAlign = 'left';
     }
 
-    // Render dialogue box if active
-    if (this.state === CONSTANTS.STATES.DIALOGUE && this.dialogueBox.isActive()) {
+    // Render cutscene or dialogue box if active
+    if (this.currentCutscene) {
+        UI.drawCutscene(ctx, this.currentCutscene.title, this.dialogueBox.getCurrentDialogue());
+    } else if (this.state === CONSTANTS.STATES.DIALOGUE && this.dialogueBox.isActive()) {
         const dialogue = this.dialogueBox.getCurrentDialogue();
         if (dialogue) {
-            // Draw box at bottom
-            const boxHeight = 100;
-            const boxY = canvas.height - boxHeight - 10;
-            UI.drawTextBox(ctx, 10, boxY, canvas.width - 20, boxHeight, dialogue.text);
-
-            // Draw speaker name
-            if (dialogue.speaker) {
-                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
-                ctx.fillRect(20, boxY - 15, ctx.measureText(dialogue.speaker).width + 20, 25);
-                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-                ctx.font = 'bold 16px monospace';
-                ctx.fillText(dialogue.speaker, 30, boxY + 2);
-            }
+            UI.drawDialogueBox(ctx, dialogue.speaker, dialogue.text || '');
         }
     }
 };
@@ -2014,6 +2057,11 @@ Game.prototype.load = function () {
 
         this.player = Player.fromJSON(data.player);
 
+        // Rehydrate Team Steam Punk and legendary encounters
+        if (this.player.storyFlags && (this.player.storyFlags.old_iron_unlocked || this.player.storyFlags.oldIronUnlocked)) {
+            this.unlockOldIronEncounter();
+        }
+
         // Map NPC objects are runtime singletons and are not serialized with
         // Player. Rehydrate their defeated state from the canonical flags so
         // loading cannot reopen completed trainer or Stationmaster battles.
@@ -2023,7 +2071,11 @@ Game.prototype.load = function () {
                 const storyFlag = npc.storyFlag || `defeated_${npc.id}`;
                 npc.defeated = !!this.player.storyFlags[storyFlag] ||
                     !!(npc.badge && this.player.badges.includes(npc.badge)) ||
-                    this.player.defeatedGymLeaders.includes(npc.id);
+                    this.player.defeatedGymLeaders.includes(npc.id) ||
+                    (npc.id === 'steampunk_grunts_act1' && !!this.player.storyFlags.steampunk_act1_complete) ||
+                    (npc.id === 'steampunk_thieves_act2' && !!this.player.storyFlags.steampunk_act2_complete) ||
+                    (npc.id === 'boss_grease' && !!this.player.storyFlags.steampunk_act3_complete) ||
+                    (npc.id === 'old_iron' && !!this.player.storyFlags.old_iron_defeated);
             }
         }
 
@@ -2419,6 +2471,289 @@ Game.prototype.renderMenu = function () {
     } else {
         UI.drawPauseMenu(this.ctx, this.menuOptions, this.menuSelection, this.player);
     }
+};
+
+// --- Team Steam Punk Story Event & Cutscene System ---
+
+Game.prototype.initStoryMaps = function () {
+    const makeBasicMap = (id, name, theme) => {
+        const w = 20, h = 15;
+        const tiles = Array.from({ length: h }, (_, y) =>
+            Array.from({ length: w }, (_, x) => (x === 0 || y === 0 || x === w - 1 || y === h - 1 ? 0 : 1))
+        );
+        return {
+            id, name, theme: theme || 'graveyard',
+            decorations: [], npcs: [], warps: [],
+            width: w, height: h, tiles,
+            getTile(x, y) { return (x < 0 || y < 0 || x >= w || y >= h) ? 0 : tiles[y][x]; },
+            isWalkable(x, y) {
+                if (this.npcs.some(n => n.x === x && n.y === y && !n.hidden)) return false;
+                return [1, 2, 3, 6, 12].includes(this.getTile(x, y));
+            },
+            checkForEncounter() { return false; }
+        };
+    };
+
+    if (!this.maps.GhostGraveyard) {
+        const graveyard = makeBasicMap('GhostGraveyard', 'Ghost Rail Graveyard', 'graveyard');
+        this.maps.GhostGraveyard = graveyard;
+        this.maps.GhostRailGraveyard = graveyard;
+        if (typeof WORLD_MAPS !== 'undefined') {
+            WORLD_MAPS.GhostGraveyard = graveyard;
+            WORLD_MAPS.GhostRailGraveyard = graveyard;
+        }
+    }
+
+    if (!this.maps.PowerPlant) {
+        const plant = makeBasicMap('PowerPlant', 'Victory Road Power Plant', 'isotope');
+        this.maps.PowerPlant = plant;
+        this.maps.VictoryRoadPowerPlant = plant;
+        if (typeof WORLD_MAPS !== 'undefined') {
+            WORLD_MAPS.PowerPlant = plant;
+            WORLD_MAPS.VictoryRoadPowerPlant = plant;
+        }
+    }
+};
+
+Game.prototype.startCutscene = function (title, dialogues, onComplete) {
+    this.currentCutscene = { title, dialogues };
+    this.state = CONSTANTS.STATES.DIALOGUE;
+    this.dialogueBox.startCutscene(title, dialogues, () => {
+        this.currentCutscene = null;
+        this.state = CONSTANTS.STATES.OVERWORLD;
+        if (typeof onComplete === 'function') onComplete();
+    });
+};
+
+Game.prototype.checkStoryEvents = function () {
+    const flags = this.player.storyFlags || (this.player.storyFlags = {});
+    const badges = this.player.badges || [];
+    const badgeCount = Math.max(badges.length, this.player.badgeCount || 0);
+    const mapId = this.currentMap ? (this.currentMap.id || '') : (this.player.currentMap || '');
+
+    if (badgeCount >= 3 && !flags.steampunk_act1_complete && !flags.steampunk_act1_triggered) {
+        return this.triggerSteamPunkAct1();
+    }
+
+    const isGraveyard = mapId === 'GhostGraveyard' || mapId === 'GhostRailGraveyard' || mapId === 'City7';
+    if (isGraveyard && flags.steampunk_act1_complete && !flags.steampunk_act2_complete && !flags.steampunk_act2_triggered) {
+        return this.triggerSteamPunkAct2();
+    }
+
+    const isPowerPlant = mapId === 'VictoryRoad' || mapId === 'PowerPlant' || mapId === 'VictoryRoadPowerPlant';
+    if (isPowerPlant && flags.steampunk_act2_complete && !flags.steampunk_act3_complete && !flags.steampunk_act3_triggered) {
+        return this.triggerSteamPunkAct3();
+    }
+
+    return false;
+};
+
+Game.prototype.triggerSteamPunkAct1 = function (onComplete) {
+    const flags = this.player.storyFlags || (this.player.storyFlags = {});
+    flags.steampunk_act1_triggered = true;
+
+    if (!this.player.party || this.player.party.length === 0) {
+        this.player.party = [new Train(1, 20)];
+    }
+    this.player.healParty();
+
+    const lines = [
+        { speaker: 'Steam Punk Grunt', text: 'Halt, conductor! You have made quite a name for yourself earning those three badges.' },
+        { speaker: 'Steam Punk Grunt', text: 'We are Team Steam Punk! Boss Grease ordered us to confiscate all high-performance engines across the region!' },
+        { speaker: 'Steam Punk Grunt', text: 'Hand over your train companions peacefully, or we will derail your entire journey right here!' }
+    ];
+
+    const gruntNPC = {
+        id: 'steampunk_grunts_act1',
+        name: 'Steam Punk Grunts',
+        type: 'trainer',
+        canBattle: true,
+        defeated: false,
+        storyFlag: 'steampunk_act1_complete',
+        party: [
+            { speciesId: 23, level: 20 },
+            { speciesId: 34, level: 22 }
+        ],
+        dialogue: lines,
+        defeatDialogue: [
+            { speaker: 'Steam Punk Grunt', text: 'No way! Our steam valves ruptured! How did your partner train overcome our pressure?!' },
+            { speaker: 'Steam Punk Grunt', text: 'Do not celebrate yet! Boss Grease is already mobilizing at the Ghost Graveyard to steal Old Iron!' }
+        ],
+        onVictory: (player) => {
+            player.storyFlags.steampunk_act1_complete = true;
+            player.storyFlags.steampunk_act1_defeated = true;
+            player.storyFlags.defeated_steampunk_grunts = true;
+            this.save();
+            if (typeof onComplete === 'function') onComplete();
+        }
+    };
+
+    this.startCutscene('Team Steam Punk - Act 1 Encounter', lines, () => {
+        this.startTrainerBattle(gruntNPC);
+    });
+    return true;
+};
+
+Game.prototype.triggerSteamPunkAct2 = function (onComplete) {
+    const flags = this.player.storyFlags || (this.player.storyFlags = {});
+    flags.steampunk_act2_triggered = true;
+    flags.steampunk_act2_theft_attempt = true;
+
+    if (!this.player.party || this.player.party.length === 0) {
+        this.player.party = [new Train(1, 30)];
+    }
+    this.player.healParty();
+
+    const lines = [
+        { speaker: 'Steam Punk Ash', text: 'Keep tension on the winch cables! Boss Grease wants Old Iron towed out of this graveyard before dawn!' },
+        { speaker: 'Steam Punk Cinder', text: 'Look behind you! That conductor followed our tracks into the mist!' },
+        { speaker: 'Steam Punk Ash', text: 'Do not let anyone interfere with the theft! Team Steam Punk will crush this intruder into scrap!' }
+    ];
+
+    const act2NPC = {
+        id: 'steampunk_thieves_act2',
+        name: 'Steam Punk Thieves',
+        type: 'trainer',
+        canBattle: true,
+        defeated: false,
+        storyFlag: 'steampunk_act2_complete',
+        party: [
+            { speciesId: 36, level: 32 },
+            { speciesId: 54, level: 35 }
+        ],
+        dialogue: lines,
+        defeatDialogue: [
+            { speaker: 'Steam Punk Cinder', text: 'The tow rig broke! The spectral steam from that engine is too intense!' },
+            { speaker: 'Steam Punk Ash', text: 'Retreat to Victory Road! Boss Grease is waiting at the power plant with the main force!' }
+        ],
+        onVictory: (player) => {
+            player.storyFlags.steampunk_act2_complete = true;
+            player.storyFlags.steampunk_theft_prevented = true;
+            player.storyFlags.old_iron_unlocked = true;
+            player.storyFlags.oldIronUnlocked = true;
+            this.unlockOldIronEncounter();
+            this.save();
+            if (typeof onComplete === 'function') onComplete();
+        }
+    };
+
+    this.startCutscene('Act 2: Ghost Graveyard Theft Attempt', lines, () => {
+        this.startTrainerBattle(act2NPC);
+    });
+    return true;
+};
+
+Game.prototype.unlockOldIronEncounter = function () {
+    const mapsToCheck = [this.maps.GhostGraveyard, this.maps.GhostRailGraveyard, this.maps.City7];
+    for (const map of mapsToCheck) {
+        if (!map || !map.npcs) continue;
+        if (!map.npcs.some(n => n.id === 'old_iron')) {
+            map.npcs.push({
+                id: 'old_iron',
+                name: 'Old Iron',
+                x: 10,
+                y: 5,
+                type: 'trainer',
+                canBattle: true,
+                defeated: false,
+                party: [{ speciesId: 151, level: 60 }],
+                dialogue: [{ speaker: 'Old Iron', text: 'Hoooonk! (Old Iron awakens with mystical energy, ready to test your bond!)' }],
+                defeatDialogue: [{ speaker: 'Old Iron', text: "Old Iron bows its brass boiler in deep respect. Grandpa's legacy is in great hands." }]
+            });
+        }
+    }
+};
+
+Game.prototype.triggerOldIronEncounter = function (onComplete) {
+    const flags = this.player.storyFlags || (this.player.storyFlags = {});
+    if (!flags.old_iron_unlocked && !flags.oldIronUnlocked) {
+        const lockedLines = [{ speaker: 'Old Iron', text: 'The ancient locomotive rests in silence. The rails must be made safe before it awakens.' }];
+        this.state = CONSTANTS.STATES.DIALOGUE;
+        this.dialogueBox.show(lockedLines, () => {
+            this.state = CONSTANTS.STATES.OVERWORLD;
+            if (typeof onComplete === 'function') onComplete();
+        });
+        return false;
+    }
+
+    if (!this.player.party || this.player.party.length === 0) {
+        this.player.party = [new Train(1, 55)];
+    }
+    this.player.healParty();
+
+    const oldIronNPC = {
+        id: 'old_iron',
+        name: 'Old Iron',
+        type: 'trainer',
+        canBattle: true,
+        defeated: false,
+        storyFlag: 'old_iron_defeated',
+        party: [{ speciesId: 151, level: 60 }],
+        dialogue: [{ speaker: 'Old Iron', text: 'Hoooonk! (Old Iron awakens with mystical energy, ready to test your bond!)' }],
+        defeatDialogue: [{ speaker: 'Old Iron', text: "Old Iron bows its brass boiler in deep respect. Grandpa's legacy is in great hands." }],
+        onVictory: (player) => {
+            player.storyFlags.old_iron_defeated = true;
+            this.save();
+            if (typeof onComplete === 'function') onComplete();
+        }
+    };
+
+    const intro = [{ speaker: 'Old Iron', text: "Hoooonk! (A spectral steam whistle shakes the graveyard! Grandpa's train tests your strength!)" }];
+    this.startCutscene('Legendary Encounter - Old Iron', intro, () => {
+        this.startTrainerBattle(oldIronNPC);
+    });
+    return true;
+};
+
+Game.prototype.triggerSteamPunkAct3 = function (onComplete) {
+    const flags = this.player.storyFlags || (this.player.storyFlags = {});
+    flags.steampunk_act3_triggered = true;
+
+    if (!this.player.party || this.player.party.length === 0) {
+        this.player.party = [new Train(1, 50)];
+    }
+    this.player.healParty();
+
+    const lines = [
+        { speaker: 'Boss Grease', text: 'Welcome to the Victory Road power plant, Conductor. I have been expecting you.' },
+        { speaker: 'Boss Grease', text: 'This facility feeds electricity to every switch, signal, and line in Locomotia.' },
+        { speaker: 'Boss Grease', text: 'Once I redirect the core generator into my supreme locomotive, all trains will heed only my command!' },
+        { speaker: 'Boss Grease', text: 'You stopped my theft at the Ghost Graveyard, but here you face the full might of Boss Grease!' }
+    ];
+
+    const bossGreaseNPC = {
+        id: 'boss_grease',
+        name: 'Boss Grease',
+        type: 'trainer',
+        canBattle: true,
+        defeated: false,
+        storyFlag: 'steampunk_act3_complete',
+        party: [
+            { speciesId: 66, level: 50 },
+            { speciesId: 115, level: 52 },
+            { speciesId: 143, level: 55 }
+        ],
+        dialogue: lines,
+        defeatDialogue: [
+            { speaker: 'Boss Grease', text: 'My converters... my generators... overloaded and destroyed! How could your crew withstand my power?' },
+            { speaker: 'Boss Grease', text: 'Team Steam Punk has derailed... The dream of total control is over.' }
+        ],
+        onVictory: (player) => {
+            player.storyFlags.steampunk_act3_complete = true;
+            player.storyFlags.steampunk_arc_complete = true;
+            player.storyFlags.steampunk_defeated = true;
+            player.storyFlags.elite_four_unlocked = true;
+            player.storyFlags.eliteFourUnlocked = true;
+            player.storyFlags.derailDefeated = true;
+            this.save();
+            if (typeof onComplete === 'function') onComplete();
+        }
+    };
+
+    this.startCutscene('Act 3: Victory Road Power Plant Showdown', lines, () => {
+        this.startTrainerBattle(bossGreaseNPC);
+    });
+    return true;
 };
 
 if (typeof module !== 'undefined' && module.exports) {
