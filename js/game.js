@@ -546,6 +546,7 @@ Game.prototype.updateOverworld = function (deltaTime) {
 };
 
 Game.prototype.tryMovePlayer = function (direction) {
+    if (this.player.isMoving) return false;
     const offsets = {
         [CONSTANTS.DIRECTIONS.UP]: [0, -1],
         [CONSTANTS.DIRECTIONS.DOWN]: [0, 1],
@@ -556,6 +557,10 @@ Game.prototype.tryMovePlayer = function (direction) {
     const x = this.player.x + dx;
     const y = this.player.y + dy;
     const obstacle = this.currentMap.getTechniqueObstacle && this.currentMap.getTechniqueObstacle(x, y);
+    const doorWarp = this.currentMap.getTile(x, y) === 12 && this.findWarp(this.currentMap, x, y);
+    if (doorWarp && this.currentMap.isWalkable(x, y, this.player)) {
+        return this.transitionToMap(doorWarp.to);
+    }
     const moved = this.player.move(direction, this.currentMap);
     if (obstacle && !moved) this.showTechniqueNotice(`Path blocked. Requires ${obstacle.technique}.`);
     else if (obstacle && moved) this.showTechniqueNotice(obstacle.clearedMessage);
@@ -929,46 +934,38 @@ Game.prototype.startTrainerBattle = function (npc) {
 };
 
 Game.prototype.checkWarpTransition = function () {
-    // Only works with new world-maps system
-    if (!this.currentMap.warps) return;
-
     const warp = this.findWarp(this.currentMap, this.player.x, this.player.y);
-    if (warp) {
-        const to = warp.to;
-        console.log(`🚪 Warp: ${this.currentMap.id} → ${to.mapId} (${to.x},${to.y})`);
+    if (warp) this.transitionToMap(warp.to);
+};
 
-        // Change map
-        if (this.maps[to.mapId]) {
-            this.currentMap = this.maps[to.mapId];
-            this.player.currentMap = to.mapId;
-            this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), to.mapId]));
-            const isDepot = typeof this.isDepotMap === 'function' ? this.isDepotMap(to.mapId) : (to.mapId && to.mapId.includes('Depot'));
-            if (isDepot) {
-                if (typeof this.updateLastDepot === 'function') {
-                    this.updateLastDepot(to.mapId, to.x, to.y, to.dir);
-                } else if (this.player && typeof this.player.updateLastDepot === 'function') {
-                    this.player.updateLastDepot(to.mapId, to.x, to.y, to.dir);
-                } else if (this.player && typeof this.player.setLastDepot === 'function') {
-                    this.player.setLastDepot(to.mapId, to.x, to.y, to.dir);
-                }
-            }
-        } else {
-            console.error(`Map not found: ${to.mapId}`);
-            return;
-        }
-
-        // Teleport player
-        this.player.x = to.x;
-        this.player.y = to.y;
-        this.player.targetX = to.x;
-        this.player.targetY = to.y;
-
-        // Set direction if specified
-        if (to.dir) {
-            const dirMap = { 'up': 0, 'down': 1, 'left': 2, 'right': 3 };
-            this.player.direction = dirMap[to.dir] ?? CONSTANTS.DIRECTIONS.DOWN;
-        }
+Game.prototype.transitionToMap = function (to) {
+    const destination = this.maps[to.mapId];
+    if (!destination) {
+        console.error(`Map not found: ${to.mapId}`);
+        return false;
     }
+
+    this.currentMap = destination;
+    this.player.currentMap = to.mapId;
+    this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), to.mapId]));
+    this.player.x = to.x;
+    this.player.y = to.y;
+    this.player.targetX = to.x;
+    this.player.targetY = to.y;
+    this.player.isMoving = false;
+    this.player.moveProgress = 0;
+    if (to.dir) {
+        const directions = { up: CONSTANTS.DIRECTIONS.UP, down: CONSTANTS.DIRECTIONS.DOWN,
+            left: CONSTANTS.DIRECTIONS.LEFT, right: CONSTANTS.DIRECTIONS.RIGHT };
+        this.player.direction = directions[to.dir] ?? CONSTANTS.DIRECTIONS.DOWN;
+    }
+    const isDepot = typeof this.isDepotMap === 'function' ? this.isDepotMap(to.mapId) : to.mapId.includes('Depot');
+    if (isDepot) {
+        if (typeof this.updateLastDepot === 'function') this.updateLastDepot(to.mapId, to.x, to.y, to.dir);
+        else if (typeof this.player.updateLastDepot === 'function') this.player.updateLastDepot(to.mapId, to.x, to.y, to.dir);
+        else if (typeof this.player.setLastDepot === 'function') this.player.setLastDepot(to.mapId, to.x, to.y, to.dir);
+    }
+    return true;
 };
 
 Game.prototype.findWarp = function (map, x, y) {
