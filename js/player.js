@@ -36,6 +36,16 @@ class Player {
         this.defeatedGymLeaders = [];
         this.storyFlags = {};
 
+        // Last visited Train Depot for defeat respawn
+        const defaultUp = (typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0;
+        this.lastDepot = {
+            map: 'HealingDepot',
+            mapId: 'HealingDepot',
+            x: 3,
+            y: 6,
+            direction: defaultUp
+        };
+
         // Animation
         this.isMoving = false;
         this.moveProgress = 0;
@@ -207,6 +217,25 @@ class Player {
         return this.techniques.includes(technique);
     }
 
+    setLastDepot(map, x = 3, y = 6, direction = 0) {
+        let dir = direction;
+        if (typeof dir === 'string' && typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS[dir.toUpperCase()] !== undefined) {
+            dir = CONSTANTS.DIRECTIONS[dir.toUpperCase()];
+        }
+        const defaultUp = (typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0;
+        this.lastDepot = {
+            map: map,
+            mapId: map,
+            x: typeof x === 'number' ? x : 3,
+            y: typeof y === 'number' ? y : 6,
+            direction: dir !== undefined ? dir : defaultUp
+        };
+    }
+
+    updateLastDepot(map, x = 3, y = 6, direction = 0) {
+        this.setLastDepot(map, x, y, direction);
+    }
+
     // Alias kept for backwards compatibility - delegates to the canonical heal.
     healAllTrains() {
         this.healParty();
@@ -221,6 +250,13 @@ class Player {
             direction: this.direction,
             currentMap: this.currentMap,
             visitedMaps: this.visitedMaps,
+            lastDepot: this.lastDepot ? {
+                map: this.lastDepot.map || this.lastDepot.mapId,
+                mapId: this.lastDepot.mapId || this.lastDepot.map,
+                x: this.lastDepot.x,
+                y: this.lastDepot.y,
+                direction: this.lastDepot.direction !== undefined ? this.lastDepot.direction : ((typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0)
+            } : null,
             party: this.party.map(t => t.toJSON()),
             storage: this.storage.map(t => t.toJSON()),
             seenSpecies: this.seenSpecies,
@@ -249,6 +285,29 @@ class Player {
         player.currentMap = savedMap === 'piston_town' || savedMap === 'pallet_town' ? 'PistonTown' : savedMap;
         player.visitedMaps = Array.isArray(data.visitedMaps) ? data.visitedMaps : [player.currentMap];
         if (!player.visitedMaps.includes(player.currentMap)) player.visitedMaps.push(player.currentMap);
+
+        const defaultUp = (typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0;
+        if (data.lastDepot) {
+            let dir = data.lastDepot.direction !== undefined ? data.lastDepot.direction : defaultUp;
+            if (typeof dir === 'string' && typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS[dir.toUpperCase()] !== undefined) {
+                dir = CONSTANTS.DIRECTIONS[dir.toUpperCase()];
+            }
+            player.lastDepot = {
+                map: data.lastDepot.map || data.lastDepot.mapId || 'HealingDepot',
+                mapId: data.lastDepot.mapId || data.lastDepot.map || 'HealingDepot',
+                x: typeof data.lastDepot.x === 'number' ? data.lastDepot.x : 3,
+                y: typeof data.lastDepot.y === 'number' ? data.lastDepot.y : 6,
+                direction: dir
+            };
+        } else {
+            player.lastDepot = {
+                map: 'HealingDepot',
+                mapId: 'HealingDepot',
+                x: 3,
+                y: 6,
+                direction: defaultUp
+            };
+        }
 
         // Party: guard against missing/empty and drop any entry that fails to
         // deserialize rather than throwing out the whole save.
@@ -287,4 +346,7 @@ Player.SAVE_VERSION = 3;
 // Export
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Player;
+}
+if (typeof window !== 'undefined') {
+    window.Player = Player;
 }

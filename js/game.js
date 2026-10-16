@@ -40,6 +40,12 @@ function Game(canvas) {
     this.techniqueNotice = '';
     this.techniqueNoticeTime = 0;
 
+    // Whiteout defeat system
+    this.whiteoutTimer = 0;
+    this.whiteoutAlpha = 0;
+    this.whiteoutPhase = null;
+    this.whiteoutMessage = '';
+
     // Debug menu
     this.debugMenuSelection = 0;
     this.debugMenuOptions = [
@@ -245,6 +251,9 @@ Game.prototype.update = function (deltaTime) {
             break;
         case CONSTANTS.STATES.FAST_TRAVEL_TRANSITION:
             this.updateFastTravelTransition(deltaTime);
+            break;
+        case CONSTANTS.STATES.WHITEOUT:
+            this.updateWhiteout(deltaTime);
             break;
         case 'debug':
             this.updateDebugMenu();
@@ -669,9 +678,22 @@ Game.prototype.checkNPCInteraction = function () {
                 });
                 return;
             }
-            this.player.healParty();
-            this.save();
-            this.audio.playSound('heal');
+            if (this.player && typeof this.player.healParty === 'function') {
+                this.player.healParty();
+            }
+            if (typeof this.updateLastDepot === 'function') {
+                this.updateLastDepot(this.player ? this.player.currentMap : null, this.player ? this.player.x : undefined, this.player ? this.player.y : undefined, this.player ? this.player.direction : undefined);
+            } else if (this.player && typeof this.player.updateLastDepot === 'function') {
+                this.player.updateLastDepot(this.player.currentMap, this.player.x, this.player.y, this.player.direction);
+            } else if (this.player && typeof this.player.setLastDepot === 'function') {
+                this.player.setLastDepot(this.player.currentMap, this.player.x, this.player.y, this.player.direction);
+            }
+            if (typeof this.save === 'function') {
+                this.save();
+            }
+            if (this.audio && typeof this.audio.playSound === 'function') {
+                this.audio.playSound('heal');
+            }
             this.state = CONSTANTS.STATES.DIALOGUE;
             this.dialogueBox.show([
                 { speaker: npc.name, text: 'Welcome to the Train Depot. Shall I service your crew?' },
@@ -920,6 +942,16 @@ Game.prototype.checkWarpTransition = function () {
             this.currentMap = this.maps[to.mapId];
             this.player.currentMap = to.mapId;
             this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), to.mapId]));
+            const isDepot = typeof this.isDepotMap === 'function' ? this.isDepotMap(to.mapId) : (to.mapId && to.mapId.includes('Depot'));
+            if (isDepot) {
+                if (typeof this.updateLastDepot === 'function') {
+                    this.updateLastDepot(to.mapId, to.x, to.y, to.dir);
+                } else if (this.player && typeof this.player.updateLastDepot === 'function') {
+                    this.player.updateLastDepot(to.mapId, to.x, to.y, to.dir);
+                } else if (this.player && typeof this.player.setLastDepot === 'function') {
+                    this.player.setLastDepot(to.mapId, to.x, to.y, to.dir);
+                }
+            }
         } else {
             console.error(`Map not found: ${to.mapId}`);
             return;
@@ -976,6 +1008,15 @@ Game.prototype.updateBattle = function (deltaTime) {
         return;
     }
 
+    // Check if player active train or party fainted to detect defeat
+    if (!this.battle.battleEnded && typeof this.battle.checkBattleEnd === 'function') {
+        if (this.battle.playerTrains && !this.battle.playerTrains.some(t => !t.fainted)) {
+            this.battle.handleDefeat();
+        } else if (this.battle.playerActive && this.battle.playerActive.fainted) {
+            this.battle.checkBattleEnd();
+        }
+    }
+
     // Update battle animations
     this.battle.update(deltaTime);
 
@@ -997,7 +1038,7 @@ Game.prototype.updateBattle = function (deltaTime) {
     // Handle battle completion
     if (this.battle.isComplete && this.battle.isComplete()) {
         // Check if player was defeated
-        if (this.battle.state === CONSTANTS.BATTLE_STATES.DEFEAT) {
+        if (this.battle.state === CONSTANTS.BATTLE_STATES.DEFEAT || this.battle.whiteout) {
             this.handleDefeat();
         } else if (this.battle.state === CONSTANTS.BATTLE_STATES.VICTORY) {
             // Award money from battle (funnelled through the single accessor).
@@ -1112,6 +1153,77 @@ Game.prototype.drawSummaryExp = function (ctx, boxX, y, boxWidth) {
     ctx.fillStyle = '#000000';
 };
 
+Game.prototype.respawnAtLastDepot = function () {
+    const defaultUp = (typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0;
+    const rawDepot = (this.player && this.player.lastDepot) ? this.player.lastDepot : null;
+    let respawnKey = 'HealingDepot';
+    if (rawDepot && typeof (rawDepot.map || rawDepot.mapId) === 'string') {
+        const candidateKey = rawDepot.map || rawDepot.mapId;
+        if ((this.maps && this.maps[candidateKey]) || (typeof WORLD_MAPS !== 'undefined' && WORLD_MAPS[candidateKey])) {
+            respawnKey = candidateKey;
+        }
+    }
+    let targetMap = (this.maps && this.maps[respawnKey]) || (typeof WORLD_MAPS !== 'undefined' ? WORLD_MAPS[respawnKey] : null);
+    if (!targetMap) {
+        respawnKey = (this.maps && this.maps['HealingDepot']) ? 'HealingDepot' : 'PistonTown';
+        targetMap = (this.maps && this.maps[respawnKey]) || (typeof WORLD_MAPS !== 'undefined' ? WORLD_MAPS[respawnKey] : null);
+    }
+
+    let targetX = (rawDepot && typeof rawDepot.x === 'number') ? rawDepot.x : 3;
+    let targetY = (rawDepot && typeof rawDepot.y === 'number') ? rawDepot.y : 6;
+    let targetDir = (rawDepot && rawDepot.direction !== undefined) ? rawDepot.direction : defaultUp;
+
+    if (targetMap && typeof targetMap.isWalkable === 'function') {
+        if (!targetMap.isWalkable(targetX, targetY)) {
+            let safeFound = false;
+            const candidates = [[3, 6], [4, 6], [4, 7], [3, 5], [4, 5], [4, 3], [4, 2], [5, 5]];
+            for (let i = 0; i < candidates.length; i++) {
+                const sx = candidates[i][0];
+                const sy = candidates[i][1];
+                if (targetMap.isWalkable(sx, sy)) {
+                    targetX = sx;
+                    targetY = sy;
+                    safeFound = true;
+                    break;
+                }
+            }
+            if (!safeFound) {
+                const mw = targetMap.width || 10;
+                const mh = targetMap.height || 10;
+                for (let y = 0; y < mh && !safeFound; y++) {
+                    for (let x = 0; x < mw && !safeFound; x++) {
+                        if (targetMap.isWalkable(x, y)) {
+                            targetX = x;
+                            targetY = y;
+                            safeFound = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (targetMap && this.player) {
+        this.currentMap = targetMap;
+        this.player.currentMap = respawnKey;
+        this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), respawnKey]));
+        this.player.x = targetX;
+        this.player.y = targetY;
+        this.player.targetX = targetX;
+        this.player.targetY = targetY;
+        this.player.isMoving = false;
+        this.player.direction = targetDir;
+        this.player.lastDepot = {
+            map: respawnKey,
+            mapId: respawnKey,
+            x: targetX,
+            y: targetY,
+            direction: targetDir
+        };
+    }
+    return respawnKey;
+};
+
 Game.prototype.handleDefeat = function () {
     const trainer = this.battle ? this.battle.trainerNPC : null;
     const isRival = trainer && (trainer.isRival || (trainer.id && trainer.id.includes('blake')));
@@ -1121,7 +1233,9 @@ Game.prototype.handleDefeat = function () {
     }
 
     // Heal all trains to full HP (and clear status).
-    this.player.healParty();
+    if (this.player && typeof this.player.healParty === 'function') {
+        this.player.healParty();
+    }
 
     if (isRival) {
         console.log('Player defeated by Blake - triggering rival fail state (heal + retry)');
@@ -1141,25 +1255,107 @@ Game.prototype.handleDefeat = function () {
     console.log('Player defeated - triggering blackout');
 
     // Lose half your money on blackout.
-    this.player.money = this.player.money < 100 ? 0 : Math.floor(this.player.money * 0.5);
+    if (this.player) {
+        const moneyLost = Math.floor((this.player.money || 0) * 0.5);
+        this.player.money = Math.max(0, (this.player.money || 0) - moneyLost);
+    }
 
-    // Teleport back to the Piston Town spawn. The map key MUST match the key
-    // maps are registered under ('PistonTown'), and we must reassign the live
-    // currentMap object - not just the player's map-id string.
-    const respawnKey = this.maps['PistonTown'] ? 'PistonTown' : 'pallet_town';
-    this.currentMap = this.maps[respawnKey];
-    this.player.currentMap = respawnKey;
-    this.player.visitedMaps = Array.from(new Set([...(this.player.visitedMaps || []), respawnKey]));
-    this.player.x = 10;
-    this.player.y = 7;
-    this.player.targetX = 10;
-    this.player.targetY = 7;
-    this.player.isMoving = false;
-    this.player.direction = CONSTANTS.DIRECTIONS.DOWN;
+    // Teleport back to the last visited Train Depot.
+    const respawnKey = this.respawnAtLastDepot();
 
     this.battle = null;
-    this.state = CONSTANTS.STATES.OVERWORLD;
-    console.log(`Blackout - money now ${this.player.money}, respawned at ${respawnKey}`);
+    this.startWhiteout();
+    console.log(`Blackout - money now ${this.player ? this.player.money : 0}, respawned at ${respawnKey}`);
+};
+
+Game.prototype.isDepotMap = function (mapId) {
+    if (!mapId) return false;
+    if (mapId.includes('Depot')) return true;
+    const map = (this.maps && this.maps[mapId]) || (typeof WORLD_MAPS !== 'undefined' ? WORLD_MAPS[mapId] : null);
+    return !!(map && (map.theme === 'depot' || (map.name && map.name.includes('Depot'))));
+};
+
+Game.prototype.updateLastDepot = function (mapId, x, y, dir) {
+    if (!mapId || !this.player) return;
+    const respawnX = typeof x === 'number' ? x : 3;
+    const respawnY = typeof y === 'number' ? y : 6;
+    const defaultUp = (typeof CONSTANTS !== 'undefined' && CONSTANTS.DIRECTIONS && CONSTANTS.DIRECTIONS.UP !== undefined) ? CONSTANTS.DIRECTIONS.UP : 0;
+    const respawnDir = dir !== undefined ? dir : defaultUp;
+    if (typeof this.player.updateLastDepot === 'function') {
+        this.player.updateLastDepot(mapId, respawnX, respawnY, respawnDir);
+    } else if (typeof this.player.setLastDepot === 'function') {
+        this.player.setLastDepot(mapId, respawnX, respawnY, respawnDir);
+    }
+};
+
+Game.prototype.startWhiteout = function () {
+    this.whiteoutTimer = 0;
+    this.whiteoutAlpha = 0;
+    this.whiteoutPhase = 'fade_in';
+    this.whiteoutMessage = 'You blacked out!';
+    this.state = CONSTANTS.STATES.WHITEOUT;
+};
+
+Game.prototype.updateWhiteout = function (deltaTime) {
+    const dt = Math.max(0, deltaTime || 0.016);
+    this.whiteoutTimer += dt;
+
+    if (this.whiteoutPhase === 'fade_in') {
+        this.whiteoutAlpha = Math.min(1.0, this.whiteoutAlpha + dt * 2.0);
+        if (this.whiteoutAlpha >= 1.0) {
+            this.whiteoutPhase = 'message';
+        }
+    }
+
+    const confirm = this.input && (
+        this.input.isKeyJustPressed('Enter') ||
+        this.input.isKeyJustPressed('z') ||
+        this.input.isKeyJustPressed('Z') ||
+        this.input.isVirtualKeyJustPressed('a') ||
+        this.input.isKeyJustPressed(' ')
+    );
+
+    if ((confirm && this.whiteoutTimer > 0.2) || this.whiteoutTimer >= 3.0) {
+        this.whiteoutPhase = 'fade_out';
+    }
+
+    if (this.whiteoutPhase === 'fade_out') {
+        this.whiteoutAlpha = Math.max(0, this.whiteoutAlpha - dt * 2.0);
+        if (this.whiteoutAlpha <= 0 || confirm) {
+            this.whiteoutAlpha = 0;
+            this.state = CONSTANTS.STATES.OVERWORLD;
+            console.log('-> OVERWORLD (from whiteout)');
+        }
+    }
+};
+
+Game.prototype.renderWhiteout = function (ctx) {
+    const canvas = (ctx && ctx.canvas) || this.canvas;
+    const w = canvas ? canvas.width : 768;
+    const h = canvas ? canvas.height : 672;
+
+    if (this.currentMap) {
+        this.renderOverworld(ctx);
+    } else {
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    const alpha = Math.min(1.0, Math.max(0, typeof this.whiteoutAlpha === 'number' ? this.whiteoutAlpha : 1.0));
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.2, Math.min(1.0, alpha));
+    ctx.fillStyle = '#181818';
+    ctx.font = 'bold 28px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.whiteoutMessage || 'You blacked out!', w / 2, h / 2 - 20);
+
+    ctx.fillStyle = '#485048';
+    ctx.font = '16px monospace';
+    ctx.fillText('Respawned at the Train Depot.', w / 2, h / 2 + 25);
+    ctx.restore();
 };
 
 Game.prototype.render = function () {
@@ -1199,6 +1395,9 @@ Game.prototype.render = function () {
             break;
         case CONSTANTS.STATES.FAST_TRAVEL_TRANSITION:
             this.renderFastTravel(ctx, true);
+            break;
+        case CONSTANTS.STATES.WHITEOUT:
+            this.renderWhiteout(ctx);
             break;
         case 'debug':
             this.renderDebugMenu(ctx);
@@ -1502,7 +1701,7 @@ Game.prototype.renderOverworld = function (ctx) {
     }
 
     const tileSize = CONSTANTS.TILE_SIZE * CONSTANTS.SCALE;
-    const canvas = ctx.canvas;
+    const canvas = (ctx && ctx.canvas) || this.canvas;
     const displayPosition = this.player.getDisplayPosition ? this.player.getDisplayPosition() : this.player;
 
     // Camera system - center on player

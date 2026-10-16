@@ -74,6 +74,7 @@ class Battle {
         this.expDisplay = new WeakMap();
         this.pendingMoves = [];
         this.victoryPending = false;
+        this.defeatPending = false;
         this.expGained = 0;
         this.expTrain = null;
         this.hpDisplay.set(this.playerActive, this.playerActive.currentHP);
@@ -667,6 +668,9 @@ class Battle {
         } else if (this.victoryPending) {
             this.victoryPending = false;
             this.handleVictory();
+        } else if (this.defeatPending || (this.playerTrains && !this.playerTrains.some(t => !t.fainted))) {
+            this.defeatPending = false;
+            this.handleDefeat();
         } else {
             this.state = CONSTANTS.BATTLE_STATES.MENU;
         }
@@ -729,9 +733,11 @@ class Battle {
         if (this.battleEnded) return;
         this.addMessage("You have no more trains!");
         this.addMessage("You blacked out!");
+        if (typeof this.onDefeat === 'function') this.onDefeat();
         this.state = CONSTANTS.BATTLE_STATES.DEFEAT;
         this.battleEnded = true;
         this.playerWon = false;
+        this.whiteout = true;
     }
 
     // THE single owner of end-of-battle resolution. Called once per drained
@@ -745,6 +751,8 @@ class Battle {
                 this.playerActive = nextTrain;
                 this.resetStages('player');
                 this.addMessage(`Go! ${this.playerActive.species.name}!`);
+            } else if (this.messages.length > 0 && this.currentMessage < this.messages.length) {
+                this.defeatPending = true;
             } else {
                 this.handleDefeat();
                 return;
@@ -1178,6 +1186,16 @@ class Battle {
             if (selected) this.wrapText(ctx, `${selected.pocket}: ${selected.description}`, 40, 595, canvas.width - 410, 24);
             this.drawMenuGrid(ctx, page.map(it => `${it.displayName} x${it.quantity}`), this.itemSelection % 4, () => '#75502d');
         }
+
+        if (this.state === CONSTANTS.BATTLE_STATES.DEFEAT || this.whiteout) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#181818';
+            ctx.font = 'bold 28px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('You blacked out!', canvas.width / 2, canvas.height / 2);
+            ctx.textAlign = 'left';
+        }
     }
 
     drawStationArena(ctx, w) {
@@ -1460,4 +1478,7 @@ class Battle {
 // Export
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Battle;
+}
+if (typeof window !== 'undefined') {
+    window.Battle = Battle;
 }

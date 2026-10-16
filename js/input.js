@@ -13,7 +13,7 @@ class InputHandler {
     }
 
     setupListeners() {
-        if (typeof window === 'undefined') return;
+        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
 
         window.addEventListener('keydown', (e) => {
             if (!this.keys[e.key]) {
