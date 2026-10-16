@@ -5,7 +5,7 @@ const STORY_EVENTS = Object.freeze([
     { id: "stolen_manifest", requires: ["Torque Badge"], trigger: { map: "City4", x: 9, y: 7 }, dialogue: ["The regional manifest is gone. Without it, trains are vanishing from every timetable."], battle: "grunt_spike", sets: "manifestRecovered" },
     { id: "blackout", requires: ["Beam Badge"], trigger: { map: "Route6", x: 10, y: 10 }, dialogue: ["Team Derail overloaded the Isotope signal grid. Reach the control room before the core trips."], battle: "grunt_smoke", sets: "gridRestored" },
     { id: "derail_hq", requires: ["Core Badge", "gridRestored"], trigger: { map: "Route7", x: 10, y: 16 }, dialogue: ["Admin Wreck: We will uncouple every city and rule the wreckage."], battle: "admin_wreck", sets: "derailDefeated" },
-    { id: "final_rival", requires: ["Crown Badge", "derailDefeated"], trigger: { map: "GrandTerminus", x: 6, y: 26 }, battle: "rival_blake:4", sets: "rivalFinalDefeated" },
+    { id: "final_rival", requires: ["Crown Badge", "derailDefeated", "steamPunkDefeated"], trigger: { map: "GrandTerminus", x: 6, y: 26 }, battle: "rival_blake:4", sets: "rivalFinalDefeated" },
     { id: "league", requires: ["rivalFinalDefeated"], trigger: { map: "GrandTerminus", x: 6, y: 2 }, dialogue: ["Eight badges open the Grand Gate. Four Conductors and the Champion await."], sets: "leagueOpen" },
     { id: "champion", requires: ["defeated_radia"], trigger: { map: "GrandTerminus", x: 6, y: 4 }, battle: "champion_cypress", sets: "gameComplete" },
     { id: "credits", requires: ["gameComplete"], trigger: { map: "GrandTerminus", x: 6, y: 4 }, dialogue: ["The Grand Transit is whole again.", "CREDITS - The rails continue wherever you choose to travel."], sets: "creditsSeen" },
