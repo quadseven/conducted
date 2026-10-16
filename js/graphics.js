@@ -134,6 +134,7 @@ const WorldArt = (() => {
     return null;
   }
 
+  // Turns a map object or a map id string into the map object, or null.
   function resolveMap(map, options = {}) {
     if (!map) return null;
     if (typeof map === 'object') return map;
@@ -153,7 +154,9 @@ const WorldArt = (() => {
     const fromGt = findInMapRegistry(gt, map);
     if (fromGt) return fromGt;
 
-    return map;
+    // An id no registry knows yields null, never the raw string, so callers
+    // only ever read tiles, collisions or decorations off a real map object.
+    return null;
   }
 
   function districtNumber(map) {

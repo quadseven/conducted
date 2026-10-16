@@ -223,3 +223,24 @@ function createTestContext() {
     'Hidden NPC should not be rendered'
   );
 }
+
+// 5. An unknown string map id resolves to null, so no helper reads map fields off a string
+{
+  const { ctx, mockCtx, drawnSprites } = createTestContext();
+  const WorldArt = ctx.WorldArt;
+  const npc = { id: 'stray', name: 'Stray NPC', x: 4, y: 4, map: 'NoSuchMap' };
+
+  assert.equal(WorldArt.resolveMap('NoSuchMap'), null, 'Unknown string map id resolves to null');
+  assert.equal(WorldArt.isBuildingAt('NoSuchMap', 4, 4), false, 'isBuildingAt treats an unknown map id as open');
+  assert.equal(WorldArt.isSolidCell('NoSuchMap', 4, 4), false, 'isSolidCell treats an unknown map id as open');
+  assert.equal(WorldArt.hasLineOfSight('NoSuchMap', 0, 0, 4, 4), true, 'Line of sight is clear on an unknown map id');
+  assert.equal(
+    WorldArt.shouldRenderCharacter(npc, { map: 'NoSuchMap', player: { x: 0, y: 0 } }),
+    true,
+    'Same-map NPC on an unknown string map id still renders'
+  );
+
+  drawnSprites.length = 0;
+  WorldArt.drawWorldCharacter(mockCtx, npc, 10, 10, 16, { map: 'NoSuchMap', player: { x: 0, y: 0 } });
+  assert.ok(drawnSprites.length > 0, 'drawWorldCharacter draws with an unknown string map id');
+}
