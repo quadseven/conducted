@@ -675,6 +675,13 @@ Game.prototype.checkNPCInteraction = function () {
             });
             return;
         }
+        if (npc.type === 'encounter_marker' && npc.speciesId) {
+            this.state = CONSTANTS.STATES.DIALOGUE;
+            this.dialogueBox.show(npc.dialogue, () => {
+                this.startBattle(new Train(npc.speciesId, npc.level));
+            });
+            return;
+        }
         if (npc.type === 'healer') {
             if (flags.leagueChallengeActive && npc.id !== 'league_healer') {
                 this.state = CONSTANTS.STATES.DIALOGUE;
@@ -939,6 +946,13 @@ Game.prototype.checkWarpTransition = function () {
 };
 
 Game.prototype.transitionToMap = function (to) {
+    if (to.mapId === 'GrandTerminus' && !this.player.storyFlags.steamPunkDefeated) {
+        this.state = CONSTANTS.STATES.DIALOGUE;
+        this.dialogueBox.show([{ speaker: 'Conductor', text: 'The power plant is in danger. Stop Team Steam Punk before reaching the Elite Four.' }], () => {
+            this.state = CONSTANTS.STATES.OVERWORLD;
+        });
+        return false;
+    }
     const destination = this.maps[to.mapId];
     if (!destination) {
         console.error(`Map not found: ${to.mapId}`);

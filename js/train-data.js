@@ -340,6 +340,19 @@ for (let i = 27; i <= 151; i++) {
 
 TRAIN_SPECIES[151].evolution = { method: "level", level: 75, evolvesTo: 161 };
 
+TRAIN_SPECIES[162] = {
+    id: 162, name: 'Old Iron', types: ['STEAM'],
+    baseStats: { hp: 110, attack: 105, defense: 115, speed: 65, special: 110 },
+    learnset: [
+        { level: 1, move: 'Ram' },
+        { level: 20, move: 'Steam Jet' },
+        { level: 35, move: 'Whistle Blast' },
+        { level: 45, move: 'Mega Steam' }
+    ],
+    evolution: null, catchRate: 3, expYield: 250,
+    spritePlaceholder: 'placeholder:old-iron'
+};
+
 // Export
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = TRAIN_SPECIES;

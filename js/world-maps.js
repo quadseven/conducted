@@ -395,8 +395,8 @@ function townDialogue(speaker, town) {
     const lines = [`${town} keeps its lamps lit for every train that comes through.`,
       badges ? `Your ${badges} badge${badges === 1 ? '' : 's'} ${badges === 1 ? 'shows' : 'show'} how far you have traveled.` : 'Earn your first badge and the whole line will open to you.'];
     const steamPunkProgress = flags.teamSteamPunkProgress || flags.steamPunkProgress || 0;
-    if (flags.steamPunkDefeated || flags.derailDefeated) lines.push('With Team Steam Punk stopped, our freight is moving safely again.');
-    else if (steamPunkProgress || flags.switchyardCleared || flags.manifestRecovered || flags.gridRestored) lines.push('Team Steam Punk has disrupted the line, but conductors like you are pushing back.');
+    if (flags.steamPunkDefeated) lines.push('With Team Steam Punk stopped, our freight is moving safely again.');
+    else if (flags.steamPunkAct1Complete || flags.steamPunkAct2Complete || steamPunkProgress) lines.push('Team Steam Punk has disrupted the line, but conductors like you are pushing back.');
     else lines.push('Keep an eye out for Team Steam Punk wherever the signals turn strange.');
     if (flags.rival_blake_stage) lines.push('Your rival is still keeping pace. The next meeting will be a good one.');
     else if (flags.rival1Defeated || flags.defeated_rival_blake_1) lines.push('Word is you and your rival have already tested each other on the rails.');
@@ -801,9 +801,29 @@ function createRivalBlakeNPC(stage, x, y, direction) {
   const graveyard = lateArea('GhostRailGraveyard', 'Ghost Rail Graveyard', 20, 18, [103, 139], [
     door(10, 0, 'Route6', 10, 22, 'up'), door(10, 17, 'Route7', 10, 1, 'down'),
     door(4, 9, 'GhostCrypt', 4, 6, 'up')
-  ], [areaNPC('graveyard_keeper', 'Crypt Keeper', 6, 5, 'npc')]);
+  ], [areaNPC('graveyard_keeper', 'Crypt Keeper', 6, 5, 'npc'),
+    areaNPC('steam_punk_theft', 'Cinder and Ash', 10, 8, 'trainer', {
+      canBattle: true, baseReward: 220, requires: ['steamPunkAct1Complete'],
+      storyFlag: 'steamPunkAct2Complete',
+      party: [{ speciesId: 103, level: 38 }, { speciesId: 139, level: 40 }, { speciesId: 27, level: 39 }],
+      blockedDialogue: dialogue('Crypt Keeper', 'The graveyard is quiet. Follow the trail after meeting Team Steam Punk.'),
+      dialogue: [
+        { speaker: 'Cinder', text: 'The siphon is ready. Old Iron will be ours!' },
+        { speaker: 'Ash', text: 'Stop that conductor before they reach the crypt!' },
+        { speaker: 'Crypt Keeper', text: 'Protect Old Iron. Break their siphon in battle!' }
+      ],
+      defeatDialogue: dialogue('Crypt Keeper', 'The siphon is broken. Old Iron waits inside the crypt.')
+    })]);
   const crypt = interior('GhostCrypt', 'Ghost Rail Crypt', 'GhostRailGraveyard', 4, 9, 10, 8, [
-    areaNPC('old_iron_encounter', 'Old Iron', 5, 3, 'encounter_marker', { encounterId: 'old_iron', battleScript: null })
+    areaNPC('old_iron_encounter', 'Old Iron', 5, 3, 'encounter_marker', {
+      encounterId: 'old_iron', speciesId: 162, level: 50,
+      requires: ['steamPunkAct2Complete'],
+      blockedDialogue: dialogue('Old Iron', 'A distant whistle answers, but the siphon still binds this place.'),
+      dialogue: [
+        { speaker: 'Crypt Keeper', text: 'Old Iron is free. The legendary engine recognizes your courage.' },
+        { speaker: 'Old Iron', text: 'A deep whistle echoes through the crypt. Old Iron approaches!' }
+      ]
+    })
   ], [124, 151]);
   WORLD_MAPS.GhostRailGraveyard = graveyard;
   WORLD_MAPS.GhostCrypt = crypt;
@@ -868,12 +888,42 @@ function createRivalBlakeNPC(stage, x, y, direction) {
   victoryRoad.puzzles = [{ id: 'signal-switches', description: 'Three signal gates require the side paths to be crossed.' }];
   WORLD_MAPS.VictoryRoad = victoryRoad;
   victoryRoad.warps[0] = { from: rect(10, 0), to: { mapId: 'MonorailMountaintop', ...pos(10, 16, 'up') } };
+  victoryRoad.warps.push(door(15, 8, 'VictoryRoadPowerPlant', 5, 8, 'up'));
+  victoryRoad.tiles[8][15] = 12;
+  WORLD_MAPS.VictoryRoadPowerPlant = interior('VictoryRoadPowerPlant', 'Victory Road Power Plant',
+    'VictoryRoad', 15, 8, 12, 10, [areaNPC('boss_grease', 'Boss Grease', 6, 3, 'trainer', {
+      canBattle: true, baseReward: 400, requires: ['steamPunkAct2Complete'],
+      storyFlag: 'steamPunkDefeated',
+      party: [{ speciesId: 115, level: 52 }, { speciesId: 143, level: 54 }, { speciesId: 145, level: 55 }],
+      blockedDialogue: dialogue('Boss Grease', 'The graveyard siphon still holds. You cannot stop the power plant now.'),
+      dialogue: [
+        { speaker: 'Boss Grease', text: 'The Victory Road power plant will overload. Every train will answer to me!' },
+        { speaker: 'Conductor', text: 'Shut down the overload and protect the road to the Elite Four!' }
+      ],
+      defeatDialogue: [
+        { speaker: 'Boss Grease', text: 'My control circuit is broken. Team Steam Punk is finished.' },
+        { speaker: 'Conductor', text: 'The power plant is safe. The Elite Four await beyond Victory Road.' }
+      ]
+    })], [124, 151]);
+
+  WORLD_MAPS.City3.npcs.push({
+    id: 'steam_punk_grunts', name: 'Cinder and Ash', x: 10, y: 10,
+    type: 'trainer', canBattle: true, baseReward: 120,
+    requires: ['Harbor Badge', 'Circuit Badge', 'Torque Badge'],
+    storyFlag: 'steamPunkAct1Complete', party: [{ speciesId: 23, level: 26 }, { speciesId: 27, level: 27 }],
+    blockedDialogue: dialogue('Cinder', 'Come back when you have three badges. Our boss wants a real challenge.'),
+    dialogue: [
+      { speaker: 'Cinder', text: 'Team Steam Punk has been watching your three badges. Hand over your trains!' },
+      { speaker: 'Ash', text: 'Boss Grease says the legendary Old Iron is hidden in the Ghost Rail Graveyard.' }
+    ],
+    defeatDialogue: dialogue('Ash', 'We lost the battle, but the graveyard job is already in motion!')
+  });
 
   const elite = NPC_DATA.eliteConductors.concat([NPC_DATA.champion]);
   const tt = boxed(13, 30, 0, 3); tt[29][6] = 12;
   const eliteNPCs = elite.map((e, i) => ({ id: e.id, name: e.name, x: 6, y: 24 - i * 5,
     type: i === 4 ? 'champion' : 'trainer', canBattle: true, defeated: false, baseReward: 250,
-    requires: i === 0 ? ['Crown Badge', 'derailDefeated', 'defeated_rival_blake_4'] : [`defeated_${elite[i - 1].id}`],
+    requires: i === 0 ? ['Crown Badge', 'derailDefeated', 'steamPunkDefeated', 'defeated_rival_blake_4'] : [`defeated_${elite[i - 1].id}`],
     storyFlag: i === 4 ? 'gameComplete' : `defeated_${e.id}`,
     party: e.roster.map(r => ({ speciesId: r[0], level: r[1] })),
     dialogue: dialogue(e.name, e.dialogue.intro), defeatDialogue: dialogue(e.name, e.dialogue.defeat) }));
@@ -887,7 +937,7 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     type: 'healer', dialogue: dialogue('Platform Attendant', 'Rest here between the Elite Conductors.') };
   const oldIronRematch = { id: 'old_iron_rematch', name: 'Old Iron Rematch', x: 10, y: 3,
     type: 'trainer', canBattle: true, baseReward: 500, requires: ['postgameUnlocked'],
-    storyFlag: 'oldIronRematchWon', party: [{ speciesId: 151, level: 70 }],
+    storyFlag: 'oldIronRematchWon', party: [{ speciesId: 162, level: 70 }],
     dialogue: dialogue('Old Iron', 'The rails have one more lesson to teach.') };
   WORLD_MAPS.GrandTerminus = runtimeMap('GrandTerminus', 'Grand Terminus', tt, [blake4, ...eliteNPCs, leagueHealer, oldIronRematch], [
     { from: rect(6, 29), to: { mapId: 'VictoryRoad', ...pos(10, 22, 'up') } }
