@@ -49,7 +49,7 @@
   function textSpeed() { return CD.state && CD.state.options ? CD.state.options.textSpeed || 'mid' : 'mid'; }
   const easeOut = t => 1 - Math.pow(1 - t, 3);
   // frame the last dialogue box closed; a box opening that same frame continues the conversation
-  let closedAt = -1;
+  let closedAt = null;
 
   // The Pokemon-style dialogue border: solid ink, a white rule, then paper
   function dialogFrame(s, x, y, w, h) {
@@ -84,7 +84,7 @@
       this.pos = this.top ? { x: BOX.x, y: 4 } : { x: BOX.x, y: BOX.y };
       this.opened = opts.slide === false ? DIALOG.openFrames : 0;
     }
-    enter() { if (closedAt === CD.frame) this.opened = DIALOG.openFrames; }
+    enter() { if (closedAt !== null && closedAt === CD.frame) this.opened = DIALOG.openFrames; }
     exit() { closedAt = CD.frame; }
     // Pixels the box still sits from its resting place: below for a bottom box, above for a top one
     offset() {
