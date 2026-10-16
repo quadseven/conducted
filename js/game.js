@@ -936,7 +936,7 @@ Game.prototype.checkWarpTransition = function () {
     if (warp) {
         const to = warp.to;
         console.log(`🚪 Warp: ${this.currentMap.id} → ${to.mapId} (${to.x},${to.y})`);
-        this.enterBuilding(to.mapId, to.x, to.y, to.dir);
+        return this.enterBuilding(to.mapId, to.x, to.y, to.dir);
     }
 };
 

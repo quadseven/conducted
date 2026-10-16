@@ -41,6 +41,11 @@ assert.deepEqual([game.player.x, game.player.y, game.player.targetX, game.player
 assert.equal(game.player.direction, 1, 'entry facing follows the interior warp');
 assert.equal(game.player.isMoving, false, 'warp cancels movement animation');
 assert.ok(game.player.visitedMaps.includes('LabInterior'));
+const missingMapGame = Object.create(context.Game.prototype);
+missingMapGame.maps = context.WORLD_MAPS;
+missingMapGame.player = { x: 1, y: 1 };
+missingMapGame.currentMap = { id: 'MissingMapSource', warps: [{ from: { x: 1, y: 1, w: 1, h: 1 }, to: { mapId: 'MissingInterior', x: 0, y: 0 } }] };
+assert.equal(missingMapGame.checkWarpTransition(), false, 'failed building entry is reported to its caller');
 game.player.x = 4;
 game.player.y = 9;
 game.checkWarpTransition();
