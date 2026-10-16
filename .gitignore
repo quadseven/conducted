@@ -3,4 +3,5 @@
 .env
 .loom_test
 .test_write
+.test-write
 .agents/

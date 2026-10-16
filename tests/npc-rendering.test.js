@@ -55,6 +55,8 @@ function createTestContext() {
     vm.runInContext(code, ctx, { filename: rel });
   }
 
+  ctx.WORLD_MAPS = ctx.WORLD_MAPS || vm.runInContext('WORLD_MAPS', ctx);
+
   return { ctx, mockCtx, drawnSprites };
 }
 
