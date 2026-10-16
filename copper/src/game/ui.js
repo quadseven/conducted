@@ -1,5 +1,6 @@
-// UI primitives and modal scenes: framed windows, the dialogue box (typewriter,
-// two lines per page, speaker tab), yes/no and list choices, and screen fades.
+// UI primitives and modal scenes: framed windows, the dialogue box (slides up,
+// typewriter, two lines per page, speaker tab), yes/no and list choices, and
+// screen fades.
 (function (CD) {
   'use strict';
   const { Surface, hex, shade } = CD.gfx;
@@ -41,8 +42,22 @@
 
   // ---------- dialogue ----------
   const BOX = { x: 4, y: 112, w: 232, h: 46 };
+  // ink border, white rule inside it, then text padding; openFrames is the slide-up length
+  const DIALOG = { border: 3, rule: 2, pad: 3, openFrames: 8 };
+  const INSET = DIALOG.border + DIALOG.rule + DIALOG.pad;
   const TEXT_SPEED = { slow: 2, mid: 1, fast: 0 };
   function textSpeed() { return CD.state && CD.state.options ? CD.state.options.textSpeed || 'mid' : 'mid'; }
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  // frame the last dialogue box closed; a box opening that same frame continues the conversation
+  let closedAt = -1;
+
+  // The Pokemon-style dialogue border: solid ink, a white rule, then paper
+  function dialogFrame(s, x, y, w, h) {
+    const b = DIALOG.border, r = DIALOG.rule;
+    s.fill(x, y, w, h, P.ink);
+    s.fill(x + b, y + b, w - 2 * b, h - 2 * b, P.white);
+    s.fill(x + b + r, y + b + r, w - 2 * (b + r), h - 2 * (b + r), P.paper);
+  }
 
   // Substitute tokens: {PLAYER} {RIVAL} {STARTER} and any key in state.vars
   function fill(text) {
@@ -60,16 +75,29 @@
       opts = opts || {};
       this.speaker = opts.speaker || null;
       this.keepOpen = !!opts.keepOpen;
-      this.lines = F.wrap(fill(text), BOX.w - 18);
-      this.page = 0; this.shown = 0; this.tick = 0; this.waiting = false;
+      if (opts.speed !== undefined && !(opts.speed in TEXT_SPEED)) throw new Error('unknown text speed: ' + opts.speed);
+      this.speed = opts.speed;
+      this.lines = F.wrap(fill(text), BOX.w - 2 * INSET);
+      this.page = 0; this.shown = 0; this.tick = 0;
       this.autoClose = opts.auto || 0;
-      this.pos = opts.top ? { x: BOX.x, y: 4 } : { x: BOX.x, y: BOX.y };
+      this.top = !!opts.top;
+      this.pos = this.top ? { x: BOX.x, y: 4 } : { x: BOX.x, y: BOX.y };
+      this.opened = opts.slide === false ? DIALOG.openFrames : 0;
+    }
+    enter() { if (closedAt === CD.frame) this.opened = DIALOG.openFrames; }
+    exit() { closedAt = CD.frame; }
+    // Pixels the box still sits from its resting place: below for a bottom box, above for a top one
+    offset() {
+      const away = this.top ? -(this.pos.y + BOX.h) : CD.gfx.H - this.pos.y;
+      return Math.round(away * (1 - easeOut(this.opened / DIALOG.openFrames)));
     }
     pageText() { return this.lines.slice(this.page * 2, this.page * 2 + 2); }
+    typed() { return this.shown >= this.pageText().join('').length; }
     update(active) {
+      if (this.opened < DIALOG.openFrames) { this.opened++; return; }
       const total = this.pageText().join('').length;
       if (this.shown < total) {
-        const spd = TEXT_SPEED[textSpeed()];
+        const spd = TEXT_SPEED[this.speed || textSpeed()];
         const skip = active && (I.held.a || I.held.b);
         if (spd === 0 || skip) this.shown = Math.min(total, this.shown + (skip ? 4 : 3));
         else if (++this.tick >= spd) { this.tick = 0; this.shown++; if (this.shown % 3 === 0) CD.audio.sfx('text'); }
@@ -84,25 +112,24 @@
       }
     }
     draw(s) {
-      const { x, y } = this.pos;
-      frame(s, x, y, BOX.w, BOX.h);
+      const x = this.pos.x, y = this.pos.y + this.offset();
+      dialogFrame(s, x, y, BOX.w, BOX.h);
       if (this.speaker) {
         const w = F.measure(this.speaker) + 10;
         frame(s, x + 6, y - 12, w, 15, { paper: P.paper2 });
         F.draw(s, this.speaker, x + 11, y - 8, P.ink);
-        s.fill(x + 9, y + 1, w - 6, 3, P.paper); s.hline(x + 9, y + 3, w - 6, P.cream);
       }
       let left = this.shown;
       this.pageText().forEach((ln, i) => {
         const part = ln.slice(0, Math.max(0, left));
         left -= ln.length;
-        F.draw(s, part, x + 9, y + 11 + i * 15, P.ink, P.paper2);
+        F.draw(s, part, x + INSET, y + 11 + i * 15, P.ink, P.paper2);
       });
-      const total = this.pageText().join('').length;
-      if (this.shown >= total && !this.autoClose) {
+      if (this.typed() && !this.autoClose) {
         const more = (this.page + 1) * 2 < this.lines.length;
         const bob = (CD.frame >> 3) % 2;
-        if (more || !this.keepOpen) F.draw(s, '\x02', x + BOX.w - 14, y + BOX.h - 12 + bob, P.copperD);
+        // the down triangle is the "A to continue" prompt; its glyph is 5px wide
+        if (more || !this.keepOpen) F.draw(s, '\x02', x + BOX.w - INSET - 5, y + BOX.h - 12 + bob, P.copperD);
       }
     }
   }
@@ -151,14 +178,15 @@
     const tb = new TextBox(text, { speaker: opts.speaker, keepOpen: true });
     E.push(tb);
     // the box pages itself; hand over to the choice once its last page is fully typed
-    while (tb.shown < tb.pageText().join('').length || (tb.page + 1) * 2 < tb.lines.length) yield;
+    while (!tb.typed() || (tb.page + 1) * 2 < tb.lines.length) yield;
     E.remove(tb);
     const r = yield* E.run(new Choice(opts.items || ['YES', 'NO'], { under: tb, cancel: opts.cancel === undefined ? 1 : opts.cancel }));
+    closedAt = CD.frame;   // the question leaves with the choice, so a reply right after it does not slide
     return r;
   }
 
   // A scene that just draws something until done is set by a script
   function overlay(drawFn) { return { draw: drawFn, update() {} }; }
 
-  CD.ui = { frame, cursor, say, ask, choose, TextBox, Choice, fadeOut, fadeIn, flash, fill, overlay, BOX };
+  CD.ui = { frame, cursor, say, ask, choose, TextBox, Choice, fadeOut, fadeIn, flash, fill, overlay, BOX, DIALOG };
 })(window.CD);
