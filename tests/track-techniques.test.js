@@ -12,7 +12,7 @@ vm.runInContext(fs.readFileSync('js/player.js', 'utf8'), context, { filename: 'j
 const result = vm.runInContext(`(() => {
     const player = new Player();
     const gate = WORLD_MAPS.Route5.techniqueObstacles[0];
-    const blocked = WORLD_MAPS.Route5.isWalkable(gate.x, gate.y, player);
+    const blocked = !WORLD_MAPS.Route5.isWalkable(gate.x, gate.y, player);
     player.learnTechnique(gate.technique);
     const cleared = WORLD_MAPS.Route5.isWalkable(gate.x, gate.y, player);
     const restored = Player.fromJSON(player.toJSON());
@@ -20,7 +20,7 @@ const result = vm.runInContext(`(() => {
     return { blocked, cleared, restored: restored.hasTechnique(gate.technique), gates: Object.values(WORLD_MAPS).flatMap(map => map.techniqueObstacles || []), gymRewards };
 })()`, context);
 
-assert.equal(result.blocked, false, 'a technique gate blocks players who have not learned its technique');
+assert.equal(result.blocked, true, 'a technique gate blocks players who have not learned its technique');
 assert.equal(result.cleared, true, 'a technique gate allows players who have learned its technique');
 assert.equal(result.restored, true, 'learned techniques persist in saves');
 assert.ok(result.gates.length >= 3, 'the overworld defines at least three technique gates');
