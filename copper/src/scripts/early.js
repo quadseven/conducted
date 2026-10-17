@@ -39,7 +39,41 @@
       yield* U.fadeIn(12);
     }
   }
-  CD.story = { path, spawn, despawn, give, flag, set, healParty };
+  function* runDialogue(nodes, first) {
+    let id = first;
+    while (id && nodes[id]) {
+      const node = nodes[id];
+      if (node.requires && !node.requires.every(key => flag(key))) return;
+      if (node.text) yield* say(node.text, node.speaker);
+      if (node.choices && node.choices.length) {
+        const options = node.choices.filter(choice => !choice.requires || choice.requires.every(flag));
+        if (!options.length) return;
+        const selected = options[yield* U.choose(options.map(choice => choice.label))];
+        if (!selected) return;
+        if (selected.set) set(selected.set);
+        if (selected.quest) set(selected.quest);
+        if (selected.event) set(selected.event);
+        if (selected.give) yield* give(selected.give.item, selected.give.count || 1, selected.give.text || 'Received ' + selected.give.item + '!');
+        id = selected.next;
+      } else {
+        if (node.set) set(node.set);
+        if (node.quest) set(node.quest);
+        if (node.event) set(node.event);
+        if (node.give) yield* give(node.give.item, node.give.count || 1, node.give.text || 'Received ' + node.give.item + '!');
+        id = node.next;
+      }
+    }
+  }
+  CD.story = { path, spawn, despawn, give, flag, set, healParty, runDialogue };
+
+  const professorLesson = {
+    start: { speaker: CY, text: 'What would you like to learn about?', choices: [
+      { label: 'Signal safety', next: 'signals', set: 'professor_signal_lesson' },
+      { label: 'Train care', next: 'care', quest: 'professor_care_quest' },
+    ] },
+    signals: { speaker: CY, text: 'Watch every signal. A clear route is a safe route.', end: true },
+    care: { speaker: CY, text: 'A healthy train can carry you through any journey.', give: { item: 'potion', count: 1 }, end: true },
+  };
 
   // ------------------------------------------------------------ bedroom and house
   map('PlayerHouse2F').npcs = [];
@@ -135,6 +169,7 @@
       if (!flag('gotStarter')) yield* say('Go on, take a look at the eggs. Choose the partner who calls to you!', CY);
       else if (!flag('beatRival1') && CD.battle) yield* say('Your train is eager to stretch its wheels. Why not test it against ' + RIVAL() + '?', CY);
       else if (CD.state.badges.includes('harbor')) yield* say("Remarkable! You've earned the Harbor Badge already! You're a natural Conductor, just like your grandfather!", CY);
+      else if (!flag('professor_signal_lesson') && !flag('professor_care_quest')) yield* CD.story.runDialogue(professorLesson, 'start');
       else yield* say('Head north on Route 1 to Coal Harbor. Captain Marina will be waiting to test you. May your rails always run true!', CY);
     } },
     { id: 'rivalLab', sprite: 'rival', x: 9, y: 4, dir: 'left', move: 'still', cond: s => s.flags.escorted && !s.flags.rivalLeftLab, talk: function* () {

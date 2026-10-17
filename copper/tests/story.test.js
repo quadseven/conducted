@@ -6,6 +6,22 @@ const H = require('./harness.js');
 
 const h = H.load({ seed: 7 });
 const CD = h.CD;
+assert.strictEqual(typeof CD.story.runDialogue, 'function', 'story exposes a branching dialogue runner');
+{
+  const nodes = {
+    start: { speaker: 'PROFESSOR', text: 'What will you study?', choices: [
+      { label: 'The signal', next: 'signal', set: 'signalLesson' },
+      { label: 'The map', next: 'map', quest: 'mapLesson' },
+    ] },
+    signal: { text: 'Signals keep trains safe.', end: true },
+    map: { text: 'Maps show the way.', give: { item: 'potion', count: 1 }, end: true },
+  };
+  CD.overworld.script(CD.story.runDialogue(nodes, 'start'), 'dialogue-test');
+  assert(h.until(() => h.top() instanceof CD.ui.Choice, 300, 'a'), 'dialogue presents branching choices');
+  h.press('down', 1); h.press('a', 1);
+  assert(h.until(() => CD.state.flags.mapLesson && !CD.ow.locked, 500, 'a'), 'choice sets quest flag');
+  assert.strictEqual(CD.state.bag.potion, 1, 'choice can grant an item');
+}
 CD.engine.spawn(CD.main.flow(), 'flow');
 h.step(20);
 h.press('start', 30);
