@@ -22,6 +22,7 @@ Then open `http://127.0.0.1:8765/`. Keyboard: arrows or WASD move, Z confirms, X
 - Rail Mart clerks open a shop for Trainballs and healing items; buy with money or sell carried items for half price
 - a soundtrack of looping town, route, battle and gym themes plus jingles
 - save and load in browser storage
+- a title screen with CONTINUE, NEW GAME, SAVE FILES and OPTIONS, and a Professor Cypress introduction that START skips
 
 ## How it is built
 
