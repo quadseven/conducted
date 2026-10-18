@@ -389,6 +389,102 @@ class UI {
         ctx.fillText('Up/Down: Select Train  -  B: Back', x + 20, y + height - 16);
     }
 
+    static drawTraindex(ctx, player, entries, selection) {
+        const x = 40;
+        const y = 50;
+        const width = 688;
+        const height = 572;
+
+        UI.drawPanel(ctx, x, y, width, height);
+
+        const list = entries || [];
+        const sel = Math.min(Math.max(0, selection || 0), Math.max(0, list.length - 1));
+        const caughtCount = list.filter(entry => entry.caught).length;
+
+        // Header
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = 'bold 22px monospace';
+        ctx.fillText('TRAINDEX', x + 20, y + 38);
+        ctx.font = '16px monospace';
+        ctx.fillText(`Caught: ${caughtCount} / ${list.length}`, x + width - 230, y + 38);
+
+        // List column on left
+        const leftW = 280;
+        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 14, y + 56, leftW, height - 100);
+
+        const rowsPerPage = 11;
+        const rowH = 42;
+        const listTop = y + 88;
+        const first = Math.floor(sel / rowsPerPage) * rowsPerPage;
+        for (let i = 0; i < rowsPerPage && first + i < list.length; i++) {
+            const idx = first + i;
+            const entry = list[idx];
+            const rowY = listTop + i * rowH;
+
+            if (idx === sel) {
+                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+                ctx.fillRect(x + 16, rowY - 22, leftW - 4, rowH - 6);
+                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+            } else {
+                ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            }
+
+            ctx.font = '14px monospace';
+            const num = '#' + String(entry.id).padStart(3, '0');
+            ctx.fillText(entry.caught ? `${num} ${entry.name}` : `${num} ??????`, x + 24, rowY);
+        }
+
+        // Details panel on right
+        const rightX = x + leftW + 28;
+        const selected = list[sel];
+
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        if (selected && selected.caught) {
+            ctx.font = 'bold 20px monospace';
+            ctx.fillText(selected.name, rightX, y + 88);
+            ctx.font = '16px monospace';
+            ctx.fillText('#' + String(selected.id).padStart(3, '0'), rightX + 300, y + 88);
+
+            // Types
+            const types = selected.types || [];
+            for (let i = 0; i < types.length; i++) {
+                const badgeX = rightX + i * 90;
+                const badgeY = y + 104;
+                ctx.fillStyle = (CONSTANTS.TYPE_COLORS && CONSTANTS.TYPE_COLORS[types[i]]) || '#888888';
+                ctx.fillRect(badgeX, badgeY, 80, 22);
+                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+                ctx.font = 'bold 12px monospace';
+                ctx.fillText(types[i], badgeX + 8, badgeY + 16);
+            }
+
+            // Base stats
+            const stats = selected.baseStats || {};
+            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            ctx.font = 'bold 15px monospace';
+            ctx.fillText('BASE STATS', rightX, y + 176);
+            ctx.font = '14px monospace';
+            ctx.fillText(`HP:  ${stats.hp}`, rightX, y + 204);
+            ctx.fillText(`ATK: ${stats.attack}`, rightX + 150, y + 204);
+            ctx.fillText(`DEF: ${stats.defense}`, rightX, y + 232);
+            ctx.fillText(`SPD: ${stats.speed}`, rightX + 150, y + 232);
+            ctx.fillText(`SPC: ${stats.special}`, rightX, y + 260);
+        } else if (selected) {
+            ctx.font = 'bold 20px monospace';
+            ctx.fillText('NO DATA', rightX, y + 88);
+            ctx.font = '14px monospace';
+            ctx.fillText('Catch this train to', rightX, y + 130);
+            ctx.fillText('register it in the', rightX, y + 152);
+            ctx.fillText('Traindex.', rightX, y + 174);
+        }
+
+        // Instructions
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = '14px monospace';
+        ctx.fillText('Up/Down: Browse  -  B: Back', x + 20, y + height - 16);
+    }
+
     static drawSaveOverlay(ctx, player, currentMap, saveSelection, saveMessage) {
         const x = 134;
         const y = 110;
