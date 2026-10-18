@@ -60,6 +60,7 @@ assert.strictEqual(CD.state.rivalStarter, 4, 'rival takes the type that beats st
 assert.strictEqual(CD.state.bag.trainball, 5);
 assert.strictEqual(CD.state.bag.potion, 2);
 assert(CD.state.trainers.rival1, 'the rival battle was fought');
+assert.strictEqual(CD.lastBattle.ai, 'ace', 'the rival battles with the ace AI tier');
 assert(CD.state.flags.rivalLeftLab, 'the rival left the lab');
 
 // head out and north onto Route 1 through the seamless connection

@@ -26,6 +26,7 @@ assert(C.state.badges.includes('harbor'), 'earned the Harbor Badge');
 assert(C.state.trainers.gymSailor, 'the deckhand spotted and battled us');
 assert(C.state.trainers.gymWorker, 'the dockhand spotted and battled us');
 assert(C.state.trainers.marina, 'Marina marked as beaten');
+assert.strictEqual(C.lastBattle.ai, 'ace', 'Marina battles with the ace AI tier');
 h.settle();
 assert(C.state.bag.superpotion >= 2, 'received the badge gift');
 assert(C.state.money > 1000, 'prize money paid');
