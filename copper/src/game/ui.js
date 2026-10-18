@@ -1,6 +1,6 @@
 // UI primitives and modal scenes: framed windows, the dialogue box (slides up,
-// typewriter, two lines per page, speaker tab), yes/no and list choices, and
-// screen fades.
+// typewriter, two lines per page, speaker tab), yes/no and list choices (which
+// fade and slide open, cursor travelling between rows), and screen fades.
 (function (CD) {
   'use strict';
   const { Surface, hex, shade } = CD.gfx;
@@ -137,25 +137,63 @@
     if (typeof opts === 'string') opts = { speaker: opts };
     return yield* E.run(new TextBox(text, opts));
   }
+  // ---------- menu motion ----------
+  // An option list arrives rather than appearing. It fades up over openFrames --
+  // 200ms at 60fps, the span the select jingle reads as -- while sliding the last
+  // openSlide pixels into place, and its cursor then takes cursorFrames to travel
+  // between rows. Everything is counted in engine frames, so a transition runs at
+  // whatever rate the loop steps at, and the only per-frame work is a blit of the
+  // window's own pixels.
+  const MENU_ANIM = { openFrames: 12, openSlide: 8, cursorFrames: 6 };
+  const ROW = 13;   // row pitch of an option list
+  // A scratch surface to compose a fading window in. Reused and grown as needed, so a
+  // transition allocates nothing once it has run once. Cleared transparent: the four
+  // corner pixels frame() leaves unpainted stay that way, so a fading window dims the
+  // scene beneath it without painting over the corners an undrawn one would not either.
+  let fadeBuf = null;
+  function fadeBuffer(w, h) {
+    if (!fadeBuf || fadeBuf.w < w || fadeBuf.h < h) fadeBuf = new Surface(w, h);
+    fadeBuf.clear(0);
+    return fadeBuf;
+  }
+
   // Show a box that stays on screen (drawn) while another prompt appears
   class Choice {
     constructor(items, opts) {
       opts = opts || {};
       this.items = items; this.i = opts.start || 0; this.cancel = opts.cancel === undefined ? items.length - 1 : opts.cancel;
       this.w = opts.w || Math.max(...items.map(t => F.measure(typeof t === 'string' ? t : t.label))) + 24;
-      this.h = items.length * 13 + 10;
+      this.h = items.length * ROW + 10;
       this.x = opts.x !== undefined ? opts.x : 236 - this.w;
       this.y = opts.y !== undefined ? opts.y : BOX.y - this.h - 2;
       this.under = opts.under || null;
       this.onMove = opts.onMove;
+      // where the cursor is drawn: a row plus a fraction while it is travelling
+      this.cy = this.i; this.from = this.i; this.to = this.i; this.t = 1;
     }
     label(i) { const t = this.items[i]; return typeof t === 'string' ? t : t.label; }
     disabled(i) { const t = this.items[i]; return t && t.disabled; }
+    // how far the open transition has got, 0 to 1
+    arrived() { return Math.max(0, Math.min(1, (CD.frame - this.bornAt) / MENU_ANIM.openFrames)); }
+    // Move the cursor along to its row
+    advance() {
+      if (this.t < 1) {
+        this.t = Math.min(1, this.t + 1 / MENU_ANIM.cursorFrames);
+        this.cy = this.from + (this.to - this.from) * easeOut(this.t);
+      }
+    }
+    // Send the cursor to row j. Wrapping past either end lands at once rather than
+    // sweeping every row in between.
+    aim(j) {
+      if (Math.abs(j - this.cy) > 1) { this.from = this.to = this.cy = j; this.t = 1; }
+      else { this.from = this.cy; this.to = j; this.t = 0; }
+    }
     update(active) {
       if (!active) return;
+      this.advance();
       const n = this.items.length;
-      if (I.repeat.up) { this.i = (this.i + n - 1) % n; CD.audio.sfx('cursor'); if (this.onMove) this.onMove(this.i); }
-      if (I.repeat.down) { this.i = (this.i + 1) % n; CD.audio.sfx('cursor'); if (this.onMove) this.onMove(this.i); }
+      if (I.repeat.up) { this.i = (this.i + n - 1) % n; this.aim(this.i); CD.audio.sfx('cursor'); if (this.onMove) this.onMove(this.i); }
+      if (I.repeat.down) { this.i = (this.i + 1) % n; this.aim(this.i); CD.audio.sfx('cursor'); if (this.onMove) this.onMove(this.i); }
       if (I.pressed.a) {
         if (this.disabled(this.i)) { CD.audio.sfx('bump'); return; }
         CD.audio.sfx('select'); this.result = this.i; this.done = true;
@@ -163,12 +201,22 @@
     }
     draw(s) {
       if (this.under) this.under.draw(s);
-      frame(s, this.x, this.y, this.w, this.h);
-      for (let i = 0; i < this.items.length; i++) {
-        const yy = this.y + 7 + i * 13;
-        F.draw(s, this.label(i), this.x + 15, yy, this.disabled(i) ? '#a09080' : P.ink);
-        if (i === this.i) cursor(s, this.x + 7, yy);
-      }
+      const p = easeOut(this.arrived());
+      const dy = Math.round(MENU_ANIM.openSlide * (1 - p));
+      if (p >= 1) this.window(s, this.x, this.y);
+      else this.fade(s, p, dy);
+    }
+    // The paper frame, the labels, and the cursor wherever it has got to
+    window(s, x, y) {
+      frame(s, x, y, this.w, this.h);
+      for (let i = 0; i < this.items.length; i++) F.draw(s, this.label(i), x + 15, y + 7 + i * ROW, this.disabled(i) ? '#a09080' : P.ink);
+      cursor(s, x + 7, y + 7 + Math.round(this.cy * ROW));
+    }
+    // Blend the window into the frame it is about to cover, at alpha p
+    fade(s, p, dy) {
+      const buf = fadeBuffer(this.w, this.h);
+      this.window(buf, 0, 0);
+      s.blit(buf, this.x, this.y + dy, { sw: this.w, sh: this.h, alpha: p });
     }
   }
   function* choose(items, opts) { return yield* E.run(new Choice(items, opts)); }
@@ -188,5 +236,5 @@
   // A scene that just draws something until done is set by a script
   function overlay(drawFn) { return { draw: drawFn, update() {} }; }
 
-  CD.ui = { frame, cursor, say, ask, choose, TextBox, Choice, fadeOut, fadeIn, flash, fill, overlay, BOX, DIALOG };
+  CD.ui = { frame, cursor, say, ask, choose, TextBox, Choice, fadeOut, fadeIn, flash, fill, overlay, BOX, DIALOG, MENU_ANIM };
 })(window.CD);
