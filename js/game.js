@@ -62,12 +62,13 @@ function Game(canvas) {
 
     // Pause menu system
     this.menuSelection = 0;
-    this.menuOptions = ['BAG', 'TRAINS', 'SAVE', 'OPTIONS'];
-    this.menuOverlay = null; // null (main menu), 'BAG', 'TRAINS', 'SAVE', 'OPTIONS'
+    this.menuOptions = ['BAG', 'TRAINS', 'SAVE', 'OPTIONS', 'TRAINDEX'];
+    this.menuOverlay = null; // null (main menu), 'BAG', 'TRAINS', 'TRAINDEX', 'SAVE', 'OPTIONS'
     this.bagSelection = 0;
     this.bagMode = null; // null, 'list', 'use_on_train', or 'depot'
     this.selectedItem = null;
     this.trainSelection = 0;
+    this.traindexSelection = 0;
     this.saveSelection = 0; // 0: YES, 1: NO
     this.saveMessage = '';
     this.optionsSelection = 0; // 0: Audio, 1: Text Speed
@@ -2122,6 +2123,10 @@ Game.prototype.updateMenu = function () {
         this.updateMenuTrains();
         return;
     }
+    if (this.menuOverlay === 'TRAINDEX') {
+        this.updateMenuTraindex();
+        return;
+    }
     if (this.menuOverlay === 'SAVE') {
         this.updateMenuSave();
         return;
@@ -2159,6 +2164,9 @@ Game.prototype.updateMainMenu = function () {
         } else if (option === 'OPTIONS') {
             this.menuOverlay = 'OPTIONS';
             this.optionsSelection = 0;
+        } else if (option === 'TRAINDEX') {
+            this.menuOverlay = 'TRAINDEX';
+            this.traindexSelection = 0;
         }
         return;
     }
@@ -2276,6 +2284,45 @@ Game.prototype.updateMenuTrains = function () {
         } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
             this.trainSelection = (this.trainSelection + 1) % party.length;
         }
+    }
+
+    const isCancel = this.input.isKeyJustPressed('Backspace') ||
+                     this.input.isKeyJustPressed('x') ||
+                     this.input.isVirtualKeyJustPressed('b') ||
+                     this.input.isKeyJustPressed('Escape');
+
+    if (isCancel) {
+        this.menuOverlay = null;
+    }
+};
+
+Game.prototype.getTraindexList = function () {
+    const caught = (this.player && this.player.caughtSpecies) || [];
+    const ids = Object.keys(typeof TRAIN_SPECIES !== 'undefined' ? TRAIN_SPECIES : {})
+        .map(function (k) { return Number(k); })
+        .sort(function (a, b) { return a - b; });
+    return ids.map(function (id) {
+        const species = TRAIN_SPECIES[id];
+        const isCaught = caught.indexOf(id) !== -1;
+        return {
+            id: id,
+            caught: isCaught,
+            name: isCaught ? species.name : null,
+            types: isCaught ? (species.types || []) : [],
+            baseStats: isCaught ? species.baseStats : null
+        };
+    });
+};
+
+Game.prototype.updateMenuTraindex = function () {
+    const entries = this.getTraindexList();
+    const max = Math.max(0, entries.length - 1);
+    this.traindexSelection = Math.min(Math.max(0, this.traindexSelection || 0), max);
+
+    if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+        this.traindexSelection = Math.max(0, this.traindexSelection - 1);
+    } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+        this.traindexSelection = Math.min(max, this.traindexSelection + 1);
     }
 
     const isCancel = this.input.isKeyJustPressed('Backspace') ||
@@ -2426,6 +2473,8 @@ Game.prototype.renderMenu = function () {
         }
     } else if (this.menuOverlay === 'TRAINS') {
         UI.drawTrainsOverlay(this.ctx, this.player, this.trainSelection);
+    } else if (this.menuOverlay === 'TRAINDEX') {
+        UI.drawTraindex(this.ctx, this.player, this.getTraindexList(), this.traindexSelection);
     } else if (this.menuOverlay === 'SAVE') {
         UI.drawSaveOverlay(this.ctx, this.player, this.currentMap, this.saveSelection, this.saveMessage);
     } else if (this.menuOverlay === 'OPTIONS') {
