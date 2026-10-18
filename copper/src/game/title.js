@@ -125,6 +125,25 @@
 
   // ---------- the introduction ----------
   function stage(drawFn) { const sc = { opaque: true, draw: drawFn, update() {} }; E.push(sc); return sc; }
+
+  // START skips the narration: the box open at the time closes, every later line
+  // is passed over, and name entry still runs so the player is always named.
+  const SKIP_HINT = 'START: SKIP';
+  let skip = null;   // null outside the intro, else { used: bool }
+  function introSkippable() { return !!skip && !skip.used; }
+  function* narrate(text, opts) {
+    if (skip.used) return undefined;
+    const box = E.push(new U.TextBox(text, opts));
+    try {
+      while (!box.done) {
+        yield;
+        // read after the yield, so a press that opened the box is not read as a skip
+        if (I.pressed.start) { skip.used = true; CD.audio.sfx('select'); return; }
+      }
+      return box.result;
+    } finally { E.remove(box); }
+  }
+
   function* intro() {
     const bg = s => {
       for (let y = 0; y < SH; y++) s.hline(0, y, SW, mix('#f4ead0', '#d8c8a0', y / SH));
@@ -139,15 +158,22 @@
         s.blitScaled(f.down[0], 120 - 24 + slide, 44, 3);
       }
       if (train) { CD.gfx.shadow(s, 190, 104, 22, 4, 0.2); s.blit(CD.trainArt.sprite(train, 'front'), 158, 46); }
+      if (introSkippable()) F.drawRight(s, SKIP_HINT, SW - 4, 4, '#8a7a6a');
     });
     CD.audio.music('lab');
     yield* U.fadeIn(20);
-    const S = t => U.say(t, { speaker: 'PROF. CYPRESS' });
+    skip = { used: false };
+    try {
+      yield* introBody(sc, v => { train = v; });
+    } finally { skip = null; }
+  }
+  function* introBody(sc, setTrain) {
+    const S = t => narrate(t, { speaker: 'PROF. CYPRESS' });
     yield* S('Welcome to the world of Locomotia! This land is home to remarkable creatures called trains: living beings of steam, steel, and spirit.');
-    train = 1; CD.audio.cry(1, 'STEAM');
+    if (!skip.used) { setTrain(1); CD.audio.cry(1, 'STEAM'); }
     yield* S("Trains aren't mere machines here. They're born from the ancient Rails of Power, and each one has its own personality, dreams, and fighting spirit!");
     yield* S('People who bond with these trains are called Conductors. We raise them, battle alongside them, and journey together across this great land.');
-    train = 0;
+    setTrain(0);
     yield* S('Your grandfather... he was the greatest Conductor Locomotia has ever known. His partner train, Old Iron, saved us all during the Great Derailment.');
     yield* S('But enough about the old days. Tell me about yourself. What is your name?');
     const nm = yield* E.run(new NameEntry('YOUR NAME?', 'ALEX'));
@@ -160,5 +186,5 @@
     E.remove(sc);
   }
 
-  CD.title = { scene: title, intro, NameEntry };
+  CD.title = { scene: title, intro, NameEntry, SKIP_HINT, introSkippable };
 })(window.CD);
