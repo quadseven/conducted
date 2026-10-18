@@ -62,7 +62,7 @@
     if (tr.intro) yield* U.say(tr.intro, { speaker: tr.cls ? tr.cls + ' ' + tr.name : tr.name });
     const result = yield* CD.battleScene.battle({
       kind: 'trainer', enemy: makeParty(typeof tr.party === 'function' ? tr.party(CD.state) : tr.party), terrain: tr.terrain || (CD.world.get(CD.state.map).indoor ? 'gym' : 'grass'),
-      trainer: { name: tr.name, cls: tr.cls, sprite: n.sprite, look: n.look, prize: tr.prize || 10, defeat: tr.defeat, items: tr.items },
+      trainer: { name: tr.name, cls: tr.cls, sprite: n.sprite, look: n.look, prize: tr.prize || 10, defeat: tr.defeat, items: tr.items, ai: tr.ai },
       music: tr.music, victory: tr.victory,
     });
     if (result === 'win') CD.state.trainers[tr.id] = true;

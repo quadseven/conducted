@@ -30,7 +30,7 @@
     yield* say("Ahoy there, young Conductor! Welcome to Coal Harbor! I'm Captain Marina, and this gym is my ship!", M);
     yield* say("My freight trains have hauled cargo across stormy seas and treacherous mountain passes. They're tough as iron and twice as stubborn!", M);
     yield* say("Your grandfather once stood where you're standing, you know. He earned his first badge right here! Let's see if you've got his mettle! All hands on deck!", M);
-    n.trainer = { id: 'marina', cls: 'STATIONMASTER', name: 'MARINA', prize: 100, party: [[13, 10], [16, 11], [17, 13]], items: ['superpotion'],
+    n.trainer = { id: 'marina', cls: 'STATIONMASTER', name: 'MARINA', prize: 100, party: [[13, 10], [16, 11], [17, 13]], items: ['superpotion'], ai: 'ace',
       music: 'leader', victory: 'victoryTrainer', terrain: 'gym',
       defeat: "Blow me down! You've got the heart of a true Conductor! Your grandfather would've been proud to see that battle!" };
     const res = yield* CD.encounters.fightTrainer(n);

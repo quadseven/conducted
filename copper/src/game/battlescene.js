@@ -411,11 +411,11 @@
   }
 
   // ---------- the battle script ----------
-  // opts: { kind: 'wild'|'trainer', enemy: [trains], trainer: {name, cls, sprite, look, prize, defeat, items}, terrain, music }
+  // opts: { kind: 'wild'|'trainer', enemy: [trains], trainer: {name, cls, sprite, look, prize, defeat, items, ai}, terrain, music }
   function* battle(opts) {
     const st = CD.state;
     const party = st.party;
-    const b = B.create(party, opts.enemy, { kind: opts.kind, trainer: opts.trainer, terrain: opts.terrain, items: opts.trainer && opts.trainer.items });
+    const b = B.create(party, opts.enemy, { kind: opts.kind, trainer: opts.trainer, terrain: opts.terrain, items: opts.trainer && opts.trainer.items, ai: opts.trainer && opts.trainer.ai });
     CD.lastBattle = b;
     const sc = new Scene(opts);
     // transition from the overworld

@@ -54,7 +54,7 @@
     yield* O.walk(rv, path, { force: true });
     O.faceToward(rv, p); O.faceToward(p, rv);
     const n = { id: 'rivalLab', sprite: 'rival', trainer: {
-      id: 'rival1', name: R, prize: 20, party: [[st.rivalStarter, 5]], music: 'trainer',
+      id: 'rival1', name: R, prize: 20, party: [[st.rivalStarter, 5]], music: 'trainer', ai: 'ace',
       defeat: 'What? Unbelievable! I picked the wrong egg!',
     } };
     const res = yield* CD.encounters.fightTrainer(n, { noBlackout: true });

@@ -28,10 +28,11 @@
     const b = {
       kind: opts.kind || 'wild', trainer: opts.trainer || null, terrain: opts.terrain || 'grass',
       sides: [side(playerParty, true), side(enemyParty, false)],
-      turn: 0, runs: 0, over: false, outcome: null, exp: [], ai: opts.ai || (opts.kind === 'trainer' ? 'smart' : 'wild'),
+      turn: 0, runs: 0, over: false, outcome: null, exp: [], ai: opts.ai || (opts.kind === 'trainer' ? 'smart' : 'wild'), aiSwitches: 0,
       canRun: opts.kind !== 'trainer', noCatch: opts.kind === 'trainer', expBonus: opts.kind === 'trainer' ? 1.5 : 1,
       itemsLeft: opts.items ? opts.items.slice() : [],
     };
+    if (!AI_TIERS[b.ai]) throw new RangeError('unknown AI tier ' + b.ai);
     b.sides[0].participants.add(b.sides[0].active);
     return b;
   }
@@ -232,13 +233,74 @@
   }
 
   // ---------- AI ----------
+  // One row per difficulty tier, so a trainer is tuned by naming its tier
+  // (trainer data `ai: 'ace'`) instead of by branches scattered through aiChoose.
+  //   random       pick any move with PP left (wild trains)
+  //   heal         use a carried potion once the active train is below 1/4 HP
+  //   noise        +/- spread on move scores, so choices are not fully predictable
+  //   switch       switch out of a lost type matchup into a better reserve
+  //   maxSwitches  how many such switches one battle allows
+  //   bestReserve  after a faint, send in the best-matched reserve, not the next in line
+  const AI_TIERS = {
+    wild: { random: true, heal: false, noise: 0, switch: false, maxSwitches: 0, bestReserve: false },
+    smart: { random: false, heal: true, noise: 0.3, switch: false, maxSwitches: 0, bestReserve: false },
+    ace: { random: false, heal: true, noise: 0.3, switch: true, maxSwitches: 2, bestReserve: true },
+  };
+  // A matchup at or below this is lost badly enough to switch out of: the foe's
+  // type hits us super effectively and our best move does no better than neutral.
+  const LOST_MATCHUP = 0.5;
+
+  // How well train t fares against foe on type alone: the best effectiveness of
+  // t's damaging moves with PP left, over the best effectiveness of the foe's own
+  // types against t. The AI reads the foe's types, never its hidden moveset.
+  function matchup(t, foe) {
+    const foeTypes = T.types(foe), myTypes = T.types(t);
+    let out = 0;
+    for (const m of t.moves) {
+      if (m.pp <= 0) continue;
+      const mv = CD.moves.get(m.name);
+      if (mv.cat === 'status') continue;
+      out = Math.max(out, mv.type ? CD.types.effectiveness(mv.type, foeTypes) : 1);
+    }
+    if (!out) out = 1;   // no damaging move left means Struggle, which is typeless
+    const inc = Math.max(...foeTypes.map(ty => CD.types.effectiveness(ty, myTypes)));
+    return out / inc;
+  }
+  // The living reserve (not the active train) with the best matchup, or -1.
+  function bestReserve(b) {
+    const s = b.sides[1], foe = act(b.sides[0]);
+    let best = -1, bestScore = -Infinity;
+    s.party.forEach((t, i) => {
+      if (i === s.active || t.hp <= 0) return;
+      const score = matchup(t, foe);
+      if (score > bestScore) { bestScore = score; best = i; }
+    });
+    return best;
+  }
+  // Switch out of a badly lost matchup when a reserve does at least neutral and
+  // strictly better, within the tier's switch budget.
+  function aiSwitch(b, tier) {
+    const s = b.sides[1];
+    if (!tier.switch || b.aiSwitches >= tier.maxSwitches || s.vol.recharge) return null;
+    const foe = act(b.sides[0]), now = matchup(act(s), foe);
+    if (now > LOST_MATCHUP) return null;
+    const i = bestReserve(b);
+    if (i < 0) return null;
+    const then = matchup(s.party[i], foe);
+    if (then < 1 || then <= now) return null;
+    return { kind: 'switch', i };
+  }
+
   function aiChoose(b) {
+    const tier = AI_TIERS[b.ai];
     const s = b.sides[1], t = act(s), foe = act(b.sides[0]);
     const usable = t.moves.map((m, i) => ({ m, i })).filter(o => o.m.pp > 0);
     if (!usable.length) return { kind: 'move', i: 0 };
     // trainers heal once when low, if they carry a potion
-    if (b.ai === 'smart' && b.itemsLeft.length && t.hp < t.stats.hp / 4 && rnd() < 0.7) return { kind: 'item', id: b.itemsLeft.shift() };
-    if (b.ai === 'wild') return { kind: 'move', i: usable[ri(0, usable.length - 1)].i };
+    if (tier.heal && b.itemsLeft.length && t.hp < t.stats.hp / 4 && rnd() < 0.7) return { kind: 'item', id: b.itemsLeft.shift() };
+    if (tier.random) return { kind: 'move', i: usable[ri(0, usable.length - 1)].i };
+    const sw = aiSwitch(b, tier);
+    if (sw) return sw;
     let best = null, bestScore = -1;
     for (const o of usable) {
       const mv = CD.moves.get(o.m.name), fx = mv.fx;
@@ -256,7 +318,7 @@
         const est = damage(b, 1, mv, { noCrit: true, roll: 236 }).dmg;
         if (est >= foe.hp) score += 80;
       }
-      score *= 0.85 + rnd() * 0.3;
+      score *= 1 - tier.noise / 2 + rnd() * tier.noise;
       if (score > bestScore) { bestScore = score; best = o.i; }
     }
     return { kind: 'move', i: best };
@@ -282,6 +344,7 @@
         ev.push({ t: 'text', s: "Couldn't get away!" });
       } else if (a.kind === 'switch') {
         doSwitch(ev, b, si, a.i);
+        if (si === 1) b.aiSwitches++;
       } else if (a.kind === 'item') {
         useItem(ev, b, si, a);
         if (b.over) return ev;
@@ -346,7 +409,7 @@
 
   function doSwitch(ev, b, si, i) {
     const s = b.sides[si];
-    if (s.party[s.active].hp > 0 && si === 0) ev.push({ t: 'text', s: `Come back, ${T.name(act(s))}!` });
+    if (s.party[s.active].hp > 0) ev.push({ t: 'text', s: si === 0 ? `Come back, ${T.name(act(s))}!` : `${b.trainer ? b.trainer.name : 'Foe'} called back ${T.name(act(s))}!` });
     ev.push({ t: 'recall', side: si });
     s.active = i; s.stages = fresh(); s.vol = {}; s.fainted = undefined;
     if (si === 0) s.participants.add(i);
@@ -360,7 +423,12 @@
     if (si === 0) b.needPlayerSwitch = false; else b.needEnemySwitch = false;
     return ev;
   }
-  function nextEnemy(b) { return b.sides[1].party.findIndex(t => t.hp > 0); }
+  // The trainer's replacement after a faint: the next in line, or for a tier
+  // with bestReserve the living reserve with the best type matchup.
+  function nextEnemy(b) {
+    if (AI_TIERS[b.ai].bestReserve) { const i = bestReserve(b); if (i >= 0) return i; }
+    return b.sides[1].party.findIndex(t => t.hp > 0);
+  }
 
   function useItem(ev, b, si, a) {
     const item = CD.items.get(a.id);
@@ -400,5 +468,5 @@
     return { caught: shakes === 4, shakes: Math.min(3, shakes), a };
   }
 
-  CD.battle = { create, runTurn, aiChoose, damage, catchRoll, replace, nextEnemy, effSpeed, stageMult, accMult, moveFor, act, STRUGGLE, STATUS_TEXT };
+  CD.battle = { create, runTurn, aiChoose, AI_TIERS, matchup, damage, catchRoll, replace, nextEnemy, effSpeed, stageMult, accMult, moveFor, act, STRUGGLE, STATUS_TEXT };
 })(window.CD);
