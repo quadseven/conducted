@@ -41,4 +41,9 @@ function battleByInteraction(npcId, x, y, dir, expectedPrize) {
 
 battleByInteraction('r1youngster', 4, 8, 'right', 80);
 battleByInteraction('r1lass', 16, 17, 'left', 90);
+const rory = C.ow.npcs.find(n => n.id === 'r1bugkid');
+assert(rory, 'r1bugkid stands on Route 1');
+assert.strictEqual(JSON.stringify(rory.trainer.party), '[[10,5],[10,6],[11,7]]', 'r1bugkid fields its configured three-train party');
+// Prize is the trainer's base prize (12) times its top party level (7).
+battleByInteraction('r1bugkid', 11, 24, 'right', 84);
 console.log('route1.test: ok');
