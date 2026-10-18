@@ -67,16 +67,46 @@ function testEncounterConfigStructure() {
   assert.strictEqual(scaledMax, 500, 'Prize should cap at maxPrize');
 
   // Test 6: Level scaling
+  // scaleSpeciesByTier accepts a slot in either shape and always returns the
+  // tuple [species, minLevel, maxLevel, weight]. ENCOUNTER_TABLES holds the
+  // object shape; the function also reads the tuple shape. Both shapes are
+  // checked on every field, so a broken branch for either one, or a field
+  // read from the wrong place, fails here instead of passing quietly.
   console.log('Testing level scaling...');
-  const testTable = [
+  // The game runs in its own VM context, so its arrays have another realm's
+  // prototype; copy them into this realm before a deep comparison.
+  const plainSlots = slots => slots.map(slot => Array.from(slot));
+  const objectSlots = [
     { species: 10, minLevel: 2, maxLevel: 4, weight: 32 },
     { species: 58, minLevel: 3, maxLevel: 5, weight: 28 },
   ];
-  const scaledTable = config.scaleSpeciesByTier([{ slots: testTable }], 2, config.BADGE_TIERS.TIER_2);
-  assert(scaledTable.length === 1, 'Should return array of same length');
-  const slot0 = scaledTable[0].slots[0];
-  assert.strictEqual(slot0[1], 5, 'Min level should be scaled (2 + 3*1 = 5)');
-  assert.strictEqual(slot0[2], 7, 'Max level should be scaled (4 + 3*1 = 7)');
+  const tupleSlots = [
+    [10, 2, 4, 32],
+    [58, 3, 5, 28],
+  ];
+  // Badge tier 2 adds (2 - 1) * 3 = 3 levels.
+  const expected = [
+    [10, 5, 7, 32],
+    [58, 6, 8, 28],
+  ];
+  [['object', objectSlots], ['tuple', tupleSlots]].forEach(([shape, slots]) => {
+    const scaledTable = config.scaleSpeciesByTier([{ name: shape, slots }], 2, config.BADGE_TIERS.TIER_2);
+    assert.strictEqual(scaledTable.length, 1, `${shape}: should return one table per input table`);
+    assert.strictEqual(scaledTable[0].name, shape, `${shape}: other table fields should be kept`);
+    assert.deepStrictEqual(plainSlots(scaledTable[0].slots), expected,
+      `${shape}: slots should scale to [species, min + 3, max + 3, weight]`);
+  });
+
+  // The real tables are in the object shape, so scaling one must keep every
+  // species and weight and shift every level range by the tier offset.
+  const route1 = config.ENCOUNTER_TABLES.ROUTE_1_GRASS;
+  const scaledRoute1 = config.scaleSpeciesByTier([{ slots: route1 }], 2, config.BADGE_TIERS.TIER_2)[0].slots;
+  assert.strictEqual(scaledRoute1.length, route1.length, 'ROUTE_1_GRASS: should keep every slot');
+  route1.forEach((slot, i) => {
+    assert.deepStrictEqual(Array.from(scaledRoute1[i]),
+      [slot.species, Math.max(1, slot.minLevel + 3), Math.min(100, slot.maxLevel + 3), slot.weight],
+      `ROUTE_1_GRASS[${i}]: should keep species and weight and shift levels by 3`);
+  });
 
   // Test 7: Party scaling
   console.log('Testing party scaling...');
