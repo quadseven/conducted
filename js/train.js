@@ -45,6 +45,7 @@ class Train {
 
         // Status
         this.status = null;
+        this.statusTurns = 0;
         this.fainted = false;
 
         // Types - CLONE the template array. `this.species` is a shared
@@ -292,6 +293,7 @@ class Train {
             evSpeed: this.evSpeed,
             evSpecial: this.evSpecial,
             status: this.status,
+            statusTurns: this.statusTurns,
             fainted: this.fainted
         };
     }
@@ -313,6 +315,7 @@ class Train {
         train.evSpecial = data.evSpecial || 0;
         train.movePP = { ...train.movePP, ...(data.movePP || {}) };
         train.status = data.status;
+        train.statusTurns = data.statusTurns || 0;
         train.fainted = data.fainted;
 
         // Recalculate stats
