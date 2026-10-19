@@ -1128,7 +1128,8 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
 // weather research institute). The art-pass theme slot carries the
 // ART_DIRECTION_SPECS.md palette cues: 'foundry' (dark metal/soot/ember) and
 // 'sky' (cyan glow/maglev field). City5/City6 stay registered as aliases so
-// existing Grand Transit references keep resolving.
+// existing Grand Transit references keep resolving. conducted#214 adds
+// Steamspring Village in the City4 slot at the end of this block.
 (function installDieselDenMaglevHeights() {
   const fillRectTiles = (tiles, x, y, w, h, value) => {
     for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) tiles[yy][xx] = value;
@@ -1324,6 +1325,57 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
   addTechniqueGates('Route6', [
     { x: 2, y: 5, technique: 'Tunnel Bore', clearedMessage: 'Tunnel Bore cuts through the rockfall.' }
   ]);
+
+  // --- Routes 2-4 and Steamspring Village (conducted#214) ---
+  // Route names follow STORY.md: the coastal railway out of Coal Harbor,
+  // Voltage Valley past the Electric gym, and the Whistlestop woods.
+  WORLD_MAPS.Route2.name = 'Route 2: Coastal Railway';
+  WORLD_MAPS.Route3.name = 'Route 3: Voltage Valley';
+  WORLD_MAPS.Route4.name = 'Route 4: Whistlestop Way';
+  fillRectTiles(WORLD_MAPS.Route2.tiles, 16, 1, 3, 22, 4);
+  computeCollisions(WORLD_MAPS.Route2);
+  stamp('Route4', [], [[2, 3, 3, 2], [15, 8, 3, 2], [2, 17, 3, 2]]);
+
+  // "Preserving History" (STORY.md section 4) takes the City4 slot, directly
+  // before Diesel Den. Warps keep naming City4 so the stolen_manifest trigger
+  // and fast travel, which key on City4, still match. City4's townsfolk and
+  // Derail grunt carry over; story NPCs belong to later tickets.
+  const steamspringNpcs = WORLD_MAPS.City4.npcs.map(n =>
+    n.type === 'npc' ? { ...n, dialogue: townDialogue(n.name, 'Steamspring Village') } : n);
+  WORLD_MAPS.SteamspringVillage = townMap('SteamspringVillage', 'Steamspring Village', 'historic', [
+    { x: 2, y: 2, w: 3, hh: 3, kind: 'depot', label: 'STEAMSPRING DEPOT', door: [3, 4] },
+    { x: 5, y: 2, w: 3, hh: 3, kind: 'home', label: 'EMBER HOUSE', door: [6, 4] },
+    { x: 12, y: 2, w: 3, hh: 3, kind: 'mart', label: 'VINTAGE MART', door: [13, 4] },
+    { x: 15, y: 2, w: 3, hh: 3, kind: 'museum', label: 'TRAIN MUSEUM', door: [16, 4] },
+    { x: 2, y: 9, w: 4, hh: 3, kind: 'home', label: 'ROUNDHOUSE', door: [3, 11] },
+    { x: 13, y: 9, w: 4, hh: 3, kind: 'gym', label: 'STEAMSPRING GYM', door: [15, 11] }
+  ], steamspringNpcs, [
+    { from: rect(3, 4), to: { mapId: 'SteamspringDepot', ...pos(4, 6, 'down') } },
+    { from: rect(6, 4), to: { mapId: 'EmberHouse', ...pos(4, 6, 'down') } },
+    { from: rect(13, 4), to: { mapId: 'SteamspringMart', ...pos(4, 6, 'down') } },
+    { from: rect(16, 4), to: { mapId: 'TrainMuseum', ...pos(4, 6, 'down') } },
+    { from: rect(3, 11), to: { mapId: 'Roundhouse', ...pos(4, 6, 'down') } },
+    { from: rect(15, 11), to: { mapId: 'Gym4', ...pos(6, 10, 'up') } },
+    { from: rect(9, 0, 2, 1), to: { mapId: 'Route4', ...pos(10, 22, 'up') } },
+    { from: rect(9, 14, 2, 1), to: { mapId: 'Route5', ...pos(10, 1, 'down') } }
+  ]);
+  WORLD_MAPS.SteamspringVillage.decorations.push({ type: 'sign', x: 11, y: 8 });
+  WORLD_MAPS.City4 = WORLD_MAPS.SteamspringVillage;
+  WORLD_MAPS.Gym4.name = 'Steamspring Grand Station';
+  retarget('Gym4', 'City4', 'City4', 15, 12, 'down');
+
+  const depot = stubInterior('SteamspringDepot', 'Steamspring Depot', 'City4', 3, 5,
+    'Depot Nurse Joyner', 'Welcome to the Steamspring Depot. Your whole crew is back at full pressure!');
+  depot.theme = 'depot';
+  depot.npcs[0].type = 'healer';
+  const mart = stubInterior('SteamspringMart', 'Steamspring Vintage Mart', 'City4', 13, 5,
+    'Quartermaster Cole', 'Boxcars, Potions, and Tickets keep a conductor moving.');
+  mart.theme = 'mart';
+  WORLD_MAPS.SteamspringDepot = depot;
+  WORLD_MAPS.SteamspringMart = mart;
+  WORLD_MAPS.EmberHouse = stubInterior('EmberHouse', 'Ember House', 'City4', 6, 5);
+  WORLD_MAPS.TrainMuseum = stubInterior('TrainMuseum', 'Steamspring Train Museum', 'City4', 16, 5);
+  WORLD_MAPS.Roundhouse = stubInterior('Roundhouse', 'Steamspring Roundhouse', 'City4', 3, 12);
 })();
 
 // Add attendants after campaign and town NPC setup so station staff remain
