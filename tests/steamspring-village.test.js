@@ -27,6 +27,12 @@ for (const id of ['Route2', 'Route3', 'Route4']) {
     assert.ok(route.tiles.every(row => row.length === route.width), `${id} tile columns must match its width`);
     assert.equal(route.encounterRange.length, 2, `${id} needs an encounter range placeholder`);
 }
+// The STORY.md theming runs after the campaign installer built these routes,
+// so it lands on the live maps rather than on undefined.
+assert.equal(maps.Route2.name, 'Route 2: Coastal Railway');
+assert.equal(maps.Route3.name, 'Route 3: Voltage Valley');
+assert.equal(maps.Route4.name, 'Route 4: Whistlestop Way');
+assert.equal(maps.Route2.tiles[1][16], 4, 'Route 2 coastal strip must be stamped');
 
 // 2. The village exists and owns the City4 slot.
 const village = maps.SteamspringVillage;

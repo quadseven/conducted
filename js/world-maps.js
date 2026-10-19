@@ -1329,6 +1329,8 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
   // --- Routes 2-4 and Steamspring Village (conducted#214) ---
   // Route names follow STORY.md: the coastal railway out of Coal Harbor,
   // Voltage Valley past the Electric gym, and the Whistlestop woods.
+  // installGrandTransitCampaign (above) already built Route2-8 via makeRoute;
+  // this block only re-themes them, so it must stay after that installer.
   WORLD_MAPS.Route2.name = 'Route 2: Coastal Railway';
   WORLD_MAPS.Route3.name = 'Route 3: Voltage Valley';
   WORLD_MAPS.Route4.name = 'Route 4: Whistlestop Way';
