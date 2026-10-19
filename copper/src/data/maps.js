@@ -304,19 +304,187 @@
     if (theme === 'facility') rows[7] = 'TT...++++==++++...TT';
     return rows.map(row => row.length > 20 ? row.slice(0, 20) : row.padEnd(20, 'T'));
   }
-  function addTown(id, name, theme, route, direction, nextRoute) {
-    const rows = makeOutdoorRows(theme);
+  // A town's gym stands north-east of the main path: a 6x4 footprint at
+  // GYM_LOT whose door (GYM_DOOR) warps onto the interior's doormat.
+  const GYM_LOT = { x: 12, y: 2, w: 6, h: 4 }, GYM_DOOR = { x: 15, y: 5 }, GYM_MAT = { x: 5, y: 13 };
+  function stampGym(rows) {
+    const out = rows.slice();
+    for (let y = GYM_LOT.y; y < GYM_LOT.y + GYM_LOT.h; y++) {
+      out[y] = out[y].slice(0, GYM_LOT.x) + 'B'.repeat(GYM_LOT.w) + out[y].slice(GYM_LOT.x + GYM_LOT.w);
+    }
+    const sy = GYM_DOOR.y, sx = GYM_LOT.x - 1;
+    out[sy] = out[sy].slice(0, sx) + 'I' + out[sy].slice(sx + 1);
+    return out;
+  }
+  function addTown(id, name, theme, route, direction, nextRoute, gym) {
+    const rows = gym ? stampGym(makeOutdoorRows(theme)) : makeOutdoorRows(theme);
     const connections = {};
     connections[direction] = { map: route, offset: 0 };
     if (nextRoute) connections[direction === 'south' ? 'north' : 'south'] = { map: nextRoute, offset: 0 };
+    const signs = [{ x: 7, y: 10, text: name + '\nA station on the Locomotia main line.' }];
+    if (gym) signs.push({ x: GYM_LOT.x - 1, y: GYM_DOOR.y, text: gym.sign });
     D(id, {
       name, music: theme === 'snow' || theme === 'haunted' ? 'route1' : 'harbor',
       base: theme === 'coast' ? 'sand' : theme === 'industrial' ? 'cobble' : 'grass',
       rows,
       connections,
-      signs: [{ x: 7, y: 10, text: name + '\nA station on the Locomotia main line.' }],
+      buildings: gym ? [Object.assign({ style: 'gym', door: GYM_DOOR.x - GYM_LOT.x }, GYM_LOT)] : [],
+      warps: gym ? [{ x: GYM_DOOR.x, y: GYM_DOOR.y, to: gym.map, tx: GYM_MAT.x, ty: GYM_MAT.y, dir: 'up' }] : [],
+      signs,
     });
+    if (gym) {
+      D(gym.map, {
+        name: gym.name, indoor: true, floor: gym.floor, wallTint: gym.wallTint, carpetTint: gym.carpetTint, music: 'gym',
+        rows: gym.rows,
+        warps: [{ x: GYM_MAT.x, y: GYM_MAT.y, to: id, tx: GYM_DOOR.x, ty: GYM_DOOR.y, dir: 'down' }],
+      });
+    }
   }
+
+  // Gym interiors, one layout per Station Master. The leader stands on the
+  // carpet at the top; the doormat is at the bottom centre.
+  const GYMS = {
+    VoltageCity: {
+      map: 'VoltageGym', name: 'VOLTAGE CITY GYM', floor: 'tile', wallTint: '#d8d8c0', carpetTint: '#c8a020',
+      sign: 'VOLTAGE CITY GYM\nSTATIONMASTER: ENGINEER SPARK\nThe future runs on current!',
+      rows: [
+        'WWWWWWWWWWW',
+        'ZQ..ccc..QZ',
+        '....ccc....',
+        'ZZZZ...ZZZZ',
+        '...........',
+        '.ZZZZ.ZZZZ.',
+        '...........',
+        'ZZZ.ZZZ.ZZZ',
+        '...........',
+        '.Z.Z...Z.Z.',
+        '...........',
+        'p.........p',
+        '...........',
+        '.....M.....',
+      ],
+    },
+    SteamspringVillage: {
+      map: 'BoilerGym', name: 'STEAMSPRING GYM', floor: 'wood', wallTint: '#e0c8b0', carpetTint: '#7a2a3a',
+      sign: 'STEAMSPRING VILLAGE GYM\nSTATIONMASTER: CONDUCTOR EMBER\nTradition under pressure.',
+      rows: [
+        'WWWWWWWWWWW',
+        'ek..ccc..ke',
+        '....ccc....',
+        '.kk.....kk.',
+        '...........',
+        'kkk.kkk.kkk',
+        '...........',
+        '.e.......e.',
+        '...........',
+        'kkkk...kkkk',
+        '...........',
+        'O.........O',
+        '...........',
+        '.....M.....',
+      ],
+    },
+    DieselDen: {
+      map: 'PistonGym', name: 'DIESEL DEN GYM', floor: 'tile', wallTint: '#b8b0a8', carpetTint: '#c86a20',
+      sign: 'DIESEL DEN GYM\nSTATIONMASTER: BOSS TORQUE\nHorsepower is earned, not given.',
+      rows: [
+        'WWWWWWWWWWW',
+        'ZZ..ccc..ZZ',
+        '....ccc....',
+        'rrr.....rrr',
+        '...rr.rr...',
+        '...........',
+        'OO.rrrrr.OO',
+        '...........',
+        '.rrr...rrr.',
+        '...........',
+        'rr.O...O.rr',
+        '...........',
+        '...........',
+        '.....M.....',
+      ],
+    },
+    MaglevHeights: {
+      map: 'LevitationGym', name: 'MAGLEV HEIGHTS GYM', floor: 'tile', wallTint: '#dce8f4', carpetTint: '#3a5a8a',
+      sign: 'MAGLEV HEIGHTS GYM\nSTATIONMASTER: SKY CAPTAIN ARIA\nLeave friction behind.',
+      rows: [
+        'WWWWWWWWWWW',
+        'G...ccc...G',
+        '....ccc....',
+        '  ..   ..  ',
+        ' ......... ',
+        '.. ..... ..',
+        '...  .  ...',
+        ' ...   ... ',
+        '...........',
+        '  .. . ..  ',
+        '...........',
+        'p.........p',
+        '...........',
+        '.....M.....',
+      ],
+    },
+    GhostRailGraveyard: {
+      map: 'SpecterGym', name: 'GHOST RAIL GYM', floor: 'wood', wallTint: '#8a8098', carpetTint: '#3a2a4a',
+      sign: 'GHOST RAIL GYM\nSTATIONMASTER: PHANTOM CONDUCTOR RAVEN\nThe last train never left.',
+      rows: [
+        'WWWWWWWWWWW',
+        'K...ccc...K',
+        '....ccc....',
+        '.r.r...r.r.',
+        '...........',
+        'O.rr.O.rr.O',
+        '...........',
+        '.r.r.r.r.r.',
+        '...........',
+        'rr.rr.rr.rr',
+        '...........',
+        'O.........O',
+        '...........',
+        '.....M.....',
+      ],
+    },
+    NuclearStation: {
+      map: 'FusionGym', name: 'NUCLEAR STATION GYM', floor: 'tile', wallTint: '#d0e0c8', carpetTint: '#3a6a2a',
+      sign: 'NUCLEAR STATION GYM\nSTATIONMASTER: DOCTOR ATOM\nPower held in balance.',
+      rows: [
+        'WWWWWWWWWWW',
+        'QZ..ccc..ZQ',
+        '....ccc....',
+        'ZZZ.ZZZ.ZZZ',
+        '...........',
+        '.Q.......Q.',
+        'ZZ.ZZ.ZZ.ZZ',
+        '...........',
+        'Z.ZZZ.ZZZ.Z',
+        '...........',
+        '.Z.......Z.',
+        '...........',
+        '...........',
+        '.....M.....',
+      ],
+    },
+    MonorailMountaintop: {
+      map: 'SummitGym', name: 'SUMMIT GYM', floor: 'wood', wallTint: '#e8eef4', carpetTint: '#4a7ab0',
+      sign: 'MONORAIL MOUNTAINTOP GYM\nSTATIONMASTER: MASTER ZEN\nOne beam. Perfect balance.',
+      rows: [
+        'WWWWWWWWWWW',
+        ' p..ccc..p ',
+        ' ...ccc... ',
+        '  .......  ',
+        '  .. . ..  ',
+        ' ... . ... ',
+        ' .. ... .. ',
+        '..  ...  ..',
+        '.. .. .. ..',
+        '...........',
+        ' ......... ',
+        'p.........p',
+        '...........',
+        '.....M.....',
+      ],
+    },
+  };
   function addRoute(id, name, from, to, theme) {
     D(id, {
       name, music: 'route1', base: theme === 'coast' ? 'sand' : 'grass',
@@ -334,27 +502,27 @@
   }
 
   addRoute('Route2', 'ROUTE 2 - COASTAL LINE', 'CoalHarbor', 'VoltageCity', 'coast');
-  addTown('VoltageCity', 'VOLTAGE CITY', 'city', 'Route2', 'south', 'Route3');
+  addTown('VoltageCity', 'VOLTAGE CITY', 'city', 'Route2', 'south', 'Route3', GYMS.VoltageCity);
   addRoute('Route3', 'ROUTE 3 - VOLTAGE VALLEY', 'VoltageCity', 'SteamspringVillage', 'city');
   addSpecial('VoltageValley', 'VOLTAGE VALLEY', 'city', null);
-  addTown('SteamspringVillage', 'STEAMSPRING VILLAGE', 'historic', 'Route3', 'south', 'Route4');
+  addTown('SteamspringVillage', 'STEAMSPRING VILLAGE', 'historic', 'Route3', 'south', 'Route4', GYMS.SteamspringVillage);
   addRoute('Route4', 'ROUTE 4 - WHISTLESTOP WAY', 'SteamspringVillage', 'DieselDen', 'forest');
   addSpecial('WhistlestopForest', 'WHISTLESTOP FOREST', 'forest', null);
-  addTown('DieselDen', 'DIESEL DEN', 'industrial', 'Route4', 'south', 'Route5');
+  addTown('DieselDen', 'DIESEL DEN', 'industrial', 'Route4', 'south', 'Route5', GYMS.DieselDen);
   addRoute('Route5', 'ROUTE 5 - IRON MOUNTAIN', 'DieselDen', 'MaglevHeights', 'mountain');
   addSpecial('IronMountainRange', 'IRON MOUNTAIN RANGE', 'mountain', null);
-  addTown('MaglevHeights', 'MAGLEV HEIGHTS', 'city', 'Route5', 'south', 'Route6');
+  addTown('MaglevHeights', 'MAGLEV HEIGHTS', 'city', 'Route5', 'south', 'Route6', GYMS.MaglevHeights);
   addRoute('Route6', 'ROUTE 6 - THE OLD SIDING', 'MaglevHeights', 'GhostRailGraveyard', 'haunted');
-  addTown('GhostRailGraveyard', 'GHOST RAIL GRAVEYARD', 'haunted', 'Route6', 'south', 'Route7');
+  addTown('GhostRailGraveyard', 'GHOST RAIL GRAVEYARD', 'haunted', 'Route6', 'south', 'Route7', GYMS.GhostRailGraveyard);
   addSpecial('MysteryTower', 'MYSTERY TOWER', 'haunted', null);
   addRoute('Route7', 'ROUTE 7 - SUNSET DESERT', 'GhostRailGraveyard', 'NuclearStation', 'desert');
   addSpecial('SunsetDesert', 'SUNSET DESERT', 'desert', null);
-  addTown('NuclearStation', 'NUCLEAR STATION', 'facility', 'Route7', 'south', 'Route8');
+  addTown('NuclearStation', 'NUCLEAR STATION', 'facility', 'Route7', 'south', 'Route8', GYMS.NuclearStation);
   addSpecial('PowerPlant', 'POWER PLANT', 'facility', null);
   addSpecial('RadioactiveCaves', 'RADIOACTIVE CAVES', 'facility', null);
   addRoute('Route8', 'ROUTE 8 - FROZEN TUNDRA', 'NuclearStation', 'MonorailMountaintop', 'snow');
   addSpecial('FrozenTundra', 'FROZEN TUNDRA', 'snow', null);
-  addTown('MonorailMountaintop', 'MONORAIL MOUNTAINTOP', 'snow', 'Route8', 'south');
+  addTown('MonorailMountaintop', 'MONORAIL MOUNTAINTOP', 'snow', 'Route8', 'south', null, GYMS.MonorailMountaintop);
   addSpecial('VictoryRoad', 'VICTORY ROAD', 'mountain', null);
   addSpecial('SpaceStation', 'SPACE STATION', 'city', null);
   addSpecial('WeatherInstitute', 'WEATHER RESEARCH INSTITUTE', 'city', null);

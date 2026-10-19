@@ -415,7 +415,7 @@
   function* battle(opts) {
     const st = CD.state;
     const party = st.party;
-    const b = B.create(party, opts.enemy, { kind: opts.kind, trainer: opts.trainer, terrain: opts.terrain, items: opts.trainer && opts.trainer.items, ai: opts.trainer && opts.trainer.ai });
+    const b = B.create(party, opts.enemy, { kind: opts.kind, trainer: opts.trainer, terrain: opts.terrain, items: opts.trainer && opts.trainer.items, ai: opts.trainer && opts.trainer.ai, badges: st.badges });
     CD.lastBattle = b;
     const sc = new Scene(opts);
     // transition from the overworld

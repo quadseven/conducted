@@ -19,6 +19,7 @@ Then open `http://127.0.0.1:8765/`. Keyboard: arrows or WASD move, Z confirms, X
 - wild encounters in tall grass and yards, trainers who spot you, rival and gym battles, and a trainer AI that weighs power, type and accuracy, with gym leaders and the rival switching out of a lost type matchup
 - catching with TRAINBALLS, a party of six, depot storage, EXP, level-ups, move learning and evolution (B cancels it)
 - Piston Town, Route 1 and Coal Harbor with seamless map edges, level crossings where freight trains pass, eight interiors, the depot, the mart and the gym
+- eight gyms, one in each town from Coal Harbor to Monorail Mountaintop, each with its own interior, crew and Station Master; leaders' parties grow stronger in campaign order, and the first four badges boost your trains' ATTACK, SPEED, DEFENSE and SPECIAL in battle while every badge unlocks a field technique
 - Rail Mart clerks open a shop for Trainballs and healing items; buy with money or sell carried items for half price
 - a soundtrack of looping town, route, battle and gym themes plus jingles
 - save and load in browser storage
