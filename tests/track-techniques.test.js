@@ -16,7 +16,11 @@ const result = vm.runInContext(`(() => {
     player.learnTechnique(gate.technique);
     const cleared = WORLD_MAPS.Route5.isWalkable(gate.x, gate.y, player);
     const restored = Player.fromJSON(player.toJSON());
-    const gymRewards = ['CoalHarborGym', 'Gym2', 'Gym3'].map(id => WORLD_MAPS[id].npcs.find(npc => npc.type === 'gym_leader').techniqueReward);
+    // Read the rewards off every gym leader the world actually defines, so a
+    // reward moved to another gym, or a gate nobody teaches, shows up here.
+    const gymRewards = Object.entries(WORLD_MAPS).flatMap(([mapId, map]) => (map.npcs || [])
+        .filter(npc => npc.type === 'gym_leader' && npc.techniqueReward)
+        .map(npc => ({ mapId, technique: npc.techniqueReward })));
     return { blocked, cleared, restored: restored.hasTechnique(gate.technique), gates: Object.values(WORLD_MAPS).flatMap(map => map.techniqueObstacles || []), gymRewards };
 })()`, context);
 
@@ -25,5 +29,13 @@ assert.equal(result.cleared, true, 'a technique gate allows players who have lea
 assert.equal(result.restored, true, 'learned techniques persist in saves');
 assert.ok(result.gates.length >= 3, 'the overworld defines at least three technique gates');
 assert.equal(new Set(result.gates.map(gate => gate.technique)).size >= 3, true);
-assert.deepEqual(Array.from(result.gymRewards), ['Track Clear', 'River Ferry', 'Tunnel Bore']);
+const taught = new Set(result.gymRewards.map(reward => reward.technique));
+for (const gate of result.gates) {
+    assert.ok(taught.has(gate.technique), `a gym leader teaches ${gate.technique}, which a technique gate needs`);
+}
+assert.equal(taught.size, result.gymRewards.length, 'each technique is taught by exactly one gym leader');
+assert.deepEqual(
+    Array.from(result.gymRewards, reward => `${reward.mapId}:${reward.technique}`).sort(),
+    ['CoalHarborGym:Track Clear', 'Gym2:River Ferry', 'Gym3:Tunnel Bore']
+);
 console.log('Track technique tests passed');
