@@ -404,6 +404,23 @@ class Battle {
 
         const prefix = action.side === 'enemy' ? 'Enemy ' : '';
 
+        if (action.attacker.status === 'sleep') {
+            action.attacker.statusTurns = Math.max(0, (action.attacker.statusTurns || 0) - 1);
+            if (action.attacker.statusTurns === 0) {
+                action.attacker.status = null;
+                this.addMessage(`${prefix}${action.attacker.species.name} woke up!`);
+            } else {
+                this.addMessage(`${prefix}${action.attacker.species.name} is fast asleep!`);
+            }
+            this.animationQueue.push({ callback: () => this.processNextAction() });
+            return;
+        }
+        if (action.attacker.status === 'freeze') {
+            this.addMessage(`${prefix}${action.attacker.species.name} is frozen solid!`);
+            this.animationQueue.push({ callback: () => this.processNextAction() });
+            return;
+        }
+
         const volatile = this.volatile[action.side];
         if (volatile.rechargeTurns > 0) {
             volatile.rechargeTurns--;
@@ -547,6 +564,11 @@ class Battle {
             return;
         }
 
+        if (defender.status === 'freeze' && moveData.type === 'STEAM') {
+            defender.status = null;
+            this.addMessage(`${defender.species.name} thawed out!`);
+        }
+
         // Secondary effects only land if the defender survived.
         this.applyMoveEffect(action, moveData);
         this.processNextAction();
@@ -574,6 +596,13 @@ class Battle {
             } else if (effect.poisonChance && roll(effect.poisonChance)) {
                 defender.status = 'poison';
                 this.addMessage(`${defender.species.name} was poisoned!`);
+            } else if (effect.status === 'sleep' && roll(effect.chance || 100)) {
+                defender.status = 'sleep';
+                defender.statusTurns = Utils.randomInt(1, 7);
+                this.addMessage(`${defender.species.name} fell asleep!`);
+            } else if (effect.status === 'freeze' && roll(effect.chance || 100)) {
+                defender.status = 'freeze';
+                this.addMessage(`${defender.species.name} was frozen solid!`);
             }
         }
 
@@ -607,7 +636,7 @@ class Battle {
             if (train.fainted || !train.status) return;
             let dmg = 0;
             if (train.status === 'burn') dmg = Math.max(1, Math.floor(train.maxHP / 16));
-            else if (train.status === 'poison') dmg = Math.max(1, Math.floor(train.maxHP / 8));
+            else if (train.status === 'poison') dmg = Math.max(1, Math.floor(train.maxHP / 16));
             if (dmg > 0) {
                 const prefix = side === 'enemy' ? 'Enemy ' : '';
                 train.takeDamage(dmg);
@@ -622,6 +651,10 @@ class Battle {
             this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
             this.currentMessage = 0;
         }
+    }
+
+    getStatusLabel(status) {
+        return ({ paralyze: 'PAR', burn: 'BRN', poison: 'PSN', sleep: 'SLP', freeze: 'FRZ' })[status] || '';
     }
 
     // Used after a potion/boxcar - the wild/enemy train gets one free attack.
@@ -1070,8 +1103,8 @@ class Battle {
         ctx.textAlign = 'left';
 
         if (train.status) {
-            const tag = { paralyze: 'PAR', burn: 'BRN', poison: 'PSN' }[train.status] || '';
-            const col = { paralyze: '#F8C838', burn: '#F83048', poison: '#A040A0' }[train.status] || '#888';
+            const tag = this.getStatusLabel(train.status);
+            const col = { paralyze: '#F8C838', burn: '#F83048', poison: '#A040A0', sleep: '#7080C8', freeze: '#68C8E8' }[train.status] || '#888';
             ctx.fillStyle = col;
             this.rr(ctx, px + 23, py + 42, 35, 14, 2); ctx.fill();
             ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
