@@ -18,16 +18,18 @@
   function stageMult(n) { return n >= 0 ? (2 + n) / 2 : 2 / (2 - n); }
   function accMult(n) { return n >= 0 ? (3 + n) / 3 : 3 / (3 - n); }
 
-  function side(party, isPlayer) {
-    return { party, active: party.findIndex(t => t.hp > 0), isPlayer, stages: fresh(), vol: {}, participants: new Set() };
+  // boost: the badge multipliers this side's trains carry (only the player has badges)
+  function side(party, isPlayer, boost) {
+    return { party, active: party.findIndex(t => t.hp > 0), isPlayer, stages: fresh(), vol: {}, participants: new Set(), boost: boost || null };
   }
+  const boostOf = (s, key) => (s.boost && s.boost[key]) || 1;
   function fresh() { return { atk: 0, def: 0, spd: 0, spc: 0, acc: 0, eva: 0 }; }
 
   function create(playerParty, enemyParty, opts) {
     opts = opts || {};
     const b = {
       kind: opts.kind || 'wild', trainer: opts.trainer || null, terrain: opts.terrain || 'grass',
-      sides: [side(playerParty, true), side(enemyParty, false)],
+      sides: [side(playerParty, true, opts.badges && CD.gyms ? CD.gyms.boosts(opts.badges) : null), side(enemyParty, false)],
       turn: 0, runs: 0, over: false, outcome: null, exp: [], ai: opts.ai || (opts.kind === 'trainer' ? 'smart' : 'wild'), aiSwitches: 0,
       canRun: opts.kind !== 'trainer', noCatch: opts.kind === 'trainer', expBonus: opts.kind === 'trainer' ? 1.5 : 1,
       itemsLeft: opts.items ? opts.items.slice() : [],
@@ -41,14 +43,14 @@
 
   function effSpeed(s) {
     const t = act(s);
-    let v = t.stats.spd * stageMult(s.stages.spd);
+    let v = t.stats.spd * boostOf(s, 'spd') * stageMult(s.stages.spd);
     if (t.status === 'par') v *= 0.25;
     return v;
   }
   function statFor(s, key, crit) {
     const t = act(s);
     let v = t.stats[key];
-    if (!crit) v *= stageMult(s.stages[key]);
+    if (!crit) v *= boostOf(s, key) * stageMult(s.stages[key]);
     if (key === 'atk' && t.status === 'brn') v *= 0.5;
     return Math.max(1, Math.floor(v));
   }
