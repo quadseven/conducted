@@ -117,7 +117,19 @@ const WORLD_MAPS = {
       // door back to town (Lab entrance)
       { from: rect(4, 9), to: { mapId: 'PistonTown', ...pos(9, 7, 'down') } },
     ],
-    npcs: [],
+    npcs: [
+      {
+        id: 'professor_cypress',
+        name: 'Professor Cypress',
+        x: 4,
+        y: 2,
+        type: 'npc',
+        dialogue: [
+          { speaker: 'Professor Cypress', text: 'Welcome to my lab! I study the bonds between conductors and their trains.' },
+          { speaker: 'Professor Cypress', text: 'When you are ready to begin your journey, come see me for your starter train.' }
+        ]
+      }
+    ],
     getTile: function(x, y) {
       if (x < 0 || x >= this.width || y < 0 || y >= this.height) return 0;
       return this.tiles[y][x];
@@ -763,7 +775,20 @@ function createRivalBlakeNPC(stage, x, y, direction) {
   // Route 1 and Gym 1 use the handcrafted maps. Add their canonical aliases
   // only where useful, then build the rest of the region.
   WORLD_MAPS.Route1.routeIndex = 0;
-  WORLD_MAPS.PlayerHouse = makeInterior('PlayerHouse', 'Piston House', 'PistonTown', 2, 4, 'Grandma Ash');
+  WORLD_MAPS.PlayerHouse = makeInterior('PlayerHouse', 'Piston House', 'PistonTown', 2, 4, 'Mom');
+  WORLD_MAPS.PlayerHouse.npcs[0] = {
+    id: 'playerhouse_mom',
+    name: 'Mom',
+    x: 4,
+    y: 2,
+    type: 'npc',
+    dialogue: [
+      { speaker: 'Mom', text: 'Oh, you are finally awake! Professor Cypress stopped by earlier looking for you.' },
+      { speaker: 'Mom', text: 'He left a note saying to meet him at the lab when you are ready to start your journey.' },
+      { speaker: 'Mom', text: 'Be safe out there, dear. And do not forget to call!' }
+    ]
+  };
+  WORLD_MAPS.RivalHouse = makeInterior('RivalHouse', 'Rival House', 'PistonTown', 14, 4, 'Rival Parent');
   WORLD_MAPS.HealingDepot = makeInterior('HealingDepot', 'Piston Healing Depot', 'PistonTown', 15, 10, 'Depot Nurse Joyner');
   WORLD_MAPS.TrainMart = makeInterior('TrainMart', 'Piston Train Mart', 'PistonTown', 8, 12, 'Quartermaster Cole');
   WORLD_MAPS.CoalHouse = makeInterior('CoalHouse', 'Coal Harbor House', 'CoalHarbor', 2, 8, 'Dockworker Finn');
@@ -978,12 +1003,14 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     fillRectTiles(t, 2, 2, 5, 4, 0); t[5][4] = 12;
     fillRectTiles(t, 8, 1, 5, 5, 0); t[5][10] = 12;
     fillRectTiles(t, 14, 3, 4, 4, 0); t[6][16] = 12;
+    fillRectTiles(t, 13, 1, 4, 3, 0); t[3][15] = 12;
     fillRectTiles(t, 2, 9, 5, 4, 0); t[12][4] = 12;
     t[14][9] = 6; t[14][10] = 6;
     map.tiles = t; map.width = 20; map.height = 15;
     map.decorations = [
       decorateBuilding(2, 2, 5, 4, 'home', 'ASH HOUSE', 4),
       decorateBuilding(8, 1, 5, 5, 'lab', 'CYPRESS LAB', 10),
+      decorateBuilding(13, 1, 4, 3, 'home', 'RIVAL HOUSE', 15),
       decorateBuilding(14, 3, 4, 4, 'depot', 'DEPOT', 16),
       decorateBuilding(2, 9, 5, 4, 'mart', 'RAIL MART', 4),
       { type: 'fountain', x: 13, y: 9 }, { type: 'sign', x: 8, y: 8 },
@@ -992,6 +1019,7 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     map.warps = [
       { from: rect(4, 5), to: { mapId: 'PlayerHouse', ...pos(3, 6, 'down') } },
       { from: rect(10, 5), to: { mapId: 'LabInterior', ...pos(4, 7, 'up') }, reverse: { from: rect(4, 9), to: pos(10, 6, 'down') } },
+      { from: rect(15, 3), to: { mapId: 'RivalHouse', ...pos(3, 6, 'down') } },
       { from: rect(16, 6), to: { mapId: 'HealingDepot', ...pos(3, 6, 'up') } },
       { from: rect(4, 12), to: { mapId: 'TrainMart', ...pos(3, 6, 'up') } },
       { from: rect(9, 14, 2, 1), to: { mapId: 'Route1', ...pos(10, 1, 'down') } }
@@ -1094,6 +1122,7 @@ function createRivalBlakeNPC(stage, x, y, direction) {
     if (map && map.warps && map.warps[0]) map.warps[0].to = { mapId, ...pos(x, y, 'down') };
   };
   returnTo('PlayerHouse', 'PistonTown', 4, 6);
+  returnTo('RivalHouse', 'PistonTown', 15, 4);
   returnTo('HealingDepot', 'PistonTown', 16, 7);
   returnTo('TrainMart', 'PistonTown', 4, 13);
   returnTo('CoalHouse', 'CoalHarbor', 4, 6);
