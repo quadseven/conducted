@@ -11,6 +11,10 @@ for (const file of ['js/constants.js', 'js/utils.js', 'js/map.js', 'js/npcData.j
 const transitions = vm.runInContext(`(() => {
     const pairs = [
         ['PistonTown', 'LabInterior', 10, 5, 4, 9, 10, 6],
+        ['PistonTown', 'PlayerHouse', 4, 5, 4, 7, 4, 6],
+        ['PistonTown', 'HealingDepot', 16, 6, 4, 7, 16, 7],
+        ['PistonTown', 'TrainMart', 4, 12, 4, 7, 4, 13],
+        ['PistonTown', 'RivalHouse', 15, 3, 4, 7, 15, 4],
         ['CoalHarbor', 'CoalHarborGym', 5, 12, 7, 14, 5, 13]
     ];
     return pairs.map(([outsideId, insideId, x, y, insideX, insideY, exitX, exitY]) => {
@@ -24,8 +28,8 @@ const transitions = vm.runInContext(`(() => {
 
 assert.equal(typeof context.addReverseWarp, 'function', 'map.js exposes reverse transition helper');
 for (const pair of transitions) {
-    assert.ok(pair.entrance, 'outdoor entrance is defined in map metadata');
-    assert.ok(pair.exit, 'interior exit is generated from reverse metadata');
+    assert.ok(pair.entrance, `outdoor entrance is defined in map metadata for ${pair.outsideId}`);
+    assert.ok(pair.exit, `interior exit is generated from reverse metadata for ${pair.outsideId}`);
     assert.equal(pair.exit.to.mapId, pair.outsideId);
     assert.deepEqual([pair.exit.to.x, pair.exit.to.y], [pair.exitX, pair.exitY]);
 }

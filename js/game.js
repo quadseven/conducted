@@ -69,6 +69,7 @@ function Game(canvas) {
     this.selectedItem = null;
     this.trainSelection = 0;
     this.traindexSelection = 0;
+    this.traindexFilter = { status: 'ALL', letter: '' };
     this.saveSelection = 0; // 0: YES, 1: NO
     this.saveMessage = '';
     this.optionsSelection = 0; // 0: Audio, 1: Text Speed
@@ -2167,6 +2168,7 @@ Game.prototype.updateMainMenu = function () {
         } else if (option === 'TRAINDEX') {
             this.menuOverlay = 'TRAINDEX';
             this.traindexSelection = 0;
+            this.traindexFilter = { status: 'ALL', letter: '' };
         }
         return;
     }
@@ -2296,26 +2298,63 @@ Game.prototype.updateMenuTrains = function () {
     }
 };
 
-Game.prototype.getTraindexList = function () {
+Game.prototype.TRAINDEX_STATUSES = ['ALL', 'SEEN', 'CAUGHT', 'MISSING'];
+Game.prototype.TRAINDEX_LETTERS = '_ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+Game.prototype.getTraindexList = function (filter) {
+    const seen = (this.player && this.player.seenSpecies) || [];
     const caught = (this.player && this.player.caughtSpecies) || [];
     const ids = Object.keys(typeof TRAIN_SPECIES !== 'undefined' ? TRAIN_SPECIES : {})
         .map(function (k) { return Number(k); })
         .sort(function (a, b) { return a - b; });
-    return ids.map(function (id) {
+    const entries = ids.map(function (id) {
         const species = TRAIN_SPECIES[id];
         const isCaught = caught.indexOf(id) !== -1;
+        const isSeen = isCaught || seen.indexOf(id) !== -1;
         return {
             id: id,
+            seen: isSeen,
             caught: isCaught,
-            name: isCaught ? species.name : null,
-            types: isCaught ? (species.types || []) : [],
+            name: isSeen ? species.name : null,
+            types: isSeen ? (species.types || []) : [],
             baseStats: isCaught ? species.baseStats : null
         };
     });
+    return Game.filterTraindexEntries(entries, filter);
+};
+
+Game.filterTraindexEntries = function (entries, filter) {
+    const status = (filter && filter.status) || 'ALL';
+    const letter = (filter && filter.letter) || '';
+    return entries.filter(function (entry) {
+        if (status === 'SEEN' && !entry.seen) return false;
+        if (status === 'CAUGHT' && !entry.caught) return false;
+        if (status === 'MISSING' && entry.seen) return false;
+        return !letter || (entry.name !== null && entry.name[0].toUpperCase() === letter);
+    });
+};
+
+// Step the status filter (direction -1/+1) or the search letter (direction +1)
+Game.prototype.cycleTraindexFilter = function (key, values, direction) {
+    const current = key === 'letter' ? (this.traindexFilter.letter || '_') : this.traindexFilter.status;
+    const next = values[(values.indexOf(current) + direction + values.length) % values.length];
+    this.traindexFilter[key] = next === '_' ? '' : next;
+    this.traindexSelection = 0;
+};
+
+Game.prototype.updateTraindexFilterInput = function () {
+    if (this.input.isKeyJustPressed('ArrowLeft') || this.input.isVirtualKeyJustPressed('left')) {
+        this.cycleTraindexFilter('status', this.TRAINDEX_STATUSES, -1);
+    } else if (this.input.isKeyJustPressed('ArrowRight') || this.input.isVirtualKeyJustPressed('right')) {
+        this.cycleTraindexFilter('status', this.TRAINDEX_STATUSES, 1);
+    } else if (this.input.isKeyJustPressed('a') || this.input.isVirtualKeyJustPressed('a')) {
+        this.cycleTraindexFilter('letter', this.TRAINDEX_LETTERS, 1);
+    }
 };
 
 Game.prototype.updateMenuTraindex = function () {
-    const entries = this.getTraindexList();
+    this.updateTraindexFilterInput();
+    const entries = this.getTraindexList(this.traindexFilter);
     const max = Math.max(0, entries.length - 1);
     this.traindexSelection = Math.min(Math.max(0, this.traindexSelection || 0), max);
 
@@ -2474,7 +2513,7 @@ Game.prototype.renderMenu = function () {
     } else if (this.menuOverlay === 'TRAINS') {
         UI.drawTrainsOverlay(this.ctx, this.player, this.trainSelection);
     } else if (this.menuOverlay === 'TRAINDEX') {
-        UI.drawTraindex(this.ctx, this.player, this.getTraindexList(), this.traindexSelection);
+        UI.drawTraindex(this.ctx, this.player, this.getTraindexList(this.traindexFilter), this.traindexSelection, this.traindexFilter);
     } else if (this.menuOverlay === 'SAVE') {
         UI.drawSaveOverlay(this.ctx, this.player, this.currentMap, this.saveSelection, this.saveMessage);
     } else if (this.menuOverlay === 'OPTIONS') {

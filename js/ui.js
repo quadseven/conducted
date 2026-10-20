@@ -389,7 +389,7 @@ class UI {
         ctx.fillText('Up/Down: Select Train  -  B: Back', x + 20, y + height - 16);
     }
 
-    static drawTraindex(ctx, player, entries, selection) {
+    static drawTraindex(ctx, player, entries, selection, filter) {
         const x = 40;
         const y = 50;
         const width = 688;
@@ -399,20 +399,24 @@ class UI {
 
         const list = entries || [];
         const sel = Math.min(Math.max(0, selection || 0), Math.max(0, list.length - 1));
-        const caughtCount = list.filter(entry => entry.caught).length;
+        const caughtCount = (player.caughtSpecies || []).length;
+        const seenCount = (player.seenSpecies || []).length;
+        const activeFilter = filter || { status: 'ALL', letter: '' };
 
         // Header
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
         ctx.font = 'bold 22px monospace';
         ctx.fillText('TRAINDEX', x + 20, y + 38);
         ctx.font = '16px monospace';
-        ctx.fillText(`Caught: ${caughtCount} / ${list.length}`, x + width - 230, y + 38);
+        ctx.fillText(`Seen ${seenCount}  Caught ${caughtCount}`, x + width - 250, y + 38);
+        ctx.font = '14px monospace';
+        ctx.fillText(`Show: ${activeFilter.status}  Letter: ${activeFilter.letter || '-'}  (${list.length})`, x + 20, y + 58);
 
         // List column on left
         const leftW = 280;
         ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
         ctx.lineWidth = 2;
-        ctx.strokeRect(x + 14, y + 56, leftW, height - 100);
+        ctx.strokeRect(x + 14, y + 66, leftW, height - 110);
 
         const rowsPerPage = 11;
         const rowH = 42;
@@ -433,7 +437,8 @@ class UI {
 
             ctx.font = '14px monospace';
             const num = '#' + String(entry.id).padStart(3, '0');
-            ctx.fillText(entry.caught ? `${num} ${entry.name}` : `${num} ??????`, x + 24, rowY);
+            const mark = entry.caught ? '*' : ' ';
+            ctx.fillText(entry.seen ? `${num}${mark}${entry.name}` : `${num} ??????`, x + 24, rowY);
         }
 
         // Details panel on right
@@ -441,7 +446,7 @@ class UI {
         const selected = list[sel];
 
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-        if (selected && selected.caught) {
+        if (selected && selected.seen) {
             ctx.font = 'bold 20px monospace';
             ctx.fillText(selected.name, rightX, y + 88);
             ctx.font = '16px monospace';
@@ -459,7 +464,15 @@ class UI {
                 ctx.fillText(types[i], badgeX + 8, badgeY + 16);
             }
 
-            // Base stats
+            // Base stats (caught only)
+            if (!selected.caught) {
+                ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+                ctx.font = '14px monospace';
+                ctx.fillText('Seen only. Catch it to', rightX, y + 176);
+                ctx.fillText('record its base stats.', rightX, y + 198);
+                UI.drawTraindexHelp(ctx, x, y, height);
+                return;
+            }
             const stats = selected.baseStats || {};
             ctx.fillStyle = CONSTANTS.COLORS.BLACK;
             ctx.font = 'bold 15px monospace';
@@ -479,10 +492,13 @@ class UI {
             ctx.fillText('Traindex.', rightX, y + 174);
         }
 
-        // Instructions
+        UI.drawTraindexHelp(ctx, x, y, height);
+    }
+
+    static drawTraindexHelp(ctx, x, y, height) {
         ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-        ctx.font = '14px monospace';
-        ctx.fillText('Up/Down: Browse  -  B: Back', x + 20, y + height - 16);
+        ctx.font = '13px monospace';
+        ctx.fillText('Up/Down: Browse  L/R: Show  A: Letter  B: Back', x + 20, y + height - 16);
     }
 
     static drawSaveOverlay(ctx, player, currentMap, saveSelection, saveMessage) {
