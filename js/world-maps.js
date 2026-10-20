@@ -1331,11 +1331,15 @@ console.log('🗺️ World maps loaded:', Object.keys(WORLD_MAPS));
   // Voltage Valley past the Electric gym, and the Whistlestop woods.
   // installGrandTransitCampaign (above) already built Route2-8 via makeRoute;
   // this block only re-themes them, so it must stay after that installer.
-  WORLD_MAPS.Route2.name = 'Route 2: Coastal Railway';
-  WORLD_MAPS.Route3.name = 'Route 3: Voltage Valley';
-  WORLD_MAPS.Route4.name = 'Route 4: Whistlestop Way';
-  fillRectTiles(WORLD_MAPS.Route2.tiles, 16, 1, 3, 22, 4);
-  computeCollisions(WORLD_MAPS.Route2);
+  const [route2, route3, route4] = ['Route2', 'Route3', 'Route4'].map(id => {
+    if (!WORLD_MAPS[id]) throw new Error(`${id} must be built by installGrandTransitCampaign before it is re-themed`);
+    return WORLD_MAPS[id];
+  });
+  route2.name = 'Route 2: Coastal Railway';
+  route3.name = 'Route 3: Voltage Valley';
+  route4.name = 'Route 4: Whistlestop Way';
+  fillRectTiles(route2.tiles, 16, 1, 3, 22, 4);
+  computeCollisions(route2);
   stamp('Route4', [], [[2, 3, 3, 2], [15, 8, 3, 2], [2, 17, 3, 2]]);
 
   // "Preserving History" (STORY.md section 4) takes the City4 slot, directly
