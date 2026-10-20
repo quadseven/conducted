@@ -316,20 +316,390 @@
     out[sy] = out[sy].slice(0, sx) + 'I' + out[sy].slice(sx + 1);
     return out;
   }
+  // A town carries three civic buildings besides its gym: a depot, a mart and a
+  // story hub. They stand in the same slots in every town, so the main line
+  // reads the same from town to town: the depot on the west side under the
+  // gym, the story hub below it, and the mart opposite the hub.
+  const CIVIC_SLOTS = {
+    depot: { x: 1, y: 6, w: 5, h: 3, door: 2 },
+    hub: { x: 1, y: 11, w: 6, h: 4, door: 2 },
+    mart: { x: 13, y: 11, w: 4, h: 4, door: 1 },
+  };
+  // The signpost that stands beside each door.
+  const CIVIC_POSTS = {
+    depot: { x: 6, y: 8 },
+    hub: { x: 7, y: 14 },
+    mart: { x: 12, y: 14 },
+  };
+  // The three interiors of every town from Steamspring Village up. Each one is
+  // a walled room with a doormat at the bottom centre: the player lands on the
+  // mat coming in and steps down onto it to go back out.
+  const CIVIC = {
+    SteamspringVillage: {
+      depot: {
+        id: 'SteamspringDepot', name: 'STEAMSPRING DEPOT',
+        post: 'STEAMSPRING DEPOT\nTired trains sleep here.',
+        style: 'depot', sign: 'DEPOT',
+        floor: 'wood', wallTint: '#e0c8b0', music: 'depot', mat: [5, 7],
+        rows: [
+          'WWWWWWWWWWW',
+          'p...H....Qp',
+          '...NNNNN...',
+          '...........',
+          '.h.......h.',
+          '.t...e...t.',
+          '...........',
+          '.....M.....',
+        ],
+      },
+      mart: {
+        id: 'SteamspringMart', name: 'STEAMSPRING MART',
+        post: 'STEAMSPRING MART\nCoal biscuits and brass polish.',
+        style: 'mart', sign: 'MART',
+        floor: 'tile', wallTint: '#e8dcc0', music: 'depot', mat: [3, 7],
+        rows: [
+          'WWWWWWWW',
+          'EE.EEEEE',
+          '.n......',
+          '.n......',
+          '.n......',
+          '....E.E.',
+          '....E.E.',
+          '...M....',
+        ],
+      },
+      hub: {
+        id: 'SteamspringMuseum', name: 'TRAIN MUSEUM',
+        post: 'TRAIN MUSEUM\nTwo hundred years of steam, under glass.',
+        style: 'station', sign: 'MUSEUM',
+        floor: 'wood', wallTint: '#e8d8b4', music: 'piston', mat: [5, 9],
+        rows: [
+          'WWWWWWWWWWWW',
+          'KKe......K.K',
+          '............',
+          '..e..w..e...',
+          '............',
+          '...NNNN.....',
+          '............',
+          '..G......e..',
+          '............',
+          '.....M......',
+        ],
+      },
+    },
+    DieselDen: {
+      depot: {
+        id: 'DieselDepot', name: 'DIESEL DEN DEPOT',
+        post: 'DIESEL DEN DEPOT\nGrease first, talk later.',
+        style: 'depot', sign: 'DEPOT',
+        floor: 'tile', wallTint: '#b8b0a8', music: 'depot', mat: [5, 7],
+        rows: [
+          'WWWWWWWWWWW',
+          'p...H....Qp',
+          '...NNNNN...',
+          '...........',
+          '.r.......r.',
+          '.r...O...r.',
+          '...........',
+          '.....M.....',
+        ],
+      },
+      mart: {
+        id: 'DieselMart', name: 'DIESEL DEN MART',
+        post: 'DIESEL DEN MART\nGaskets, wheels and a little oil.',
+        style: 'mart', sign: 'MART',
+        floor: 'tile', wallTint: '#c8b8a0', music: 'depot', mat: [3, 7],
+        rows: [
+          'WWWWWWWW',
+          'EE.EEEEE',
+          '.n......',
+          '.n......',
+          '.n......',
+          '.E.E....',
+          '..E.E...',
+          '...M....',
+        ],
+      },
+      hub: {
+        id: 'DieselModShop', name: 'MODIFICATION SHOP',
+        post: 'MODIFICATION SHOP\nBring a tired engine. Leave with a hungry one.',
+        style: 'lab', sign: 'MODS',
+        floor: 'tile', wallTint: '#c0b8a8', music: 'depot', mat: [5, 8],
+        rows: [
+          'WWWWWWWWWWWW',
+          'ZZ......r.ZZ',
+          '............',
+          '..r..Z..r...',
+          '............',
+          'O..........O',
+          '............',
+          '............',
+          '.....M......',
+        ],
+      },
+    },
+    MaglevHeights: {
+      depot: {
+        id: 'MaglevDepot', name: 'MAGLEV HEIGHTS DEPOT',
+        post: 'MAGLEV HEIGHTS DEPOT\nCurrent, patience and a clear sky.',
+        style: 'depot', sign: 'DEPOT',
+        floor: 'tile', wallTint: '#dce8f4', music: 'depot', mat: [5, 7],
+        rows: [
+          'WWWWWWWWWWW',
+          'p...H....Qp',
+          '...NNNNN...',
+          '...........',
+          '.h...G...h.',
+          '.t...Z...t.',
+          '...........',
+          '.....M.....',
+        ],
+      },
+      mart: {
+        id: 'MaglevMart', name: 'MAGLEV HEIGHTS MART',
+        post: 'MAGLEV HEIGHTS MART\nMagnetic pads and rail dust.',
+        style: 'mart', sign: 'MART',
+        floor: 'tile', wallTint: '#d0e0f0', music: 'depot', mat: [3, 7],
+        rows: [
+          'WWWWWWWW',
+          'EE.EEEEE',
+          '.n......',
+          '.n......',
+          '.n......',
+          '..E.E.E.',
+          '..E.E..E',
+          '...M....',
+        ],
+      },
+      hub: {
+        id: 'MaglevInstitute', name: 'WEATHER INSTITUTE',
+        post: 'WEATHER INSTITUTE\nThey read the sky for the whole line.',
+        style: 'lab', sign: 'WEATHER',
+        floor: 'tile', wallTint: '#c8dcec', music: 'lab', mat: [5, 9],
+        rows: [
+          'WWWWWWWWWWWW',
+          'ZG......G.ZZ',
+          '............',
+          '..w..Z..w...',
+          '............',
+          '...NNNN.....',
+          '............',
+          '............',
+          '............',
+          '.....M......',
+        ],
+      },
+    },
+    GhostRailGraveyard: {
+      depot: {
+        id: 'GraveyardDepot', name: 'THE RESTING HALL',
+        post: 'THE RESTING HALL\nEvery engine that stops for good comes here.',
+        style: 'depot', sign: 'DEPOT',
+        floor: 'wood', wallTint: '#8a8098', music: 'depot', mat: [5, 7],
+        // TODO(art): the resting hall wants candle and lantern props; crates
+        // and barrels stand in until those exist.
+        rows: [
+          'WWWWWWWWWWW',
+          'p...H....Qp',
+          '...NNNNN...',
+          '...........',
+          '.r.......r.',
+          '.O.......O.',
+          '...........',
+          '.....M.....',
+        ],
+      },
+      mart: {
+        id: 'GraveyardMart', name: 'RELIC MART',
+        post: 'RELIC MART\nGhost rails, ghost prices.',
+        style: 'mart', sign: 'RELICS',
+        floor: 'wood', wallTint: '#7a7088', music: 'depot', mat: [3, 7],
+        rows: [
+          'WWWWWWWW',
+          'EE.EEEEE',
+          '.n......',
+          '.n......',
+          '.n......',
+          '.p....p.',
+          '....E.E.',
+          '...M....',
+        ],
+      },
+      hub: {
+        id: 'GhostSanctuary', name: 'GHOST RAIL SANCTUARY',
+        post: 'GHOST RAIL SANCTUARY\nThe old singers still sing here.',
+        style: 'station', sign: 'SANCTUARY',
+        floor: 'wood', wallTint: '#6a6080', carpetTint: '#3a2a4a', music: 'route1', mat: [5, 9],
+        // TODO(art): the sanctuary wants a candle prop and a mourning train
+        // model; the wheel display and crates stand in until they exist.
+        rows: [
+          'WWWWWWWWWWWW',
+          'K..........K',
+          '............',
+          '..e..w..e...',
+          '............',
+          '...NNNN.....',
+          '............',
+          '..r..O..r...',
+          '............',
+          '.....M......',
+        ],
+      },
+    },
+    NuclearStation: {
+      depot: {
+        id: 'NuclearDepot', name: 'NUCLEAR STATION DEPOT',
+        post: 'NUCLEAR STATION DEPOT\nContainment is holding.',
+        style: 'depot', sign: 'DEPOT',
+        floor: 'tile', wallTint: '#d0e0c8', music: 'depot', mat: [5, 7],
+        rows: [
+          'WWWWWWWWWWW',
+          'p...H....Qp',
+          '...NNNNN...',
+          '...........',
+          '.h...Z...h.',
+          '.Z...Z...Z.',
+          '...........',
+          '.....M.....',
+        ],
+      },
+      mart: {
+        id: 'NuclearMart', name: 'NUCLEAR STATION MART',
+        post: 'NUCLEAR STATION MART\nEverything behind a locked cabinet.',
+        style: 'mart', sign: 'MART',
+        floor: 'tile', wallTint: '#c8dcc4', music: 'depot', mat: [3, 7],
+        rows: [
+          'WWWWWWWW',
+          'EE.EEEEE',
+          '.n......',
+          '.n......',
+          '.n......',
+          '..E.E...',
+          '.p..E.E.',
+          '...M....',
+        ],
+      },
+      hub: {
+        id: 'NuclearLab', name: 'NUCLEAR RESEARCH LAB',
+        post: 'NUCLEAR RESEARCH LAB\nThe core is stable. That is the whole job.',
+        style: 'lab', sign: 'RESEARCH',
+        floor: 'tile', wallTint: '#c0d8b8', music: 'lab', mat: [5, 9],
+        rows: [
+          'WWWWWWWWWWWW',
+          'ZQ......Q.ZZ',
+          '............',
+          '..Z..G..Z...',
+          '............',
+          '...NNNN.....',
+          '............',
+          '..Z..Z..Z...',
+          '............',
+          '.....M......',
+        ],
+      },
+    },
+    MonorailMountaintop: {
+      depot: {
+        id: 'SummitDepot', name: 'SUMMIT DEPOT',
+        post: 'SUMMIT DEPOT\nMind the ice on the platform.',
+        style: 'depot', sign: 'DEPOT',
+        floor: 'wood', wallTint: '#e8eef4', music: 'depot', mat: [5, 7],
+        rows: [
+          'WWWWWWWWWWW',
+          'p...H....Qp',
+          '...NNNNN...',
+          '...........',
+          '.h...e...h.',
+          '.t.......t.',
+          '...........',
+          '.....M.....',
+        ],
+      },
+      mart: {
+        id: 'SummitMart', name: 'SUMMIT MART',
+        post: 'SUMMIT MART\nWhat climbers need, at what climbers can pay.',
+        style: 'mart', sign: 'MART',
+        floor: 'tile', wallTint: '#e0e8f0', music: 'depot', mat: [3, 7],
+        rows: [
+          'WWWWWWWW',
+          'EE.EEEEE',
+          '.n......',
+          '.n......',
+          '.n......',
+          '....E.E.',
+          '..p.E.E.',
+          '...M....',
+        ],
+      },
+      hub: {
+        id: 'SummitStation', name: 'MONORAIL SUMMIT STATION',
+        post: 'MONORAIL SUMMIT STATION\nOne beam, and the mountain is a straight line.',
+        style: 'station', sign: 'SUMMIT',
+        floor: 'tile', wallTint: '#dce6f0', carpetTint: '#4a7ab0', music: 'route1', mat: [5, 9],
+        rows: [
+          'WWWWWWWWWWWW',
+          'ZG......G.ZZ',
+          '............',
+          '..w.cccc.w..',
+          '............',
+          '...NNNN.....',
+          '............',
+          '............',
+          '............',
+          '.....M......',
+        ],
+      },
+    },
+  };
+  // Write a building footprint into the town rows.
+  function stampBuilding(rows, b) {
+    for (let y = b.y; y < b.y + b.h; y++) {
+      rows[y] = rows[y].slice(0, b.x) + 'B'.repeat(b.w) + rows[y].slice(b.x + b.w);
+    }
+  }
+  // Write a signpost into the town rows.
+  function stampSign(rows, x, y) {
+    rows[y] = rows[y].slice(0, x) + 'I' + rows[y].slice(x + 1);
+  }
+  // Add a town's three civic interiors. Each one gets a door on the town and a
+  // room inside whose doormat warps back to that same door.
+  function addCivic(townId, spec, rows, buildings, warps, signs) {
+    for (const kind of ['depot', 'mart', 'hub']) {
+      const room = spec[kind], slot = CIVIC_SLOTS[kind], post = CIVIC_POSTS[kind];
+      const b = { x: slot.x, y: slot.y, w: slot.w, h: slot.h, door: slot.door, style: room.style, sign: room.sign };
+      stampBuilding(rows, b);
+      stampSign(rows, post.x, post.y);
+      buildings.push(b);
+      const dx = b.x + b.door, dy = b.y + b.h - 1;
+      warps.push({ x: dx, y: dy, to: room.id, tx: room.mat[0], ty: room.mat[1], dir: 'up' });
+      signs.push({ x: post.x, y: post.y, text: room.post });
+      D(room.id, {
+        name: room.name, indoor: true, floor: room.floor, wallTint: room.wallTint, carpetTint: room.carpetTint, music: room.music,
+        rows: room.rows,
+        warps: [{ x: room.mat[0], y: room.mat[1], to: townId, tx: dx, ty: dy, dir: 'down' }],
+      });
+    }
+  }
   function addTown(id, name, theme, route, direction, nextRoute, gym) {
     const rows = gym ? stampGym(makeOutdoorRows(theme)) : makeOutdoorRows(theme);
     const connections = {};
     connections[direction] = { map: route, offset: 0 };
     if (nextRoute) connections[direction === 'south' ? 'north' : 'south'] = { map: nextRoute, offset: 0 };
     const signs = [{ x: 7, y: 10, text: name + '\nA station on the Locomotia main line.' }];
-    if (gym) signs.push({ x: GYM_LOT.x - 1, y: GYM_DOOR.y, text: gym.sign });
+    const buildings = [], warps = [];
+    if (gym) {
+      buildings.push(Object.assign({ style: 'gym', door: GYM_DOOR.x - GYM_LOT.x }, GYM_LOT));
+      warps.push({ x: GYM_DOOR.x, y: GYM_DOOR.y, to: gym.map, tx: GYM_MAT.x, ty: GYM_MAT.y, dir: 'up' });
+      signs.push({ x: GYM_LOT.x - 1, y: GYM_DOOR.y, text: gym.sign });
+    }
+    if (CIVIC[id]) addCivic(id, CIVIC[id], rows, buildings, warps, signs);
     D(id, {
       name, music: theme === 'snow' || theme === 'haunted' ? 'route1' : 'harbor',
       base: theme === 'coast' ? 'sand' : theme === 'industrial' ? 'cobble' : 'grass',
       rows,
       connections,
-      buildings: gym ? [Object.assign({ style: 'gym', door: GYM_DOOR.x - GYM_LOT.x }, GYM_LOT)] : [],
-      warps: gym ? [{ x: GYM_DOOR.x, y: GYM_DOOR.y, to: gym.map, tx: GYM_MAT.x, ty: GYM_MAT.y, dir: 'up' }] : [],
+      buildings,
+      warps,
       signs,
     });
     if (gym) {
