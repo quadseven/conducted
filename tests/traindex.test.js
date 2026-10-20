@@ -220,4 +220,88 @@ testTraindexList();
 testTraindexNavigation();
 testDrawTraindex();
 
+// Test 6: Seen-only species show name and types but keep base stats hidden
+function testTraindexSeenEntry() {
+    const game = createTestGame();
+    game.player.registerSeen(2);
+    const seen = game.getTraindexList().find(e => e.id === 2);
+    assert.ok(seen.seen, 'seen species is marked seen');
+    assert.ok(!seen.caught, 'seen species is not marked caught');
+    assert.equal(seen.name, TRAIN_SPECIES[2].name, 'seen entry shows the name');
+    assert.equal(seen.baseStats, null, 'seen entry hides base stats');
+}
+
+// Test 7: Status filter narrows the list to seen, caught or missing entries
+function testTraindexStatusFilter() {
+    const game = createTestGame();
+    game.player.registerSeen(2);
+    game.player.registerCaught(1);
+    const total = Object.keys(TRAIN_SPECIES).length;
+    assert.equal(game.getTraindexList({ status: 'ALL' }).length, total, 'ALL keeps everything');
+    assert.deepEqual(game.getTraindexList({ status: 'SEEN' }).map(e => e.id), [1, 2], 'SEEN lists seen and caught');
+    assert.deepEqual(game.getTraindexList({ status: 'CAUGHT' }).map(e => e.id), [1], 'CAUGHT lists caught only');
+    assert.equal(game.getTraindexList({ status: 'MISSING' }).length, total - 2, 'MISSING lists unseen only');
+}
+
+// Test 8: Letter search matches the first letter of known names only
+function testTraindexLetterSearch() {
+    const game = createTestGame();
+    game.player.registerCaught(1);
+    const letter = TRAIN_SPECIES[1].name[0].toUpperCase();
+    const hits = game.getTraindexList({ letter });
+    assert.ok(hits.length >= 1 && hits.every(e => e.name && e.name[0].toUpperCase() === letter),
+        'only known names starting with the letter match');
+    assert.ok(hits.some(e => e.id === 1), 'the caught species is found');
+}
+
+// Test 9: Left/right cycle the filter and A cycles the search letter, resetting the cursor
+function testTraindexFilterControls() {
+    const game = createTestGame();
+    game.player.registerCaught(1);
+    game.setState(CONSTANTS.STATES.MENU);
+    game.menuSelection = game.menuOptions.indexOf('TRAINDEX');
+    pressKey(game, 'a');
+    game.updateMenu();
+    assert.equal(game.traindexFilter.status, 'ALL', 'filter starts at ALL');
+
+    game.traindexSelection = 5;
+    pressKey(game, 'right');
+    game.updateMenu();
+    assert.equal(game.traindexFilter.status, 'SEEN', 'right advances the status filter');
+    assert.equal(game.traindexSelection, 0, 'cursor resets when the filter changes');
+
+    pressKey(game, 'left');
+    game.updateMenu();
+    assert.equal(game.traindexFilter.status, 'ALL', 'left goes back');
+    pressKey(game, 'left');
+    game.updateMenu();
+    assert.equal(game.traindexFilter.status, 'MISSING', 'left wraps around');
+
+    pressKey(game, 'a');
+    game.updateMenu();
+    assert.equal(game.traindexFilter.letter, 'A', 'A advances the search letter');
+    assert.equal(game.menuOverlay, 'TRAINDEX', 'overlay stays open');
+}
+
+// Test 10: Opening the overlay clears stale filters, and drawing a filtered or empty list works
+function testTraindexFilterResetAndDraw() {
+    const game = createTestGame();
+    game.setState(CONSTANTS.STATES.MENU);
+    game.traindexFilter = { status: 'CAUGHT', letter: 'Z' };
+    game.menuSelection = game.menuOptions.indexOf('TRAINDEX');
+    pressKey(game, 'a');
+    game.updateMenu();
+    assert.deepEqual({ ...game.traindexFilter }, { status: 'ALL', letter: '' }, 'filters reset on open');
+
+    const ctx = canvasMock.getContext();
+    assert.doesNotThrow(() => UI.drawTraindex(ctx, game.player, [], 0, { status: 'CAUGHT', letter: 'Z' }),
+        'draws an empty filtered list');
+}
+
+testTraindexSeenEntry();
+testTraindexStatusFilter();
+testTraindexLetterSearch();
+testTraindexFilterControls();
+testTraindexFilterResetAndDraw();
+
 console.log('All traindex tests passed!');
