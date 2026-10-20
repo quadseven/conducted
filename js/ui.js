@@ -33,29 +33,6 @@ class UI {
         }
     }
 
-    static drawMenu(ctx, x, y, width, height, options, selectedIndex) {
-        UI.drawPanel(ctx, x, y, width, height);
-
-        // Draw options
-        ctx.font = '20px monospace';
-        const lineHeight = 35;
-
-        for (let i = 0; i < options.length; i++) {
-            const optionY = y + 30 + i * lineHeight;
-
-            // Highlight selected
-            if (i === selectedIndex) {
-                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
-                ctx.fillRect(x + 5, optionY - 20, width - 10, lineHeight - 5);
-                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-            } else {
-                ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-            }
-
-            ctx.fillText(options[i], x + 20, optionY);
-        }
-    }
-
     static drawProgressBar(ctx, x, y, width, height, percentage, color) {
         // Background
         ctx.fillStyle = CONSTANTS.COLORS.LIGHT_GRAY;
@@ -70,46 +47,6 @@ class UI {
         ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, width, height);
-    }
-
-    static drawTrainSummary(ctx, train, x, y) {
-        // Background panel
-        const width = 400;
-        const height = 200;
-
-        UI.drawPanel(ctx, x, y, width, height);
-
-        // Train name and level
-        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-        ctx.font = 'bold 24px monospace';
-        ctx.fillText(train.species.name, x + 20, y + 35);
-        ctx.font = '18px monospace';
-        ctx.fillText(`Lv. ${train.level}`, x + 280, y + 35);
-
-        // HP
-        ctx.fillText(`HP: ${train.currentHP}/${train.maxHP}`, x + 20, y + 70);
-        this.drawProgressBar(ctx, x + 20, y + 80, 360, 15, train.getHPPercentage(), train.getHPColor());
-
-        // Stats
-        ctx.font = '16px monospace';
-        ctx.fillText(`ATK: ${train.attack}`, x + 20, y + 120);
-        ctx.fillText(`DEF: ${train.defense}`, x + 120, y + 120);
-        ctx.fillText(`SPD: ${train.speed}`, x + 220, y + 120);
-        ctx.fillText(`SPC: ${train.special}`, x + 320, y + 120);
-
-        // Types
-        ctx.font = 'bold 14px monospace';
-        for (let i = 0; i < train.types.length; i++) {
-            const type = train.types[i];
-            const typeX = x + 20 + i * 100;
-            const typeY = y + 150;
-
-            ctx.fillStyle = CONSTANTS.TYPE_COLORS[type] || '#888888';
-            ctx.fillRect(typeX, typeY, 90, 30);
-
-            ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-            ctx.fillText(type, typeX + 10, typeY + 20);
-        }
     }
 
     static drawPauseMenu(ctx, options, selectedIndex, player) {
@@ -622,98 +559,6 @@ class UI {
         ctx.fillText('Up/Down: Select  -  Left/Right/A: Change  -  B: Back', x + 24, y + height - 24);
     }
 
-    static drawShop(ctx, shopItems, selectedIndex, player, mode = 'buy', message = '') {
-        const x = 100;
-        const y = 100;
-        const width = 600;
-        const height = 400;
-
-        UI.drawPanel(ctx, x, y, width, height);
-
-        // Title
-        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-        ctx.font = 'bold 24px monospace';
-        ctx.fillText(mode === 'categories' ? 'RAIL MART' : mode === 'sell' ? 'SELL ITEMS' : 'BUY ' + mode.toUpperCase(), x + 20, y + 40);
-
-        // Money display
-        ctx.font = '18px monospace';
-        ctx.fillText(`Money: $${player.money}`, x + 400, y + 40);
-
-        // Item list
-        ctx.font = '20px monospace';
-        const lineHeight = 60;
-
-        for (let i = 0; i < shopItems.length; i++) {
-            const item = shopItems[i];
-            const itemY = y + 120 + i * lineHeight;
-
-            // Highlight selected
-            if (i === selectedIndex) {
-                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
-                ctx.fillRect(x + 10, itemY - 35, width - 20, lineHeight - 5);
-                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-            } else {
-                ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-            }
-
-            // Item name and price
-            const label = typeof item === 'string' ? item : item.displayName;
-            ctx.fillText(label, x + 30, itemY - 5);
-            if (typeof item !== 'string') {
-                ctx.font = '16px monospace';
-                ctx.fillText(`$${item.price}`, x + 400, itemY - 5);
-                ctx.fillText(item.description, x + 30, itemY + 20);
-            }
-            ctx.font = '20px monospace';
-        }
-
-        // Instructions
-        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-        ctx.font = '16px monospace';
-        if (message) ctx.fillText(message, x + 20, y + height - 52);
-        ctx.fillText(mode === 'categories' ? 'A: choose / B: close' : mode === 'sell' ? 'A: sell / B: categories' : 'A: buy / B: categories', x + 20, y + height - 20);
-    }
-
-    static drawTrainParty(ctx, player, trainSelection) {
-        const x = 100;
-        const y = 150;
-        const width = 550;
-        const height = 350;
-
-        UI.drawPanel(ctx, x, y, width, height);
-
-        // Title
-        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-        ctx.font = 'bold 20px monospace';
-        ctx.fillText('Your Trains', x + 20, y + 35);
-
-        // Train list
-        ctx.font = '18px monospace';
-        const lineHeight = 50;
-
-        for (let i = 0; i < player.party.length; i++) {
-            const train = player.party[i];
-            const trainY = y + 80 + i * lineHeight;
-
-            // Highlight selected
-            if (i === trainSelection) {
-                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
-                ctx.fillRect(x + 10, trainY - 30, width - 20, lineHeight - 5);
-                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-            } else {
-                ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-            }
-
-            const hpPercent = Math.floor((train.currentHP / train.maxHP) * 100);
-            ctx.fillText(`${train.nickname || train.species.name} Lv${train.level} HP: ${train.currentHP}/${train.maxHP} (${hpPercent}%)`, x + 20, trainY);
-        }
-
-        // Instructions
-        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-        ctx.font = '16px monospace';
-        ctx.fillText('Press B to return', x + 20, y + height - 20);
-    }
-
     static drawDepot(ctx, player, selectedIndex) {
         const x = 70, y = 55, width = 628, height = 560;
         UI.drawPanel(ctx, x, y, width, height);
@@ -742,25 +587,6 @@ class UI {
             ctx.fillStyle = CONSTANTS.COLORS.BLACK;
             ctx.font = '14px monospace';
             ctx.fillText(player.menuMessage, x + 24, y + height - 18);
-        }
-    }
-
-    static drawTrainDex(ctx, player, selectedIndex) {
-        const x = 70, y = 45, width = 628, height = 580;
-        UI.drawPanel(ctx, x, y, width, height);
-        ctx.fillStyle = CONSTANTS.COLORS.BLACK; ctx.font = 'bold 24px monospace';
-        const totalSpecies = Object.keys(TRAIN_SPECIES).length;
-        ctx.fillText(`TRAINDEX  SEEN ${player.seenSpecies.length}/${totalSpecies}  CAUGHT ${player.caughtSpecies.length}/${totalSpecies}`, x + 20, y + 38);
-        const start = Math.max(0, Math.min(selectedIndex - 7, totalSpecies - 10));
-        for (let row = 0; row < 10; row++) {
-            const id = start + row + 1, species = TRAIN_SPECIES[id], ry = y + 70 + row * 47;
-            const seen = player.seenSpecies.includes(id), caught = player.caughtSpecies.includes(id);
-            ctx.fillStyle = id - 1 === selectedIndex ? CONSTANTS.COLORS.UI_HIGHLIGHT : '#e8e0c4';
-            ctx.fillRect(x + 18, ry, width - 36, 37);
-            ctx.fillStyle = id - 1 === selectedIndex ? CONSTANTS.COLORS.WHITE : CONSTANTS.COLORS.BLACK;
-            ctx.font = 'bold 16px monospace';
-            ctx.fillText(`#${String(id).padStart(3, '0')}  ${seen ? species.name : '----------'}`, x + 28, ry + 25);
-            ctx.textAlign = 'right'; ctx.fillText(caught ? 'CAUGHT' : seen ? 'SEEN' : '', x + width - 28, ry + 25); ctx.textAlign = 'left';
         }
     }
 }
