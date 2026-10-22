@@ -160,10 +160,10 @@
   D('CoalHarbor', {
     name: 'COAL HARBOR', music: 'harbor', base: 'cobble',
     rows: [
-      '~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
-      '~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
-      '~~~~~DD~~~~~~~~~~~~~~~DD~~~~',
-      '~~~~~DD~~~~~~~~~~~~~~~DD~~~~',
+      '~~~~~~~~~==~~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~==~~~~~~~~~~~~~~~~~',
+      '~~~~~DD~~==~~~~~~~~~~~DD~~~~',
+      '~~~~~DD~~==~~~~~~~~~~~DD~~~~',
       '::o::DD::o::n::::o::::DD::o:',
       '::::::::::::::::::::::::::::',
       ':BBBBBB::C:O:::BBBBBB::::::T',
@@ -183,7 +183,7 @@
       'TTT.ff.........::..ff.%%%TTT',
       'TTTT..........::......gggTTT',
       'TTTTTT.....==.........%%%TTT',
-      'TTTTTTTTTTT==TTTTTTTTTTTTTTT',
+      'T'.repeat(11) + '==' + 'T'.repeat(15),
     ],
     buildings: [
       { x: 1, y: 6, w: 6, h: 3, style: 'warehouse', door: null },
@@ -666,7 +666,7 @@
   function addCivic(townId, spec, rows, buildings, warps, signs) {
     for (const kind of ['depot', 'mart', 'hub']) {
       const room = spec[kind], slot = CIVIC_SLOTS[kind], post = CIVIC_POSTS[kind];
-      const b = { x: slot.x, y: slot.y, w: slot.w, h: slot.h, door: slot.door, style: room.style, sign: room.sign };
+      const b = { x: slot.x, y: slot.y, w: slot.w, h: slot.h, door: slot.door, style: room.style, sign: room.sign, label: room.name };
       stampBuilding(rows, b);
       stampSign(rows, post.x, post.y);
       buildings.push(b);
@@ -688,7 +688,7 @@
     const signs = [{ x: 7, y: 10, text: name + '\nA station on the Locomotia main line.' }];
     const buildings = [], warps = [];
     if (gym) {
-      buildings.push(Object.assign({ style: 'gym', door: GYM_DOOR.x - GYM_LOT.x }, GYM_LOT));
+      buildings.push(Object.assign({ style: 'gym', door: GYM_DOOR.x - GYM_LOT.x, label: gym.name }, GYM_LOT));
       warps.push({ x: GYM_DOOR.x, y: GYM_DOOR.y, to: gym.map, tx: GYM_MAT.x, ty: GYM_MAT.y, dir: 'up' });
       signs.push({ x: GYM_LOT.x - 1, y: GYM_DOOR.y, text: gym.sign });
     }
