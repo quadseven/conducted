@@ -873,12 +873,12 @@
 
   addRoute('Route2', 'ROUTE 2 - COASTAL LINE', 'CoalHarbor', 'VoltageCity', 'coast');
   addTown('VoltageCity', 'VOLTAGE CITY', 'city', 'Route2', 'south', 'Route3', GYMS.VoltageCity);
-  addRoute('Route3', 'ROUTE 3 - VOLTAGE VALLEY', 'VoltageCity', 'SteamspringVillage', 'city');
+  addRoute('Route3', 'ROUTE 3 - VOLTAGE VALLEY', 'VoltageCity', 'Route4', 'city');
   addSpecial('VoltageValley', 'VOLTAGE VALLEY', 'city', null);
-  addTown('SteamspringVillage', 'STEAMSPRING VILLAGE', 'historic', 'Route3', 'south', 'Route4', GYMS.SteamspringVillage);
-  addRoute('Route4', 'ROUTE 4 - WHISTLESTOP WAY', 'SteamspringVillage', 'DieselDen', 'forest');
+  addTown('SteamspringVillage', 'STEAMSPRING VILLAGE', 'historic', 'Route4', 'south', 'DieselDen', GYMS.SteamspringVillage);
+  addRoute('Route4', 'ROUTE 4 - WHISTLESTOP WAY', 'Route3', 'SteamspringVillage', 'forest');
   addSpecial('WhistlestopForest', 'WHISTLESTOP FOREST', 'forest', null);
-  addTown('DieselDen', 'DIESEL DEN', 'industrial', 'Route4', 'south', 'Route5', GYMS.DieselDen);
+  addTown('DieselDen', 'DIESEL DEN', 'industrial', 'SteamspringVillage', 'south', 'Route5', GYMS.DieselDen);
   addRoute('Route5', 'ROUTE 5 - IRON MOUNTAIN', 'DieselDen', 'MaglevHeights', 'mountain');
   addSpecial('IronMountainRange', 'IRON MOUNTAIN RANGE', 'mountain', null);
   addTown('MaglevHeights', 'MAGLEV HEIGHTS', 'city', 'Route5', 'south', 'Route6', GYMS.MaglevHeights);

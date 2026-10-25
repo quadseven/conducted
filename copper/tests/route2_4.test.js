@@ -24,7 +24,7 @@ for (const [style, interior] of [
   assert(warp, style + ' has a labeled entrance warp');
 }
 
-const corridor = ['CoalHarbor', 'Route2', 'VoltageCity', 'Route3', 'SteamspringVillage', 'Route4'];
+const corridor = ['CoalHarbor', 'Route2', 'VoltageCity', 'Route3', 'Route4', 'SteamspringVillage'];
 for (let i = 0; i < corridor.length - 1; i++) {
   const from = W.get(corridor[i]);
   const to = W.get(corridor[i + 1]);
