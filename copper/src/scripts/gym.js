@@ -25,6 +25,10 @@
     const SP = g.leader.title, d = g.dialogue;
     return function* (n) {
       const st = CD.state;
+      if (g.puzzle && !st.puzzles?.[g.badge]?.solved) {
+        yield* say('The rail switches still block the track. Set them before challenging the Station Master.', SP);
+        return;
+      }
       if (st.badges.includes(g.badge)) {
         for (const line of d.post) yield* say(line, SP);
         return;
@@ -71,7 +75,7 @@
       CD.state.puzzles = CD.state.puzzles || {};
       // Start with all switches in the OFF state (blocked)
       const puzzleState = {
-        switches: [...g.puzzle.solution], // Start with all switches in the OFF state
+        switches: g.puzzle.solution.map(() => false),
         solved: false, // Initially not solved - the player needs to toggle switches
         lastInteracted: null,
         track: g.puzzle.track,
@@ -95,14 +99,14 @@
             
             for (let i = 0; i < g.puzzle.switches.length; i++) {
               const sw = g.puzzle.switches[i];
-              if (st.x === sw.x && st.y === sw.y) {
-                if (!puzzleState.switches[i]) puzzleState.switches[i] = false;
-                const wasOff = puzzleState.switches[i];
-                puzzleState.switches[i] = !wasOff;
+              if (st.x === sw.x && st.y === sw.y && puzzleState.lastInteracted !== sw.id) {
+                puzzleState.switches[i] = !puzzleState.switches[i];
+                puzzleState.lastInteracted = sw.id;
                 checkSwitchState(g, puzzleState, i);
                 break;
               }
             }
+            if (!g.puzzle.switches.some(sw => st.x === sw.x && st.y === sw.y)) puzzleState.lastInteracted = null;
           }
         }
       }

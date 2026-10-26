@@ -11,6 +11,8 @@ const t = C.train.make(9, 30);                     // a strong DIESEL/FREIGHT tr
 t.moves = [C.train.moveSlot('Torque Punch'), C.train.moveSlot('Piston Drive')];
 C.state.party.push(t);
 C.state.money = 1000;
+C.state.puzzles.harbor = { switches: [...C.gyms.byBadge('harbor').puzzle.solution] };
+C.state.puzzles.harbor.solved = true;
 C.overworld.enterMap('HarborGym', 5, 13, 'up', { quiet: true });
 C.engine.push(C.overworld.scene);
 h.step(2);

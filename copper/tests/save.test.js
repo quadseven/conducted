@@ -112,11 +112,15 @@ for (const g of CD.gyms.LIST) {
   if (g.puzzle) {
     // Set up puzzle state with a specific configuration (not solved)
     CD.state.puzzles[g.badge] = {
-      switches: [...g.puzzle.solution], // All OFF
+      switches: g.puzzle.solution.map(() => false), // All OFF
       solved: false,
       lastInteracted: null,
       track: g.puzzle.track,
     };
+    if (g === CD.gyms.LIST[CD.gyms.LIST.length - 1]) {
+      CD.state.puzzles[g.badge].switches = [...g.puzzle.solution];
+      CD.state.puzzles[g.badge].solved = true;
+    }
   }
 }
 
@@ -127,8 +131,13 @@ assert(CD.save.load().ok);
 for (const g of CD.gyms.LIST) {
   if (g.puzzle && CD.state.puzzles[g.badge]) {
     const originalPuzzle = CD.state.puzzles[g.badge];
-    assert(!originalPuzzle.solved, `Gym ${g.badge} should not be solved after load`);
-    assert(originalPuzzle.switches.every(val => !val), `Gym ${g.badge} switches should all be OFF`);
+    if (g === CD.gyms.LIST[CD.gyms.LIST.length - 1]) {
+      assert.deepStrictEqual(JSON.parse(JSON.stringify(originalPuzzle.switches)), Array.from(g.puzzle.solution));
+      assert(originalPuzzle.solved, 'solved switch state survives storage reload');
+    } else {
+      assert(!originalPuzzle.solved, `Gym ${g.badge} should not be solved after load`);
+      assert(originalPuzzle.switches.every(val => !val), `Gym ${g.badge} switches should all be OFF`);
+    }
   }
 }
 

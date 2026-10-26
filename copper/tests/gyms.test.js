@@ -135,6 +135,7 @@ for (const g of C.gyms.LIST) {
   const leader = gym.npcs.find(n => n.id === g.leader.id);
   C.train.heal(strong);
   for (const m of strong.moves) m.pp = 99;
+  C.state.puzzles[g.badge] = { switches: [...g.puzzle.solution], solved: true };
   const badgesBefore = C.state.badges.length;
   const bag = C.state.bag[g.gift.item] || 0;
   C.overworld.enterMap(g.map, leader.x, leader.y + 1, 'up', { quiet: true });

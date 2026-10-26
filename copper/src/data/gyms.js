@@ -26,8 +26,8 @@
         after: 'You beat the Captain! You sailed through this gym like it was calm water.' },
       puzzle: {
         switches: [
-          { x: 2, y: 3, id: 'harborSwitch1' },
-          { x: 8, y: 3, id: 'harborSwitch2' },
+          { x: 3, y: 4, id: 'harborSwitch1' },
+          { x: 7, y: 4, id: 'harborSwitch2' },
           { x: 5, y: 7, id: 'harborSwitch3' },
         ],
         track: [
@@ -41,7 +41,12 @@
           [0, 1, 1, 1, 1, 1, 1, 1, 0],
           [0, 0, 0, 0, 0, 0, 0, 0, 0],
         ],
-        solution: [false, false, false], // All switches start OFF (blocked)
+        solution: [true, true, true],
+        gates: [
+          { cells: [[4, 6]] },
+          { cells: [[4, 5]] },
+          { cells: [[4, 4]] },
+        ],
       },
       crew: [
         { id: 'gymSailor', sprite: 'sailor', x: 0, y: 8, dir: 'right', cls: 'DECKHAND', name: 'GUS', sight: 5, prize: 30, party: [[16, 9], [13, 10]],
@@ -85,15 +90,20 @@
         track: [
           [0, 0, 0, 0, 0, 0, 0],
           [0, 1, 1, 1, 1, 1, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 0, 2, 2, 0, 0],
           [0, 1, 0, 2, 3, 0, 0],
           [0, 1, 0, 2, 2, 0, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 1, 1, 1, 1, 0],
           [0, 0, 0, 0, 0, 0, 0],
         ],
-        solution: [false, false, false],
+        solution: [true, true, true],
+        gates: [
+          { cells: [[3, 6]] },
+          { cells: [[3, 5]] },
+          { cells: [[3, 4]] },
+        ],
       },
       dialogue: {
         pre: [
@@ -124,22 +134,27 @@
         intro: 'Mind the firebox! Every challenger here gets a taste of the heat first.', defeat: 'My fire burned out before yours did.', post: "Conductor Ember keeps the old engines running out of love. You can feel it in the warmth of this place." }],
       puzzle: {
         switches: [
-          { x: 4, y: 5, id: 'boilerSwitch1' },
-          { x: 6, y: 5, id: 'boilerSwitch2' },
+          { x: 3, y: 4, id: 'boilerSwitch1' },
+          { x: 7, y: 4, id: 'boilerSwitch2' },
           { x: 5, y: 8, id: 'boilerSwitch3' },
         ],
         track: [
           [0, 0, 0, 0, 0, 0, 0],
           [0, 1, 1, 1, 1, 1, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 0, 2, 2, 0, 0],
           [0, 1, 0, 2, 3, 0, 0],
           [0, 1, 0, 2, 2, 0, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 1, 1, 1, 1, 0],
           [0, 0, 0, 0, 0, 0, 0],
         ],
-        solution: [false, false, false],
+        solution: [true, true, true],
+        gates: [
+          { cells: [[3, 6]] },
+          { cells: [[3, 5]] },
+          { cells: [[3, 4]] },
+        ],
       },
       dialogue: {
         pre: [
@@ -177,15 +192,20 @@
         track: [
           [0, 0, 0, 0, 0, 0, 0],
           [0, 1, 1, 1, 1, 1, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 0, 2, 2, 0, 0],
           [0, 1, 0, 2, 3, 0, 0],
           [0, 1, 0, 2, 2, 0, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 1, 1, 1, 1, 0],
           [0, 0, 0, 0, 0, 0, 0],
         ],
-        solution: [false, false, false],
+        solution: [true, true, true],
+        gates: [
+          { cells: [[3, 6]] },
+          { cells: [[3, 5]] },
+          { cells: [[3, 4]] },
+        ],
       },
       dialogue: {
         pre: [
@@ -223,15 +243,20 @@
         track: [
           [0, 0, 0, 0, 0, 0, 0],
           [0, 1, 1, 1, 1, 1, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 0, 2, 2, 0, 0],
           [0, 1, 0, 2, 3, 0, 0],
           [0, 1, 0, 2, 2, 0, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 1, 1, 1, 1, 0],
           [0, 0, 0, 0, 0, 0, 0],
         ],
-        solution: [false, false, false],
+        solution: [true, true, true],
+        gates: [
+          { cells: [[3, 6]] },
+          { cells: [[3, 5]] },
+          { cells: [[3, 4]] },
+        ],
       },
       dialogue: {
         pre: [
@@ -269,15 +294,20 @@
         track: [
           [0, 0, 0, 0, 0, 0, 0],
           [0, 1, 1, 1, 1, 1, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 0, 2, 2, 0, 0],
           [0, 1, 0, 2, 3, 0, 0],
           [0, 1, 0, 2, 2, 0, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 1, 1, 1, 1, 0],
           [0, 0, 0, 0, 0, 0, 0],
         ],
-        solution: [false, false, false],
+        solution: [true, true, true],
+        gates: [
+          { cells: [[3, 6]] },
+          { cells: [[3, 5]] },
+          { cells: [[3, 4]] },
+        ],
       },
       dialogue: {
         pre: [
@@ -315,15 +345,20 @@
         track: [
           [0, 0, 0, 0, 0, 0, 0],
           [0, 1, 1, 1, 1, 1, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 0, 2, 2, 0, 0],
           [0, 1, 0, 2, 3, 0, 0],
           [0, 1, 0, 2, 2, 0, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 1, 1, 1, 1, 0],
           [0, 0, 0, 0, 0, 0, 0],
         ],
-        solution: [false, false, false],
+        solution: [true, true, true],
+        gates: [
+          { cells: [[3, 6]] },
+          { cells: [[3, 5]] },
+          { cells: [[3, 4]] },
+        ],
       },
       dialogue: {
         pre: [
@@ -356,20 +391,25 @@
         switches: [
           { x: 3, y: 4, id: 'summitSwitch1' },
           { x: 7, y: 4, id: 'summitSwitch2' },
-          { x: 5, y: 8, id: 'summitSwitch3' },
+          { x: 4, y: 8, id: 'summitSwitch3' },
         ],
         track: [
           [0, 0, 0, 0, 0, 0, 0],
           [0, 1, 1, 1, 1, 1, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 0, 2, 2, 0, 0],
           [0, 1, 0, 2, 3, 0, 0],
           [0, 1, 0, 2, 2, 0, 0],
-          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
           [0, 1, 1, 1, 1, 1, 0],
           [0, 0, 0, 0, 0, 0, 0],
         ],
-        solution: [false, false, false],
+        solution: [true, true, true],
+        gates: [
+          { cells: [[3, 6]] },
+          { cells: [[3, 5]] },
+          { cells: [[3, 4]] },
+        ],
       },
       dialogue: {
         pre: [
