@@ -40,6 +40,76 @@
     };
   }
 
+  function checkSwitchState(g, puzzleState, switchIndex) {
+    const wasOn = puzzleState.switches[switchIndex];
+    
+    if (wasOn) {
+      CD.audio.jingle('success');
+      CD.ui.say('The track is now OPEN at that switch.', '{PLAYER}');
+    } else {
+      CD.audio.jingle('error');
+      CD.ui.say('The track is now BLOCKED at that switch!', '{PLAYER}');
+    }
+    
+    // Check if puzzle is solved
+    const isSolved = puzzleState.switches.every((val, idx) => val === g.puzzle.solution[idx]);
+    puzzleState.solved = isSolved;
+    if (isSolved) {
+      CD.ui.say('Perfect! The path is clear! You can now challenge the Station Master!', '{PLAYER}');
+    }
+  }
+
+  for (const g of CD.gyms.LIST) {
+    const gym = W.maps[g.map];
+    if (!gym) throw new Error('gym ' + g.badge + ' has no interior map ' + g.map);
+    gym.npcs = [guideNpc(g)].concat((g.crew || []).map(crewNpc), [
+      { id: g.leader.id, sprite: g.leader.sprite, x: g.leader.x, y: g.leader.y, dir: 'down', move: 'still', talk: leaderTalk(g) },
+    ]);
+    
+    // Initialize puzzle state if not already set
+    if (g.puzzle && (!CD.state.puzzles || !CD.state.puzzles[g.badge])) {
+      CD.state.puzzles = CD.state.puzzles || {};
+      // Start with all switches in the OFF state (blocked)
+      const puzzleState = {
+        switches: [...g.puzzle.solution], // Start with all switches in the OFF state
+        solved: true, // Initially not solved - the player needs to toggle switches
+        lastInteracted: null,
+        track: g.puzzle.track,
+      };
+      CD.state.puzzles[g.badge] = puzzleState;
+    }
+  }
+
+  // Add puzzle interaction to the engine
+  const engineUpdate = CD.engine.update;
+  CD.engine.update = function(dt) {
+    const result = engineUpdate.apply(this, arguments);
+    if (CD.state.map && CD.world.get(CD.state.map).indoor) {
+      const player = CD.ow.player;
+      if (player) {
+        const st = CD.state;
+        for (const g of CD.gyms.LIST) {
+          if (g.map === st.map && g.puzzle) {
+            const puzzleState = st.puzzles?.[g.badge];
+            if (!puzzleState) continue;
+            
+            for (let i = 0; i < g.puzzle.switches.length; i++) {
+              const sw = g.puzzle.switches[i];
+              if (st.x === sw.x && st.y === sw.y) {
+                if (!puzzleState.switches[i]) puzzleState.switches[i] = false;
+                const wasOff = puzzleState.switches[i];
+                puzzleState.switches[i] = !wasOff;
+                checkSwitchState(g, puzzleState, i);
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    return result;
+  };
+
   // Hand over a leader's badge, its technique and the gift. Awarding twice is a no-op.
   function* award(g) {
     const st = CD.state, SP = g.leader.title, d = g.dialogue;
@@ -59,14 +129,6 @@
     }
   }
   function titleCase(s) { return s.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase()); }
-
-  for (const g of CD.gyms.LIST) {
-    const gym = W.maps[g.map];
-    if (!gym) throw new Error('gym ' + g.badge + ' has no interior map ' + g.map);
-    gym.npcs = [guideNpc(g)].concat((g.crew || []).map(crewNpc), [
-      { id: g.leader.id, sprite: g.leader.sprite, x: g.leader.x, y: g.leader.y, dir: 'down', move: 'still', talk: leaderTalk(g) },
-    ]);
-  }
 
   // ---------- badge art ----------
   const BADGES = {};

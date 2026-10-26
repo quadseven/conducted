@@ -25,6 +25,8 @@
       frames: 0,          // play time in frames
       lastHeal: { map: 'PlayerHouse1F', x: 3, y: 5 },
       stepCount: 0,
+      // New field: gym puzzle state tracking
+      puzzles: {},        // badge id -> puzzle state (switches, solved, track)
     };
   }
 

@@ -24,6 +24,25 @@
       guide: { x: 4, y: 12, sprite: 'sailor', look: { stripes: '#c8513f' },
         before: "Ahoy, future champ! The Captain's crew runs FREIGHT trains: heavy and hard to budge. DIESEL power pushes them around, and heavy freight does little to MAGLEV trains. Good luck!",
         after: 'You beat the Captain! You sailed through this gym like it was calm water.' },
+      puzzle: {
+        switches: [
+          { x: 2, y: 3, id: 'harborSwitch1' },
+          { x: 8, y: 3, id: 'harborSwitch2' },
+          { x: 5, y: 7, id: 'harborSwitch3' },
+        ],
+        track: [
+          [0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 1, 1, 0],
+          [0, 1, 0, 0, 0, 0, 0, 1, 0],
+          [0, 1, 0, 2, 2, 2, 0, 1, 0],
+          [0, 1, 0, 2, 3, 2, 0, 1, 0],
+          [0, 1, 0, 2, 2, 2, 0, 1, 0],
+          [0, 1, 0, 0, 0, 0, 0, 1, 0],
+          [0, 1, 1, 1, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ],
+        solution: [false, false, false], // All switches start OFF (blocked)
+      },
       crew: [
         { id: 'gymSailor', sprite: 'sailor', x: 0, y: 8, dir: 'right', cls: 'DECKHAND', name: 'GUS', sight: 5, prize: 30, party: [[16, 9], [13, 10]],
           intro: 'Stop right there! Nobody reaches the Captain without getting past the crew!', defeat: 'Man overboard! That was me!', post: "The Captain's ferry train is her pride. Watch out for its tidal attacks." },
@@ -57,6 +76,25 @@
       art: { rim: '#8a7a1a', face: '#2a2a30', mark: '#f8e040', shape: 'bolt' },
       crew: [{ id: 'gymVoltageTech', sprite: 'worker', look: { hatCol: '#f8e040', shirt: '#2a2a30' }, x: 2, y: 6, dir: 'right', cls: 'LINE TECH', name: 'WATT', sight: 4, party: [[28, 15], [134, 17]],
         intro: 'Live wire coming through! Nobody touches the boss without a spark check!', defeat: 'Zapped! My circuits are fried.', post: 'The boss rebuilt the city grid with his own two hands. Ground yourself before you go up.' }],
+      puzzle: {
+        switches: [
+          { x: 3, y: 4, id: 'voltageSwitch1' },
+          { x: 7, y: 4, id: 'voltageSwitch2' },
+          { x: 5, y: 8, id: 'voltageSwitch3' },
+        ],
+        track: [
+          [0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 2, 3, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0, 0],
+        ],
+        solution: [false, false, false],
+      },
       dialogue: {
         pre: [
           "Hey hey HEY! Fresh challenger! I'm Engineer Spark, and WELCOME to Voltage City, the place that NEVER sleeps because we've got too much ENERGY!",
@@ -84,6 +122,25 @@
       art: { rim: '#6a2a2a', face: '#8a3a3a', mark: '#f0c070', shape: 'flame' },
       crew: [{ id: 'gymBoilerStoker', sprite: 'conductor', look: { hatCol: '#6a2a2a', shirt: '#6a2a2a' }, x: 8, y: 7, dir: 'left', cls: 'STOKER', name: 'COLE', sight: 4, party: [[19, 21], [132, 22]],
         intro: 'Mind the firebox! Every challenger here gets a taste of the heat first.', defeat: 'My fire burned out before yours did.', post: "Conductor Ember keeps the old engines running out of love. You can feel it in the warmth of this place." }],
+      puzzle: {
+        switches: [
+          { x: 4, y: 5, id: 'boilerSwitch1' },
+          { x: 6, y: 5, id: 'boilerSwitch2' },
+          { x: 5, y: 8, id: 'boilerSwitch3' },
+        ],
+        track: [
+          [0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 2, 3, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0, 0],
+        ],
+        solution: [false, false, false],
+      },
       dialogue: {
         pre: [
           "Welcome to Steamspring Village, young Conductor. I'm Conductor Ember, keeper of the old ways and guardian of steam train history.",
@@ -111,6 +168,25 @@
       art: { rim: '#4a4a4a', face: '#6a5a3a', mark: '#e8a040', shape: 'gear' },
       crew: [{ id: 'gymPistonMechanic', sprite: 'worker', look: { shirt: '#5a5a5a' }, x: 1, y: 5, dir: 'right', cls: 'MECHANIC', name: 'RIVET', sight: 4, party: [[7, 26], [34, 27]],
         intro: "Shift's not over till I say so! Let's see what's under your hood.", defeat: 'Blew a gasket. Nice driving.', post: "Boss Torque doesn't talk much. He lets his engines do it for him." }],
+      puzzle: {
+        switches: [
+          { x: 2, y: 4, id: 'pistonSwitch1' },
+          { x: 8, y: 4, id: 'pistonSwitch2' },
+          { x: 5, y: 7, id: 'pistonSwitch3' },
+        ],
+        track: [
+          [0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 2, 3, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0, 0],
+        ],
+        solution: [false, false, false],
+      },
       dialogue: {
         pre: [
           "So you're the kid working the main line. I'm Boss Torque. Diesel Den builds the engines everyone else takes credit for.",
@@ -138,6 +214,25 @@
       art: { rim: '#3a5a8a', face: '#a8c8e8', mark: '#ffffff', shape: 'wing' },
       crew: [{ id: 'gymLevitationPilot', sprite: 'aide', look: { shirt: '#a8c8e8', shirt2: '#3a5a8a' }, x: 9, y: 5, dir: 'left', cls: 'PILOT', name: 'SKYE', sight: 5, party: [[31, 30], [119, 32]],
         intro: 'Altitude check! Only conductors with steady nerves reach the captain.', defeat: 'I lost my bearings completely.', post: "Captain Aria says a maglev doesn't fight the rails, it floats over them. Try to think like that." }],
+      puzzle: {
+        switches: [
+          { x: 3, y: 4, id: 'levitationSwitch1' },
+          { x: 7, y: 4, id: 'levitationSwitch2' },
+          { x: 5, y: 8, id: 'levitationSwitch3' },
+        ],
+        track: [
+          [0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 2, 3, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0, 0],
+        ],
+        solution: [false, false, false],
+      },
       dialogue: {
         pre: [
           "Welcome aboard, Conductor. I'm Sky Captain Aria. Up here, we leave friction behind.",
@@ -165,6 +260,25 @@
       art: { rim: '#2a1a3a', face: '#4a3a5a', mark: '#a8f0c8', shape: 'lantern' },
       crew: [{ id: 'gymSpecterKeeper', sprite: 'oldman', look: { shirt: '#3a2a4a' }, x: 2, y: 8, dir: 'right', cls: 'YARD KEEPER', name: 'MORT', sight: 4, party: [[40, 36], [82, 37]],
         intro: 'Shh... the old freight cars are sleeping. You will wake them with a battle.', defeat: 'Even the dead ones cheered for you.', post: "Raven talks to the abandoned trains. Some nights, they talk back." }],
+      puzzle: {
+        switches: [
+          { x: 3, y: 4, id: 'specterSwitch1' },
+          { x: 7, y: 4, id: 'specterSwitch2' },
+          { x: 5, y: 8, id: 'specterSwitch3' },
+        ],
+        track: [
+          [0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 2, 3, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0, 0],
+        ],
+        solution: [false, false, false],
+      },
       dialogue: {
         pre: [
           '...You found your way through the fog. Few do. I am Raven, the Phantom Conductor.',
@@ -192,6 +306,25 @@
       art: { rim: '#2a5a2a', face: '#1a2a1a', mark: '#a8f040', shape: 'atom' },
       crew: [{ id: 'gymFusionScientist', sprite: 'aide', look: { shirt: '#e8f0e0', shirt2: '#5a8a3a' }, x: 8, y: 9, dir: 'left', cls: 'SCIENTIST', name: 'CURIE', sight: 4, party: [[25, 40], [137, 41]],
         intro: 'Unauthorized personnel! I must run a containment test on you at once.', defeat: 'My readings were... inconclusive.', post: 'Doctor Atom measures everything twice. Battles included.' }],
+      puzzle: {
+        switches: [
+          { x: 3, y: 4, id: 'fusionSwitch1' },
+          { x: 7, y: 4, id: 'fusionSwitch2' },
+          { x: 5, y: 8, id: 'fusionSwitch3' },
+        ],
+        track: [
+          [0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 2, 3, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0, 0],
+        ],
+        solution: [false, false, false],
+      },
       dialogue: {
         pre: [
           'Ah, the conductor from the main line. I am Doctor Atom. My readings predicted you would arrive about now.',
@@ -219,6 +352,25 @@
       art: { rim: '#5a6a7a', face: '#e8f0f8', mark: '#4a7ab0', shape: 'peak' },
       crew: [{ id: 'gymSummitMonk', sprite: 'granny', look: { shirt: '#c8d8e8' }, x: 2, y: 9, dir: 'right', cls: 'HERMIT', name: 'SAGE', sight: 4, party: [[37, 44], [92, 45]],
         intro: 'The summit is quiet. Let us break the silence with one battle.', defeat: 'Your mind is clear. Go on up.', post: 'Master Zen rides a single rail across the clouds. Balance is everything to him.' }],
+      puzzle: {
+        switches: [
+          { x: 3, y: 4, id: 'summitSwitch1' },
+          { x: 7, y: 4, id: 'summitSwitch2' },
+          { x: 5, y: 8, id: 'summitSwitch3' },
+        ],
+        track: [
+          [0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 2, 3, 0, 0],
+          [0, 1, 0, 2, 2, 0, 0],
+          [0, 1, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0, 0],
+        ],
+        solution: [false, false, false],
+      },
       dialogue: {
         pre: [
           'You climbed the whole mountain to stand here. Breathe. I am Master Zen.',
