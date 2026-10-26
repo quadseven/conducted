@@ -68,6 +68,10 @@
     ]);
   }
 
+  // Stepping onto a gym's rail switch flips its track tiles. It runs before the
+  // trainer-sight hook so a crew member spotting the player cannot swallow it.
+  CD.ow.hooks.afterStep.unshift((m, p) => { CD.railSwitch.onArrive(CD.state, m.id, p.x, p.y); return false; });
+
   // ---------- badge art ----------
   const BADGES = {};
   for (const g of CD.gyms.LIST) BADGES[g.badge] = Object.assign({ name: g.badgeName }, g.art);

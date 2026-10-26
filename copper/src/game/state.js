@@ -21,6 +21,7 @@
       dex: { seen: {}, caught: {} },
       trainers: {},       // trainer id -> true once beaten
       items: {},          // picked-up field items by map:x:y
+      puzzles: {},        // gym badge id -> thrown flag per rail switch
       options: { textSpeed: 'mid', sound: true, battleAnims: true },
       frames: 0,          // play time in frames
       lastHeal: { map: 'PlayerHouse1F', x: 3, y: 5 },

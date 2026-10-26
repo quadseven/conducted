@@ -52,7 +52,7 @@
   // ---------- player helpers ----------
   function facing(w) { const [dx, dy] = W.DV[w.dir]; return { x: w.x + dx, y: w.y + dy }; }
   function stateView() {
-    return { npcs: ow.npcs, player: { map: CD.state.map, x: ow.player.x, y: ow.player.y, tx: ow.player.tx, ty: ow.player.ty }, blocked: (m, x, y) => blockedByTrain(m, x, y) };
+    return { npcs: ow.npcs, player: { map: CD.state.map, x: ow.player.x, y: ow.player.y, tx: ow.player.tx, ty: ow.player.ty }, blocked: (m, x, y) => blockedByTrain(m, x, y) || CD.railSwitch.blocked(CD.state, m.id, x, y) };
   }
   function blockedByTrain(m, x, y) {
     const ts = ow.trainState;
@@ -282,6 +282,7 @@
       const nb = (dx, dy) => W.labelAt(m, tx + dx, ty + dy);
       T.drawCell(s, label, tx, ty, tx * TS - camX, ty * TS - camY, nb, frame, { tint: label === 'wall' ? tint : label === 'carpet' ? m.carpetTint : undefined, floor });
     }
+    CD.railSwitch.draw(s, m, camX, camY);
     // gather sprites for y-sorting: [bottomY, drawFn]
     const list = [];
     for (let ty = y0 - 1; ty < y0 + rows + 2; ty++) for (let tx = x0 - 1; tx < x0 + cols + 1; tx++) {
