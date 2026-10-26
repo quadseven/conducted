@@ -25,6 +25,7 @@
     const s = Object.assign(CD.freshState(), data.state);
     s.options = Object.assign(CD.freshState().options, data.state.options || {});
     if (!Array.isArray(s.techniques)) s.techniques = [];
+    if (!s.puzzles || typeof s.puzzles !== 'object' || Array.isArray(s.puzzles)) s.puzzles = {};
     if (!Array.isArray(data.state.pcBoxes)) s.pcBoxes = [s.box.slice()];
     else s.pcBoxes = s.pcBoxes.map(box => Array.isArray(box) ? box : []);
     s.version = CD.STATE_VERSION;

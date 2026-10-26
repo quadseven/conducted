@@ -9,6 +9,14 @@
 //                   (the handheld badge boost; crits ignore it like stages)
 //          technique -> the field technique the badge lets trains use
 // crew:    gym trainers between the door and the leader
+// puzzle:  the rail-switch puzzle between the door and the leader (see
+//          src/game/railswitch.js). tracks are [x, y] tiles that start
+//          blocked; each switch is a floor tile that flips the listed track
+//          tiles each time the player steps onto it. Every gym has two gates
+//          of track: the lower one opens from a switch near the door, and the
+//          switch that opens the upper one stands between the gates, so it
+//          can only be reached once the lower gate is open. solution is one
+//          switch order that clears the way to the leader.
 (function (CD) {
   'use strict';
   const BOOST = 1.125;
@@ -30,6 +38,11 @@
         { id: 'gymWorker', sprite: 'worker', x: 8, y: 4, dir: 'left', cls: 'DOCKHAND', name: 'IDA', sight: 4, prize: 30, party: [[43, 10], [52, 10]],
           intro: 'I load crates all day. Hauling your train off this dock will be easy!', defeat: "Well, I'll be. You hauled me instead.", post: 'Keep your trains healthy. The Captain never gives up easily.' },
       ],
+      puzzle: {
+        tracks: [[0, 9], [5, 9], [10, 9], [0, 3], [4, 3], [5, 3], [6, 3], [10, 3]],
+        switches: [{ x: 3, y: 11, flips: [[5, 9]] }, { x: 5, y: 6, flips: [[5, 3]] }, { x: 7, y: 11, flips: [[0, 9], [10, 9]] }],
+        solution: [0, 1],
+      },
       dialogue: {
         pre: [
           "Ahoy there, young Conductor! Welcome to Coal Harbor! I'm Captain Marina, and this gym is my ship!",
@@ -57,6 +70,11 @@
       art: { rim: '#8a7a1a', face: '#2a2a30', mark: '#f8e040', shape: 'bolt' },
       crew: [{ id: 'gymVoltageTech', sprite: 'worker', look: { hatCol: '#f8e040', shirt: '#2a2a30' }, x: 2, y: 6, dir: 'right', cls: 'LINE TECH', name: 'WATT', sight: 4, party: [[28, 15], [134, 17]],
         intro: 'Live wire coming through! Nobody touches the boss without a spark check!', defeat: 'Zapped! My circuits are fried.', post: 'The boss rebuilt the city grid with his own two hands. Ground yourself before you go up.' }],
+      puzzle: {
+        tracks: [[3, 7], [7, 7], [4, 3], [5, 3], [6, 3]],
+        switches: [{ x: 2, y: 10, flips: [[3, 7]] }, { x: 8, y: 4, flips: [[5, 3]] }, { x: 8, y: 10, flips: [[7, 7]] }],
+        solution: [0, 1],
+      },
       dialogue: {
         pre: [
           "Hey hey HEY! Fresh challenger! I'm Engineer Spark, and WELCOME to Voltage City, the place that NEVER sleeps because we've got too much ENERGY!",
@@ -84,6 +102,11 @@
       art: { rim: '#6a2a2a', face: '#8a3a3a', mark: '#f0c070', shape: 'flame' },
       crew: [{ id: 'gymBoilerStoker', sprite: 'conductor', look: { hatCol: '#6a2a2a', shirt: '#6a2a2a' }, x: 8, y: 7, dir: 'left', cls: 'STOKER', name: 'COLE', sight: 4, party: [[19, 21], [132, 22]],
         intro: 'Mind the firebox! Every challenger here gets a taste of the heat first.', defeat: 'My fire burned out before yours did.', post: "Conductor Ember keeps the old engines running out of love. You can feel it in the warmth of this place." }],
+      puzzle: {
+        tracks: [[4, 9], [5, 9], [6, 9], [3, 5], [7, 5]],
+        switches: [{ x: 2, y: 11, flips: [[5, 9]] }, { x: 2, y: 6, flips: [[3, 5]] }, { x: 8, y: 11, flips: [[4, 9], [6, 9]] }],
+        solution: [0, 1],
+      },
       dialogue: {
         pre: [
           "Welcome to Steamspring Village, young Conductor. I'm Conductor Ember, keeper of the old ways and guardian of steam train history.",
@@ -111,6 +134,11 @@
       art: { rim: '#4a4a4a', face: '#6a5a3a', mark: '#e8a040', shape: 'gear' },
       crew: [{ id: 'gymPistonMechanic', sprite: 'worker', look: { shirt: '#5a5a5a' }, x: 1, y: 5, dir: 'right', cls: 'MECHANIC', name: 'RIVET', sight: 4, party: [[7, 26], [34, 27]],
         intro: "Shift's not over till I say so! Let's see what's under your hood.", defeat: 'Blew a gasket. Nice driving.', post: "Boss Torque doesn't talk much. He lets his engines do it for him." }],
+      puzzle: {
+        tracks: [[2, 10], [4, 10], [5, 10], [6, 10], [8, 10], [2, 6], [8, 6]],
+        switches: [{ x: 1, y: 12, flips: [[5, 10]] }, { x: 5, y: 9, flips: [[8, 6]] }, { x: 9, y: 12, flips: [[2, 10], [8, 10]] }],
+        solution: [0, 1],
+      },
       dialogue: {
         pre: [
           "So you're the kid working the main line. I'm Boss Torque. Diesel Den builds the engines everyone else takes credit for.",
@@ -138,6 +166,11 @@
       art: { rim: '#3a5a8a', face: '#a8c8e8', mark: '#ffffff', shape: 'wing' },
       crew: [{ id: 'gymLevitationPilot', sprite: 'aide', look: { shirt: '#a8c8e8', shirt2: '#3a5a8a' }, x: 9, y: 5, dir: 'left', cls: 'PILOT', name: 'SKYE', sight: 5, party: [[31, 30], [119, 32]],
         intro: 'Altitude check! Only conductors with steady nerves reach the captain.', defeat: 'I lost my bearings completely.', post: "Captain Aria says a maglev doesn't fight the rails, it floats over them. Try to think like that." }],
+      puzzle: {
+        tracks: [[2, 9], [3, 9], [5, 9], [7, 9], [8, 9], [2, 3], [3, 3], [7, 3], [8, 3]],
+        switches: [{ x: 1, y: 11, flips: [[5, 9]] }, { x: 5, y: 8, flips: [[3, 3]] }, { x: 9, y: 11, flips: [[2, 9], [8, 9]] }],
+        solution: [0, 1],
+      },
       dialogue: {
         pre: [
           "Welcome aboard, Conductor. I'm Sky Captain Aria. Up here, we leave friction behind.",
@@ -165,6 +198,11 @@
       art: { rim: '#2a1a3a', face: '#4a3a5a', mark: '#a8f0c8', shape: 'lantern' },
       crew: [{ id: 'gymSpecterKeeper', sprite: 'oldman', look: { shirt: '#3a2a4a' }, x: 2, y: 8, dir: 'right', cls: 'YARD KEEPER', name: 'MORT', sight: 4, party: [[40, 36], [82, 37]],
         intro: 'Shh... the old freight cars are sleeping. You will wake them with a battle.', defeat: 'Even the dead ones cheered for you.', post: "Raven talks to the abandoned trains. Some nights, they talk back." }],
+      puzzle: {
+        tracks: [[2, 9], [5, 9], [8, 9], [1, 5], [4, 5], [6, 5], [9, 5]],
+        switches: [{ x: 3, y: 11, flips: [[5, 9]] }, { x: 8, y: 6, flips: [[6, 5]] }, { x: 7, y: 11, flips: [[2, 9], [8, 9]] }],
+        solution: [0, 1],
+      },
       dialogue: {
         pre: [
           '...You found your way through the fog. Few do. I am Raven, the Phantom Conductor.',
@@ -192,6 +230,11 @@
       art: { rim: '#2a5a2a', face: '#1a2a1a', mark: '#a8f040', shape: 'atom' },
       crew: [{ id: 'gymFusionScientist', sprite: 'aide', look: { shirt: '#e8f0e0', shirt2: '#5a8a3a' }, x: 8, y: 9, dir: 'left', cls: 'SCIENTIST', name: 'CURIE', sight: 4, party: [[25, 40], [137, 41]],
         intro: 'Unauthorized personnel! I must run a containment test on you at once.', defeat: 'My readings were... inconclusive.', post: 'Doctor Atom measures everything twice. Battles included.' }],
+      puzzle: {
+        tracks: [[1, 8], [5, 8], [9, 8], [3, 3], [7, 3]],
+        switches: [{ x: 3, y: 11, flips: [[5, 8]] }, { x: 5, y: 4, flips: [[3, 3]] }, { x: 7, y: 11, flips: [[1, 8], [9, 8]] }],
+        solution: [0, 1],
+      },
       dialogue: {
         pre: [
           'Ah, the conductor from the main line. I am Doctor Atom. My readings predicted you would arrive about now.',
@@ -219,6 +262,11 @@
       art: { rim: '#5a6a7a', face: '#e8f0f8', mark: '#4a7ab0', shape: 'peak' },
       crew: [{ id: 'gymSummitMonk', sprite: 'granny', look: { shirt: '#c8d8e8' }, x: 2, y: 9, dir: 'right', cls: 'HERMIT', name: 'SAGE', sight: 4, party: [[37, 44], [92, 45]],
         intro: 'The summit is quiet. Let us break the silence with one battle.', defeat: 'Your mind is clear. Go on up.', post: 'Master Zen rides a single rail across the clouds. Balance is everything to him.' }],
+      puzzle: {
+        tracks: [[0, 7], [1, 7], [4, 7], [5, 7], [6, 7], [9, 7], [10, 7], [2, 4], [3, 4], [5, 4], [7, 4], [8, 4]],
+        switches: [{ x: 3, y: 11, flips: [[4, 7]] }, { x: 5, y: 5, flips: [[5, 4]] }, { x: 7, y: 11, flips: [[1, 7], [9, 7]] }],
+        solution: [0, 1],
+      },
       dialogue: {
         pre: [
           'You climbed the whole mountain to stand here. Breathe. I am Master Zen.',

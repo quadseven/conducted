@@ -1,5 +1,6 @@
-// The first gym: walk the crate maze from the door, get spotted by the crew,
-// beat Captain Marina, receive the Harbor Badge, and keep it through a save.
+// The first gym: throw the rail switches, walk the crate maze from the door,
+// get spotted by the crew, beat Captain Marina, receive the Harbor Badge, and
+// keep it through a save.
 'use strict';
 const assert = require('assert');
 const H = require('./harness.js');
@@ -14,6 +15,12 @@ C.state.money = 1000;
 C.overworld.enterMap('HarborGym', 5, 13, 'up', { quiet: true });
 C.engine.push(C.overworld.scene);
 h.step(2);
+// the rail switch by the door opens the lower gate; the one up the middle
+// (5, 6) opens the upper gate on the way to Marina
+assert.strictEqual(h.walk('up', 2), 2);
+assert.strictEqual(h.walk('left', 2), 2);
+assert.deepStrictEqual(Array.from(C.state.puzzles.harbor), [true, false, false], 'threw the switch by the door');
+assert.strictEqual(h.walk('right', 2), 2);
 // the maze: up the middle, then to Marina
 let guard = 0;
 while (!C.state.badges.includes('harbor') && guard++ < 6000) {
