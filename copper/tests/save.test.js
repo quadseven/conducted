@@ -114,8 +114,6 @@ for (const g of CD.gyms.LIST) {
     CD.state.puzzles[g.badge] = {
       switches: g.puzzle.solution.map(() => false), // All OFF
       solved: false,
-      lastInteracted: null,
-      track: g.puzzle.track,
     };
     if (g === CD.gyms.LIST[CD.gyms.LIST.length - 1]) {
       CD.state.puzzles[g.badge].switches = [...g.puzzle.solution];

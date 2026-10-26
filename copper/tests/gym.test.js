@@ -11,8 +11,8 @@ const t = C.train.make(9, 30);                     // a strong DIESEL/FREIGHT tr
 t.moves = [C.train.moveSlot('Torque Punch'), C.train.moveSlot('Piston Drive')];
 C.state.party.push(t);
 C.state.money = 1000;
-C.state.puzzles.harbor = { switches: [...C.gyms.byBadge('harbor').puzzle.solution] };
-C.state.puzzles.harbor.solved = true;
+// two switches already thrown; the walk up the middle crosses the third at (5,7)
+C.state.puzzles.harbor = { switches: [true, true, false], solved: false };
 C.overworld.enterMap('HarborGym', 5, 13, 'up', { quiet: true });
 C.engine.push(C.overworld.scene);
 h.step(2);
@@ -25,6 +25,7 @@ while (!C.state.badges.includes('harbor') && guard++ < 6000) {
   else { p.dir = 'up'; h.press('a', 4); }
 }
 assert(C.state.badges.includes('harbor'), 'earned the Harbor Badge');
+assert(C.state.puzzles.harbor.solved, 'walking over the last switch solved the puzzle');
 assert(C.state.trainers.gymSailor, 'the deckhand spotted and battled us');
 assert(C.state.trainers.gymWorker, 'the dockhand spotted and battled us');
 assert(C.state.trainers.marina, 'Marina marked as beaten');

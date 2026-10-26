@@ -29,7 +29,7 @@ function reachesLeader(g, switches) {
 }
 
 // Test 1: Verify that all gyms have puzzle layouts and initialize them
-// Note: puzzles are initialized when the gym.js script loads, not in CD.newState()
+// Note: puzzles are created when gym.js loads, and again on demand after CD.newState()
 for (const g of CD.gyms.LIST) {
   assert(g.puzzle, `Gym ${g.badge} needs a rail-switch puzzle`);
     assert(Array.isArray(g.puzzle.switches), `Gym ${g.badge} has invalid switches`);
@@ -50,5 +50,22 @@ for (const g of CD.gyms.LIST) {
     assert(!reachesLeader(g, puzzleState.switches), `Gym ${g.badge} leader must stay unreachable before solving`);
     assert(reachesLeader(g, g.puzzle.solution), `Gym ${g.badge} solution must open a path to its leader`);
 }
+
+// Test 2: on a fresh New Game state, walking onto a switch tile throws it once,
+// walking off does nothing, and walking back on throws it back
+CD.newState();
+CD.state.flags.gotStarter = true;
+const g = CD.gyms.byBadge('harbor'), sw = g.puzzle.switches[0];
+CD.overworld.enterMap(g.map, sw.x + 1, sw.y, 'left', { quiet: true });
+if (CD.engine.top() !== CD.overworld.scene) CD.engine.push(CD.overworld.scene);
+h.step(2);
+assert.strictEqual(h.walk('left', 1), 1, 'the player walks onto the switch');
+assert.strictEqual(CD.state.puzzles.harbor.switches[0], true, 'walking onto a switch throws it');
+h.settle();
+assert.strictEqual(h.walk('right', 1), 1, 'the player walks off the switch');
+assert.strictEqual(CD.state.puzzles.harbor.switches[0], true, 'walking off leaves the switch thrown');
+h.walk('left', 1); h.settle();
+assert.strictEqual(CD.state.puzzles.harbor.switches[0], false, 'walking back on throws it back');
+assert(!CD.state.puzzles.harbor.solved, 'one switch does not solve the harbor puzzle');
 
 console.log('rail-switch layout test: ok');

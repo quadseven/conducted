@@ -135,12 +135,23 @@ for (const g of C.gyms.LIST) {
   const leader = gym.npcs.find(n => n.id === g.leader.id);
   C.train.heal(strong);
   for (const m of strong.moves) m.pp = 99;
-  C.state.puzzles[g.badge] = { switches: [...g.puzzle.solution], solved: true };
   const badgesBefore = C.state.badges.length;
   const bag = C.state.bag[g.gift.item] || 0;
   C.overworld.enterMap(g.map, leader.x, leader.y + 1, 'up', { quiet: true });
   if (C.engine.top() !== C.overworld.scene) C.engine.push(C.overworld.scene);
   h.step(2);
+  // with every switch in its starting position the leader turns the player away
+  const before = C.lastBattle;
+  assert(!C.gymPuzzle.puzzleFor(g).solved, `${g.badgeName} puzzle starts unsolved`);
+  C.ow.player.dir = 'up';
+  h.press('a', 10);
+  h.settle();
+  assert.strictEqual(C.lastBattle, before, `${g.leader.name} will not battle before the switches are set`);
+  assert.strictEqual(C.state.badges.length, badgesBefore, 'no badge before the puzzle is solved');
+  // arrive on each switch the solution throws
+  g.puzzle.switches.forEach((sw, i) => { if (g.puzzle.solution[i]) C.gymPuzzle.stepOn(g, sw.x, sw.y); });
+  h.settle();
+  assert(C.state.puzzles[g.badge].solved, `the solution solves the ${g.badgeName} puzzle`);
   let guard = 0;
   while (!C.state.badges.includes(g.badge) && guard++ < 4000) {
     if (C.ow.locked || h.top() !== C.overworld.scene) { h.press('a', 2); continue; }

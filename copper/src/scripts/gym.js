@@ -44,23 +44,35 @@
     };
   }
 
-  function checkSwitchState(g, puzzleState, switchIndex) {
-    const wasOn = puzzleState.switches[switchIndex];
-    
-    if (wasOn) {
-      CD.audio.jingle('success');
-      CD.ui.say('The track is now OPEN at that switch.', '{PLAYER}');
-    } else {
-      CD.audio.jingle('error');
-      CD.ui.say('The track is now BLOCKED at that switch!', '{PLAYER}');
-    }
-    
-    // Check if puzzle is solved
-    const isSolved = puzzleState.switches.every((val, idx) => val === g.puzzle.solution[idx]);
-    puzzleState.solved = isSolved;
-    if (isSolved) {
-      CD.ui.say('Perfect! The path is clear! You can now challenge the Station Master!', '{PLAYER}');
-    }
+  // The save's record of a gym's switches, created with every switch off the
+  // first time it is needed, so a fresh state (New Game) gets a working puzzle.
+  function puzzleFor(g) {
+    const st = CD.state;
+    st.puzzles = st.puzzles || {};
+    if (!st.puzzles[g.badge]) st.puzzles[g.badge] = { switches: g.puzzle.solution.map(() => false), solved: false };
+    return st.puzzles[g.badge];
+  }
+
+  // Arriving on a switch tile throws that switch. The new switch list is built
+  // from one snapshot and stored in a single assignment, and solved is worked
+  // out from that same list. Returns whether a switch was thrown.
+  function stepOn(g, x, y) {
+    const i = g.puzzle.switches.findIndex(sw => sw.x === x && sw.y === y);
+    if (i < 0) return false;
+    const ps = puzzleFor(g);
+    const next = ps.switches.map((on, j) => (j === i ? !on : on));
+    ps.switches = next;
+    ps.solved = next.every((on, j) => on === g.puzzle.solution[j]);
+    announce(next[i], ps.solved);
+    return true;
+  }
+
+  function announce(open, solved) {
+    CD.audio.jingle(open ? 'success' : 'error');
+    O.script(function* () {
+      yield* say(open ? 'The track is now OPEN at that switch.' : 'The track is now BLOCKED at that switch!');
+      if (solved) yield* say('Perfect! The path is clear! You can now challenge the Station Master!');
+    }, 'railSwitch');
   }
 
   for (const g of CD.gyms.LIST) {
@@ -69,50 +81,15 @@
     gym.npcs = [guideNpc(g)].concat((g.crew || []).map(crewNpc), [
       { id: g.leader.id, sprite: g.leader.sprite, x: g.leader.x, y: g.leader.y, dir: 'down', move: 'still', talk: leaderTalk(g) },
     ]);
-    
-    // Initialize puzzle state if not already set
-    if (g.puzzle && (!CD.state.puzzles || !CD.state.puzzles[g.badge])) {
-      CD.state.puzzles = CD.state.puzzles || {};
-      // Start with all switches in the OFF state (blocked)
-      const puzzleState = {
-        switches: g.puzzle.solution.map(() => false),
-        solved: false, // Initially not solved - the player needs to toggle switches
-        lastInteracted: null,
-        track: g.puzzle.track,
-      };
-      CD.state.puzzles[g.badge] = puzzleState;
-    }
+    if (g.puzzle) puzzleFor(g);
   }
 
-  // Add puzzle interaction to the engine
-  const engineUpdate = CD.engine.update;
-  CD.engine.update = function(dt) {
-    const result = engineUpdate.apply(this, arguments);
-    if (CD.state.map && CD.world.get(CD.state.map).indoor) {
-      const player = CD.ow.player;
-      if (player) {
-        const st = CD.state;
-        for (const g of CD.gyms.LIST) {
-          if (g.map === st.map && g.puzzle) {
-            const puzzleState = st.puzzles?.[g.badge];
-            if (!puzzleState) continue;
-            
-            for (let i = 0; i < g.puzzle.switches.length; i++) {
-              const sw = g.puzzle.switches[i];
-              if (st.x === sw.x && st.y === sw.y && puzzleState.lastInteracted !== sw.id) {
-                puzzleState.switches[i] = !puzzleState.switches[i];
-                puzzleState.lastInteracted = sw.id;
-                checkSwitchState(g, puzzleState, i);
-                break;
-              }
-            }
-            if (!g.puzzle.switches.some(sw => st.x === sw.x && st.y === sw.y)) puzzleState.lastInteracted = null;
-          }
-        }
-      }
-    }
-    return result;
-  };
+  // Each step the player finishes inside a gym checks that gym's switch tiles,
+  // ahead of the crew's line-of-sight check so a watched switch still throws.
+  CD.ow.hooks.afterStep.unshift((m, p) => {
+    const g = CD.gyms.LIST.find(x => x.map === m.id && x.puzzle);
+    return g ? stepOn(g, p.x, p.y) : false;
+  });
 
   // Hand over a leader's badge, its technique and the gift. Awarding twice is a no-op.
   function* award(g) {
@@ -169,6 +146,7 @@
     E.remove(sc);
   }
   CD.badges = { BADGES, MARKS, draw, badgeShow, award };
+  CD.gymPuzzle = { puzzleFor, stepOn };
 
   CD.encounters.wireTrainers();
 })(window.CD);
