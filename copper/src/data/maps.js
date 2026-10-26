@@ -160,10 +160,10 @@
   D('CoalHarbor', {
     name: 'COAL HARBOR', music: 'harbor', base: 'cobble',
     rows: [
-      '~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
-      '~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
-      '~~~~~DD~~~~~~~~~~~~~~~DD~~~~',
-      '~~~~~DD~~~~~~~~~~~~~~~DD~~~~',
+      '~~~~~~~~~==~~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~==~~~~~~~~~~~~~~~~~',
+      '~~~~~DD~~==~~~~~~~~~~~DD~~~~',
+      '~~~~~DD~~==~~~~~~~~~~~DD~~~~',
       '::o::DD::o::n::::o::::DD::o:',
       '::::::::::::::::::::::::::::',
       ':BBBBBB::C:O:::BBBBBB::::::T',
@@ -183,7 +183,7 @@
       'TTT.ff.........::..ff.%%%TTT',
       'TTTT..........::......gggTTT',
       'TTTTTT.....==.........%%%TTT',
-      'TTTTTTTTTTT==TTTTTTTTTTTTTTT',
+      'T'.repeat(11) + '==' + 'T'.repeat(15),
     ],
     buildings: [
       { x: 1, y: 6, w: 6, h: 3, style: 'warehouse', door: null },
@@ -666,7 +666,7 @@
   function addCivic(townId, spec, rows, buildings, warps, signs) {
     for (const kind of ['depot', 'mart', 'hub']) {
       const room = spec[kind], slot = CIVIC_SLOTS[kind], post = CIVIC_POSTS[kind];
-      const b = { x: slot.x, y: slot.y, w: slot.w, h: slot.h, door: slot.door, style: room.style, sign: room.sign };
+      const b = { x: slot.x, y: slot.y, w: slot.w, h: slot.h, door: slot.door, style: room.style, sign: room.sign, label: room.name };
       stampBuilding(rows, b);
       stampSign(rows, post.x, post.y);
       buildings.push(b);
@@ -688,7 +688,7 @@
     const signs = [{ x: 7, y: 10, text: name + '\nA station on the Locomotia main line.' }];
     const buildings = [], warps = [];
     if (gym) {
-      buildings.push(Object.assign({ style: 'gym', door: GYM_DOOR.x - GYM_LOT.x }, GYM_LOT));
+      buildings.push(Object.assign({ style: 'gym', door: GYM_DOOR.x - GYM_LOT.x, label: gym.name }, GYM_LOT));
       warps.push({ x: GYM_DOOR.x, y: GYM_DOOR.y, to: gym.map, tx: GYM_MAT.x, ty: GYM_MAT.y, dir: 'up' });
       signs.push({ x: GYM_LOT.x - 1, y: GYM_DOOR.y, text: gym.sign });
     }
@@ -873,12 +873,12 @@
 
   addRoute('Route2', 'ROUTE 2 - COASTAL LINE', 'CoalHarbor', 'VoltageCity', 'coast');
   addTown('VoltageCity', 'VOLTAGE CITY', 'city', 'Route2', 'south', 'Route3', GYMS.VoltageCity);
-  addRoute('Route3', 'ROUTE 3 - VOLTAGE VALLEY', 'VoltageCity', 'SteamspringVillage', 'city');
+  addRoute('Route3', 'ROUTE 3 - VOLTAGE VALLEY', 'VoltageCity', 'Route4', 'city');
   addSpecial('VoltageValley', 'VOLTAGE VALLEY', 'city', null);
-  addTown('SteamspringVillage', 'STEAMSPRING VILLAGE', 'historic', 'Route3', 'south', 'Route4', GYMS.SteamspringVillage);
-  addRoute('Route4', 'ROUTE 4 - WHISTLESTOP WAY', 'SteamspringVillage', 'DieselDen', 'forest');
+  addTown('SteamspringVillage', 'STEAMSPRING VILLAGE', 'historic', 'Route4', 'south', 'DieselDen', GYMS.SteamspringVillage);
+  addRoute('Route4', 'ROUTE 4 - WHISTLESTOP WAY', 'Route3', 'SteamspringVillage', 'forest');
   addSpecial('WhistlestopForest', 'WHISTLESTOP FOREST', 'forest', null);
-  addTown('DieselDen', 'DIESEL DEN', 'industrial', 'Route4', 'south', 'Route5', GYMS.DieselDen);
+  addTown('DieselDen', 'DIESEL DEN', 'industrial', 'SteamspringVillage', 'south', 'Route5', GYMS.DieselDen);
   addRoute('Route5', 'ROUTE 5 - IRON MOUNTAIN', 'DieselDen', 'MaglevHeights', 'mountain');
   addSpecial('IronMountainRange', 'IRON MOUNTAIN RANGE', 'mountain', null);
   addTown('MaglevHeights', 'MAGLEV HEIGHTS', 'city', 'Route5', 'south', 'Route6', GYMS.MaglevHeights);
