@@ -98,4 +98,38 @@ CD.state = CD.save.deserialize(originalSlot);
   assert.strictEqual(G.ow.player.x, 12); assert.strictEqual(G.ow.player.y, 20);
   assert.strictEqual(G.state.party[0].level, 7);
 }
+
+// Test that puzzle switch state survives a save and load round trip
+CD.newState();
+CD.state.name = 'PUZZLETEST';
+CD.state.badges = [];
+CD.state.flags.gotStarter = true; CD.state.flags.gotDex = true;
+CD.state.party.push(CD.train.make(9, 30));
+CD.state.money = 1000;
+CD.state.puzzles = {};
+
+for (const g of CD.gyms.LIST) {
+  if (g.puzzle) {
+    // Set up puzzle state with a specific configuration (not solved)
+    CD.state.puzzles[g.badge] = {
+      switches: [...g.puzzle.solution], // All OFF
+      solved: false,
+      lastInteracted: null,
+      track: g.puzzle.track,
+    };
+  }
+}
+
+assert(CD.save.save().ok);
+CD.newState();
+assert(CD.save.load().ok);
+
+for (const g of CD.gyms.LIST) {
+  if (g.puzzle && CD.state.puzzles[g.badge]) {
+    const originalPuzzle = CD.state.puzzles[g.badge];
+    assert(!originalPuzzle.solved, `Gym ${g.badge} should not be solved after load`);
+    assert(originalPuzzle.switches.every(val => !val), `Gym ${g.badge} switches should all be OFF`);
+  }
+}
+
 console.log('save.test: ok');

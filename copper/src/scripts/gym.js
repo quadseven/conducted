@@ -72,7 +72,7 @@
       // Start with all switches in the OFF state (blocked)
       const puzzleState = {
         switches: [...g.puzzle.solution], // Start with all switches in the OFF state
-        solved: true, // Initially not solved - the player needs to toggle switches
+        solved: false, // Initially not solved - the player needs to toggle switches
         lastInteracted: null,
         track: g.puzzle.track,
       };
