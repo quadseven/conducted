@@ -26,7 +26,7 @@ flowchart LR
 
 `copper/src/core` holds the framebuffer, font, input, scene loop and synthesizer; `copper/src/art` the terrain, buildings, props, characters, train creatures and battle effects; `copper/src/data` the maps, species, moves, types, items and music; `copper/src/game` the overworld, battles, menus and saves; `copper/src/scripts` the story, trainers and town services. The root `index.html` and `copper/index.html` load the same scripts.
 
-Nothing outside `main.js` touches the DOM, so the whole game runs headless in Node.
+Input and canvas setup use browser APIs in the core modules. Game logic can also run headlessly in Node with browser stubs.
 
 ## Run and test locally
 
