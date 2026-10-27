@@ -5,7 +5,7 @@
 //
 // S(id, name, types, stats, growth, catchRate, expYield, evo, moves, dex, art)
 //   stats: [hp, atk, def, spd, spc] or st(role, total)
-//   evo:   [level, intoId] or ['item', itemId, intoId] or null
+//   evo:   [level, intoId] or [level, [intoId, intoId]] or ['item', itemId, intoId] or null
 //   moves: 'level:Move, level:Move' or null to derive from the type pools
 //   dex:   [classification, height m, weight kg, entry]
 (function (CD) {
@@ -471,7 +471,7 @@
   S(133, 'BELLRINGER', 'STEAM/MONORAIL', st('swift', 440), 'fast', 90, 160, null, null,
     ['Alert Train', 2.6, 180, 'It rings a great brass bell before every crossing. Livestock three valleys away lift their heads.'],
     A('steam', '#c8a040', { len: 46, h: 16, col2: '#8a6a20', trim: '#f0e0a0', faceCol: '#f0e0c0', stack: 'short', wheels: 3, wheelR: 6, bell: true, eye: '#6a4a1a', face: 'bold', mouth: 'o' }));
-  S(134, 'LAMPLIGHT', 'ELECTRIC', st('spec', 310), 'medium', 190, 82, [28, 135], null,
+  S(134, 'LAMPLIGHT', 'ELECTRIC', st('spec', 310), 'medium', 190, 82, [28, [135, 127]], null,
     ['Signal Lamp Train', 0.8, 12, 'A lamp-car that lights the way for lost travellers on foggy nights. It flickers when it giggles.'],
     A('tram', '#e8d8a0', { len: 30, h: 15, scale: 0.88, stripe: '#c8603a', window: '#fff8b0', eye: '#6a4a1a', face: 'cute' }));
   S(135, 'SEMAFOR', 'ELECTRIC/PASSENGER', st('spec', 445), 'medium', 75, 162, null, null,
