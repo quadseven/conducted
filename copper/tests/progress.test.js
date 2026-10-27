@@ -170,3 +170,32 @@ for (const choice of [0, 1, 2]) {
   const itemTrain = C.train.make(29, 20);
   assert.strictEqual(C.train.evolveTarget(itemTrain, 'thunderstone'), 30, 'ordinary item evolution still works');
 }
+
+// Evolution stones are not allowed to bypass a level branch or consume an item.
+{
+  const { h, C } = setup(105, 'Route1', 4, 3, 'down');
+  C.state.party.push(C.train.make(134, 28));
+  C.state.bag.thunderstone = 1;
+  let done = false;
+  C.overworld.script(function* () { yield* C.bagScreen.useOn('thunderstone'); done = true; }(), 'stone');
+  assert(h.until(() => topName(h) === 'PartyList', 300));
+  h.press('a', 4);
+  assert(h.until(() => topName(h) === 'TextBox', 300), 'invalid item explains refusal');
+  assert.strictEqual(C.state.bag.thunderstone, 1, 'refusal preserves the stone');
+  assert.strictEqual(C.state.party[0].id, 134, 'stone cannot bypass choice');
+  assert(h.until(() => topName(h) === 'PartyList', 600, 'a'));
+  h.press('b', 4);
+  assert(h.until(() => done, 300));
+}
+{
+  const { h, C } = setup(106, 'Route1', 4, 3, 'down');
+  C.state.party.push(C.train.make(29, 20));
+  C.state.bag.thunderstone = 1;
+  let done = false;
+  C.overworld.script(function* () { yield* C.bagScreen.useOn('thunderstone'); done = true; }(), 'stone');
+  assert(h.until(() => topName(h) === 'PartyList', 300));
+  h.press('a', 4);
+  assert(h.until(() => done, 6000, 'a'), 'valid item evolution finishes');
+  assert.strictEqual(C.state.party[0].id, 30);
+  assert(!C.state.bag.thunderstone, 'valid item evolution consumes the stone');
+}
