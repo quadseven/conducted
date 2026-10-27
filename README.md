@@ -4,15 +4,7 @@ A handheld-style train-collecting adventure that runs in the browser. Choose Ste
 
 Every tile, building, character, train and effect is drawn from code into a 240x160 framebuffer, and every song is written as note text and synthesized with Web Audio. The game loads no image or audio files.
 
-Play it at `index.html` through a local server:
-
-```bash
-python3 -m http.server 8765
-```
-
-Then open `http://127.0.0.1:8765/`. Keyboard: arrows or WASD move, Z confirms, X cancels (hold to run), Enter opens the menu. Phones and tablets get an on-screen pad.
-
-## What is in it
+## What it does
 
 - 151 train species built from locomotive anatomy (boilers, hoods, bogies, face plates), with types, stats, learnsets, evolutions and Traindex entries
 - eight train types and conducted's 8 by 8 matchup chart, 70 moves, stat stages, and burn, paralysis, poison, sleep, confusion and flinching
@@ -26,11 +18,49 @@ Then open `http://127.0.0.1:8765/`. Keyboard: arrows or WASD move, Z confirms, X
 - save and load in browser storage
 - a title screen with CONTINUE, NEW GAME, SAVE FILES and OPTIONS, and a Professor Cypress introduction that START skips
 
-## How it is built
+## Quick start
+
+Run `python3 -m http.server 8765` from the repository root and open the local server in a browser. Keyboard: arrows or WASD move, Z confirms, X cancels (hold to run), and Enter opens the menu. Phones and tablets get an on-screen pad.
+
+## How it works
+
+```mermaid
+flowchart LR
+  Input[Player input] --> Game[Game scenes and rules]
+  Data[Maps and train data] --> Game
+  Game --> Render[Canvas and synthesized audio]
+  Game --> Saves[Browser storage]
+```
 
 `copper/src/core` holds the framebuffer, font, input, scene loop and synthesizer; `copper/src/art` the terrain, buildings, props, characters, train creatures and battle effects; `copper/src/data` the maps, species, moves, types, items and music; `copper/src/game` the overworld, battles, menus and saves; `copper/src/scripts` the story, trainers and town services. The root `index.html` and `copper/index.html` load the same scripts.
 
-Nothing outside `main.js` touches the DOM, so the whole game runs headless in Node. The tests drive it with button presses, from the title screen to the Harbor Badge:
+Nothing outside `main.js` touches the DOM, so the whole game runs headless in Node.
+
+## Run and test locally
+
+The checks in `.github/workflows/check.tests.yml` require Node 18 or newer:
+
+```sh
+for f in js/dispatch/*.js; do node --check "$f"; done
+find copper/src -name '*.js' -print0 | xargs -0 -n1 node --check
+npm test
+```
+
+## Configuration
+
+No configuration or external infrastructure is required. Saves use browser local storage.
+
+## Status
+
+Open work is tracked in the [project goal](https://github.com/quadseven/conducted/issues/115).
+
+## Contributing
+
+Changes land through pull requests. The Node syntax and test checks and the leak scan must pass. Read [AGENTS.md](AGENTS.md) before contributing.
+
+## Additional validation
+
+The tests drive the game with button presses, from the title screen to the Harbor Badge:
 
 ```bash
 npm test
@@ -52,7 +82,7 @@ Serve the repository through a local web server so browsers can load every asset
 python3 -m http.server 8765
 ```
 
-Open `http://127.0.0.1:8765/grand-transit.html`.
+Open the local server's `grand-transit.html` page.
 
 ### Controls
 
@@ -125,7 +155,7 @@ Save data includes:
 
 Like the main game, it has no image or audio files. Rails, sleepers, trees, roofs, trains and smoke are computed pixel by pixel into a 320 by 192 frame buffer, and the chiptune score and sound effects are composed and synthesized at run time with Web Audio.
 
-Run it with the same local server and open `http://127.0.0.1:8765/runaway.html`. Keyboard: Up/W power, Down/S brake, Space throws the next points ahead, 1 to 3 points, A to C gates, R reverse, P pause, M mute. On touch screens, tap a gate or points on the map or use the buttons.
+Run it with the same local server and open `runaway.html`. Keyboard: Up/W power, Down/S brake, Space throws the next points ahead, 1 to 3 points, A to C gates, R reverse, P pause, M mute. On touch screens, tap a gate or points on the map or use the buttons.
 
 The code lives in `js/dispatch/`: `logic.js` (track graph, switching, signals, timetable, collisions, coupling; no DOM), `art.js` (renderer), `sound.js` (composer and synthesizer) and `main.js` (loop and input). The tests run in Node:
 
@@ -157,18 +187,7 @@ npm test
 
 It needs no dependencies, only the Node already on `PATH` (18 or newer), because every suite is a dependency-free Node script. Each suite runs alone in its own worker thread and the command exits non-zero if any of them fails, so a broken overworld or battle loop fails the run rather than scrolling past. A suite that hangs is dropped after two minutes rather than blocking the rest of the run.
 
-Expected output on a healthy tree (the version shown is whichever Node you run it with):
-
-```
-Running 28 suites headlessly on v22.11.0
-
-  ok    copper/tests/audio.test.js
-  ok    copper/tests/battle.test.js
-  ...
-  ok    tests/victory-road.test.js
-
-28 passed, 0 failed in 1.9s
-```
+The runner reports each suite, the total passed and failed, and any suites it skips.
 
 Pass a substring to run part of the suite, for example `npm test -- smoke`.
 
