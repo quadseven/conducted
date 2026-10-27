@@ -6,17 +6,9 @@ Every tile, building, character, train and effect is drawn from code into a 240x
 
 ## What it does
 
-- 151 train species built from locomotive anatomy (boilers, hoods, bogies, face plates), with types, stats, learnsets, evolutions and Traindex entries
-- eight train types and conducted's 8 by 8 matchup chart, 70 moves, stat stages, and burn, paralysis, poison, sleep, confusion and flinching
-- wild encounters in tall grass and yards, trainers who spot you, rival and gym battles, and a trainer AI that weighs power, type and accuracy, with gym leaders and the rival switching out of a lost type matchup
-- catching with TRAINBALLS, a party of six, depot storage, EXP, level-ups, move learning and evolution (B cancels it)
-- Piston Town, Route 1 and Coal Harbor with seamless map edges, level crossings where freight trains pass, eight interiors, the depot, the mart and the gym
-- a depot, a mart and a story hub in every town from Steamspring Village to Monorail Mountaintop: the Train Museum, the Modification Shop, the Weather Institute, the Ghost Rail Sanctuary, the Nuclear Research Lab and the Monorail Summit Station, each with its own palette, props and people waiting to talk
-- eight gyms, one in each town from Coal Harbor to Monorail Mountaintop, each with its own interior, crew and Station Master; leaders' parties grow stronger in campaign order, and the first four badges boost your trains' ATTACK, SPEED, DEFENSE and SPECIAL in battle while every badge unlocks a field technique
-- Rail Mart clerks open a shop for Trainballs and healing items; buy with money or sell carried items for half price
-- a soundtrack of looping town, route, battle and gym themes plus jingles
-- save and load in browser storage
-- a title screen with CONTINUE, NEW GAME, SAVE FILES and OPTIONS, and a Professor Cypress introduction that START skips
+- Explore towns and routes, battle trainers, and collect trains.
+- Build a party, learn moves, evolve trains, and earn badges.
+- Save progress in browser storage and play with keyboard or touch controls.
 
 ## Quick start
 
