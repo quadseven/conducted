@@ -1,6 +1,6 @@
 # Conducted: Copper Version
 
-A browser adventure about collecting and battling trains.
+A browser adventure for players who enjoy collecting and battling trains.
 
 Choose a starter, explore railway towns and earn badges. Procedural graphics
 and synthesized music run without image or audio downloads.
@@ -76,4 +76,9 @@ map and below the game.
 `npm test` runs the dependency-free Node suites. It reports skipped suites and
 fails if a suite fails or exceeds its two-minute limit. Use `npm test -- smoke`
 to select suites by name. `node tests/dispatch-logic.test.js` runs the
-Runaway Junction logic tests.
+Runaway Junction logic tests. The Copper smoke suite covers movement, battles
+and save/load; the other suites check the rules and data behind those loops.
+
+Three suites are skipped: `tests/menu-navigation.test.js` needs Playwright;
+`tests/rival.test.js` needs a browser DOM; and `tests/rail-mart.test.js` targets
+a shop path replaced by menu overlays.
