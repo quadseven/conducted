@@ -62,7 +62,7 @@ npm test
 
 The earlier Grand Transit prototype is still playable at `grand-transit.html`.
 
-Grand Transit is a zero-dependency browser RPG about collecting, training, and battling 151 train species. The campaign spans eight railway districts, Team Derail's sabotage plot, eight Stationmasters, four Elite Conductors, and the Champion.
+Grand Transit is a zero-dependency browser RPG about collecting, training, and battling train species. The campaign spans eight railway districts, Team Derail's sabotage plot, eight Stationmasters, four Elite Conductors, and the Champion.
 
 The game runs in an HTML5 Canvas. It uses procedural pixel art and Web Audio synthesis. It does not fetch images, music, libraries, or game data from external services.
 
@@ -112,9 +112,9 @@ The surrounding interface is designed as a railway dispatch cabinet on desktop a
 
 The game includes:
 
-- 151 named species with stable types, stats, catch rates, experience yields, and learnsets
+- named species with stable types, stats, catch rates, experience yields, and learnsets
 - eight train types and a complete 8 by 8 effectiveness chart
-- 50 physical, special, and status moves
+- physical, special, and status moves
 - wild encounters and four-shake Boxcar capture checks
 - a persistent TrainDex for seen and caught species
 - six active crew slots and persistent Depot storage
