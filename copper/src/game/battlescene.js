@@ -523,7 +523,18 @@
     E.remove(sc);
     for (const t of party) { t.expGiven = undefined; }
     for (const t of opts.enemy) delete t.expGiven;
-    if (CD.evolution) for (const i of evolving) { const t = party[i]; if (!t) continue; const into = T.evolveTarget(t); if (into && t.hp > 0) yield* CD.evolution.run(t, into); }
+    if (CD.evolution) for (const i of evolving) {
+      const t = party[i]; if (!t || t.hp <= 0) continue;
+      let into = T.evolveTarget(t);
+      if (!into) continue;
+      const choices = CD.species.get(t.id).evo.into;
+      if (Array.isArray(choices)) {
+        const selected = yield* U.choose(choices.map(id => CD.species.get(id).name).concat(['CANCEL']));
+        if (selected === choices.length) continue;
+        into = choices[selected];
+      }
+      yield* CD.evolution.run(t, into);
+    }
     return result;
   }
 

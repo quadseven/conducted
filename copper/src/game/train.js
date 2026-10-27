@@ -99,7 +99,7 @@
     const e = CD.species.get(t.id).evo;
     if (!e) return null;
     if (e.item) return item === e.item ? e.into : null;
-    return t.level >= e.level ? e.into : null;
+    return !item && t.level >= e.level ? (Array.isArray(e.into) ? e.into[0] : e.into) : null;
   }
   function evolve(t, into) {
     t.id = into;

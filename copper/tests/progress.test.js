@@ -113,3 +113,89 @@ for (const cancel of [false, true]) {
   assert(h.settle(), 'closed the Traindex');
 }
 console.log('progress.test: ok');
+
+// A level-up branch must be selected in the actual battle flow, not just in data.
+for (const choice of [0, 1, 2]) {
+  const { h, C } = setup(100 + choice, 'Route1', 4, 3, 'down');
+  const t = C.train.make(134, 27);
+  t.exp = C.train.expAt('medium', 28) - 5;
+  t.moves = [C.train.moveSlot('Steam Jet')];
+  C.state.party.push(t);
+  let done = false, chose = false;
+  C.overworld.script(function* () { yield* C.encounters.wildBattle(10, 5, 'grass'); done = true; }(), 'branch');
+  let frames = 0;
+  while (!done && frames++ < 30000) {
+    if (!chose && topName(h) === 'Choice') {
+      const menu = h.top();
+      if (menu.items.includes('SEMAFOR') && menu.items.includes('FLAGMAN')) {
+        for (let i = 0; i < choice; i++) h.press('down', 2);
+        h.press('a', 4); chose = true; continue;
+      }
+    }
+    if (frames % 5 === 0) h.press('a', 1); else h.step(1);
+  }
+  assert(done && chose, 'battle offers the branch and finishes');
+  assert.strictEqual(t.id, [135, 127, 134][choice]);
+  if (choice !== 2) assert(C.state.dex.caught[t.id], 'chosen form is registered');
+  assert(C.save.save().ok, 'save succeeds');
+  assert(C.save.load().ok, 'load succeeds');
+  assert.strictEqual(C.state.party[0].id, [135, 127, 134][choice]);
+  if (choice !== 2) assert(C.state.dex.caught[t.id], 'chosen form stays registered');
+  if (choice === 2) {
+    const restored = C.state.party[0];
+    restored.exp = C.train.expAt('medium', 29) - 5;
+    restored.moves = [C.train.moveSlot('Steam Jet')];
+    let again = false, offeredAgain = false;
+    C.overworld.script(function* () { yield* C.encounters.wildBattle(10, 5, 'grass'); again = true; }(), 'retry');
+    let retries = 0;
+    while (!again && retries++ < 30000) {
+      if (!offeredAgain && topName(h) === 'Choice' && h.top().items.includes('FLAGMAN')) {
+        h.press('b', 4); offeredAgain = true; continue;
+      }
+      if (retries % 5 === 0) h.press('a', 1); else h.step(1);
+    }
+    assert(again && offeredAgain, 'the next level-up offers the branch again');
+    assert.strictEqual(restored.id, 134, 'B cancels the branch without evolving');
+  }
+}
+{
+  const { C } = setup(104, 'Route1', 4, 3, 'down');
+  const branch = C.train.make(134, 27);
+  assert.strictEqual(C.train.evolveTarget(branch), null, 'branch is locked below level 28');
+  branch.level = 28;
+  assert.strictEqual(C.train.evolveTarget(branch), 135, 'branch can be offered at and after the threshold');
+  branch.level = 29;
+  assert.strictEqual(C.train.evolveTarget(branch), 135, 'a cancelled branch remains eligible later');
+  assert.strictEqual(C.train.evolveTarget(C.train.make(1, 16)), 2, 'ordinary level evolution still works');
+  const itemTrain = C.train.make(29, 20);
+  assert.strictEqual(C.train.evolveTarget(itemTrain, 'thunderstone'), 30, 'ordinary item evolution still works');
+}
+
+// Evolution stones are not allowed to bypass a level branch or consume an item.
+{
+  const { h, C } = setup(105, 'Route1', 4, 3, 'down');
+  C.state.party.push(C.train.make(134, 28));
+  C.state.bag.thunderstone = 1;
+  let done = false;
+  C.overworld.script(function* () { yield* C.bagScreen.useOn('thunderstone'); done = true; }(), 'stone');
+  assert(h.until(() => topName(h) === 'PartyList', 300));
+  h.press('a', 4);
+  assert(h.until(() => topName(h) === 'TextBox', 300), 'invalid item explains refusal');
+  assert.strictEqual(C.state.bag.thunderstone, 1, 'refusal preserves the stone');
+  assert.strictEqual(C.state.party[0].id, 134, 'stone cannot bypass choice');
+  assert(h.until(() => topName(h) === 'PartyList', 600, 'a'));
+  h.press('b', 4);
+  assert(h.until(() => done, 300));
+}
+{
+  const { h, C } = setup(106, 'Route1', 4, 3, 'down');
+  C.state.party.push(C.train.make(29, 20));
+  C.state.bag.thunderstone = 1;
+  let done = false;
+  C.overworld.script(function* () { yield* C.bagScreen.useOn('thunderstone'); done = true; }(), 'stone');
+  assert(h.until(() => topName(h) === 'PartyList', 300));
+  h.press('a', 4);
+  assert(h.until(() => done, 6000, 'a'), 'valid item evolution finishes');
+  assert.strictEqual(C.state.party[0].id, 30);
+  assert(!C.state.bag.thunderstone, 'valid item evolution consumes the stone');
+}
