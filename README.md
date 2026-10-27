@@ -130,7 +130,7 @@ Trainer AI scores move power, accuracy, same-type bonus, type effectiveness, sta
 
 ### Saving
 
-The game stores up to three save files in browser local storage. Use SAVE in the field menu to choose a slot, or SAVE FILES on the title screen to review, load, or delete a save. Replacing a valid save keeps a recovery copy; if the current file is damaged, loading tries that copy. Existing single-slot saves continue to use slot 1.
+The game stores one save in browser local storage. Use SAVE in the field menu to save the current progress; a later save replaces it.
 
 Save data includes:
 
@@ -165,7 +165,7 @@ The main browser runtime lives in `js/`:
 - `game.js` owns the state machine and campaign orchestration
 - `graphics.js` and Canvas drawing methods render the game
 - `audio.js` generates music and effects through Web Audio
-- `main.js` runs the 60 FPS update and render loop
+- `main.js` schedules the update and render loop with browser animation frames
 
 The older Python files are not part of the browser build.
 
