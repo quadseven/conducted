@@ -22,7 +22,7 @@
       trainers: {},       // trainer id -> true once beaten
       items: {},          // picked-up field items by map:x:y
       puzzles: {},        // gym badge id -> thrown flag per rail switch
-      options: { textSpeed: 'mid', sound: true, battleAnims: true },
+      options: { textSpeed: 'mid', sound: true, musicVolume: 10, sfxVolume: 10, battleAnims: true },
       frames: 0,          // play time in frames
       lastHeal: { map: 'PlayerHouse1F', x: 3, y: 5 },
       stepCount: 0,

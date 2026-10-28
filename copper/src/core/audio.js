@@ -15,6 +15,7 @@
   let ctx = null, master = null, musicBus = null, sfxBus = null;
   const MUTE_KEY = 'conducted.audio.muted';
   let unlocked = false, muted = readMutedPreference();
+  let musicVolume = 10, sfxVolume = 10;
   const waves = {};
   let noiseBuf = null;
 
@@ -94,8 +95,8 @@
     master = ctx.createGain(); master.gain.value = muted ? 0 : 0.6; master.connect(ctx.destination);
     // a gentle low-pass keeps the square waves warm rather than harsh
     const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 7200; tone.connect(master);
-    musicBus = ctx.createGain(); musicBus.gain.value = 0.55; musicBus.connect(tone);
-    sfxBus = ctx.createGain(); sfxBus.gain.value = 0.8; sfxBus.connect(tone);
+    musicBus = ctx.createGain(); musicBus.gain.value = 0.55 * musicVolume / 10; musicBus.connect(tone);
+    sfxBus = ctx.createGain(); sfxBus.gain.value = 0.8 * sfxVolume / 10; sfxBus.connect(tone);
     for (const [k, d] of [[0, 0.125], [1, 0.25], [2, 0.5]]) {
       const N = 48, re = new Float32Array(N), im = new Float32Array(N);
       for (let n = 1; n < N; n++) im[n] = (2 / (n * Math.PI)) * Math.sin(n * Math.PI * d) * Math.pow(0.97, n);
@@ -303,6 +304,15 @@
     if (type === 'ELECTRIC') noise(sfxBus, t, 0.2, 0.15, 'bandpass', 250);
   }
 
+  function setMusicVolume(level) {
+    musicVolume = Math.max(0, Math.min(10, Math.round(level)));
+    if (musicBus) musicBus.gain.value = 0.55 * musicVolume / 10;
+  }
+  function setSfxVolume(level) {
+    sfxVolume = Math.max(0, Math.min(10, Math.round(level)));
+    if (sfxBus) sfxBus.gain.value = 0.8 * sfxVolume / 10;
+  }
+
   function setMuted(m) {
     muted = !!m;
     if (master) master.gain.value = muted ? 0 : 0.6;
@@ -313,5 +323,5 @@
     }
   }
 
-  CD.audio = { define, compile, music, playMusic, stopMusic, jingle, jingleSeconds, sfx, playSfx, cry, unlock, setMuted, get muted() { return muted; }, get current() { return want; }, songs };
+  CD.audio = { define, compile, music, playMusic, stopMusic, jingle, jingleSeconds, sfx, playSfx, cry, unlock, setMuted, setMusicVolume, setSfxVolume, get muted() { return muted; }, get current() { return want; }, songs };
 })(window.CD);

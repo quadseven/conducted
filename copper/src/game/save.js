@@ -24,6 +24,12 @@
     if (!Array.isArray(data.state.party) || !Array.isArray(data.state.box)) throw new Error('not a save file');
     const s = Object.assign(CD.freshState(), data.state);
     s.options = Object.assign(CD.freshState().options, data.state.options || {});
+    const oldOptions = data.state.options || {};
+    for (const key of ['musicVolume', 'sfxVolume']) {
+      if (!Number.isInteger(oldOptions[key]) || oldOptions[key] < 0 || oldOptions[key] > 10)
+        s.options[key] = oldOptions.sound === false ? 0 : 10;
+    }
+    if (!('musicVolume' in oldOptions) && !('sfxVolume' in oldOptions)) s.options.sound = true;
     if (!Array.isArray(s.techniques)) s.techniques = [];
     if (!s.puzzles || typeof s.puzzles !== 'object' || Array.isArray(s.puzzles)) s.puzzles = {};
     if (!Array.isArray(data.state.pcBoxes)) s.pcBoxes = [s.box.slice()];
