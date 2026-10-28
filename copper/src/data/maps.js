@@ -651,6 +651,22 @@
       },
     },
   };
+  // Until story text defines residents or a count, reserve two generic home
+  // lots in Steamspring without assigning owners or plot.
+  const STEAMSPRING_HOMES = [
+    { id: 'SteamspringHomeA', label: 'WEST HOUSE', sign: 'WEST HOUSE', x: 12, y: 7, postX: 12, door: 1, style: 'house' },
+    { id: 'SteamspringHomeB', label: 'EAST HOUSE', sign: 'EAST HOUSE', x: 16, y: 7, postX: 18, door: 1, style: 'houseTeal' },
+  ];
+  const STEAMSPRING_HOME_ROWS = [
+    'WWWWWWWW',
+    'W......W',
+    'W......W',
+    'W......W',
+    'W......W',
+    'W......W',
+    'W......W',
+    '....M...',
+  ];
   // Write a building footprint into the town rows.
   function stampBuilding(rows, b) {
     for (let y = b.y; y < b.y + b.h; y++) {
@@ -680,6 +696,22 @@
       });
     }
   }
+  function addSteamspringHomes(rows, buildings, warps, signs) {
+    for (const home of STEAMSPRING_HOMES) {
+      const b = { x: home.x, y: home.y, w: 3, h: 3, door: home.door, style: home.style, sign: home.sign, label: home.label };
+      stampBuilding(rows, b);
+      buildings.push(b);
+      stampSign(rows, home.postX, 10);
+      signs.push({ x: home.postX, y: 10, text: home.label + '\nA home in Steamspring Village.' });
+      const dx = b.x + b.door, dy = b.y + b.h - 1;
+      warps.push({ x: dx, y: dy, to: home.id, tx: 4, ty: 7, dir: 'up' });
+      D(home.id, {
+        name: home.label, indoor: true, floor: 'wood', wallTint: '#e0d0b8', music: 'harbor',
+        rows: STEAMSPRING_HOME_ROWS,
+        warps: [{ x: 4, y: 7, to: 'SteamspringVillage', tx: dx, ty: dy, dir: 'down' }],
+      });
+    }
+  }
   function addTown(id, name, theme, route, direction, nextRoute, gym) {
     const rows = gym ? stampGym(makeOutdoorRows(theme)) : makeOutdoorRows(theme);
     const connections = {};
@@ -693,6 +725,7 @@
       signs.push({ x: GYM_LOT.x - 1, y: GYM_DOOR.y, text: gym.sign });
     }
     if (CIVIC[id]) addCivic(id, CIVIC[id], rows, buildings, warps, signs);
+    if (id === 'SteamspringVillage') addSteamspringHomes(rows, buildings, warps, signs);
     D(id, {
       name, music: theme === 'snow' || theme === 'haunted' ? 'route1' : 'harbor',
       base: theme === 'coast' ? 'sand' : theme === 'industrial' ? 'cobble' : 'grass',

@@ -118,4 +118,47 @@ for (const town of Object.keys(CIVIC)) {
   }
 }
 
+// Steamspring's story-home lots are reserved map space, not authored story scenes.
+const STORY_HOMES = [
+  { id: 'SteamspringHomeA', label: 'WEST HOUSE', sign: 'WEST HOUSE' },
+  { id: 'SteamspringHomeB', label: 'EAST HOUSE', sign: 'EAST HOUSE' },
+];
+const steamspring = W.get('SteamspringVillage');
+const steamspringReach = reachable(steamspring, 9, 9);
+for (const home of STORY_HOMES) {
+  const building = steamspring.buildings.find(b => b.label === home.label);
+  assert(building, home.label + ' has a labeled footprint');
+  assert(building.style === 'house' || building.style.startsWith('house'), home.label + ' renders as a home');
+  assert.strictEqual(building.sign, home.sign, home.label + ' has a visible building sign');
+  assert.strictEqual(building.w, 3, home.label + ' uses the reserved lot width');
+  assert.strictEqual(building.h, 3, home.label + ' uses the reserved lot height');
+  assert(Number.isInteger(building.door), home.label + ' has a door position');
+  assert(steamspring.signs.some(s => s.text.startsWith(home.label)), home.label + ' has a labeled outdoor sign');
+  const warp = steamspring.warps.find(w => w.to === home.id);
+  assert(warp, home.label + ' has an interior entrance');
+  assert(steamspringReach.has(warp.x + ',' + warp.y), home.label + ' entrance is walkable from the town path');
+  const interior = W.get(home.id);
+  assert(interior.indoor, home.label + ' opens onto a reserved interior');
+  assert.strictEqual((interior.npcs || []).length, 0, home.label + ' has no NPCs');
+  assert.strictEqual(interior.interact, undefined, home.label + ' has no story event handler');
+  const back = (interior.warps || []).find(w => w.to === 'SteamspringVillage');
+  assert(back, home.label + ' exits back to the village');
+  assert.strictEqual(back.tx, warp.x, home.label + ' exits at its own door');
+  assert.strictEqual(back.ty, warp.y, home.label + ' exits at its own door row');
+
+  while (C.engine.top() && C.engine.top() !== C.overworld.scene) C.engine.remove(C.engine.top());
+  C.newState();
+  C.state.flags.gotStarter = true;
+  C.overworld.enterMap('SteamspringVillage', warp.x, warp.y + 1, 'up', { quiet: true });
+  if (C.engine.top() !== C.overworld.scene) C.engine.push(C.overworld.scene);
+  h.step(2);
+  h.walk('up', 1);
+  h.step(40);
+  assert.strictEqual(C.state.map, home.id, home.label + ' door opens');
+  h.hold('down', 8);
+  h.step(40);
+  assert.strictEqual(C.state.map, 'SteamspringVillage', home.label + ' returns outside');
+  assert.strictEqual(C.state.x, warp.x, home.label + ' returns to its door');
+}
+
 console.log('towns.test: ok');
