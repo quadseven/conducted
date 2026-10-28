@@ -63,4 +63,13 @@ C.overworld.enterMap('PistonTown', 4, 5, 'down', { quiet: true });
 h.step(30);
 assert.strictEqual(p.x, 4, 'map entry discards the old queued turn');
 assert.strictEqual(p.y, 5, 'map entry does not replay the interrupted step');
+C.overworld.enterMap('PistonTown', 4, 5, 'down', { quiet: true });
+C.input.script('down', true); h.step(1); C.input.script('down', false);
+C.input.script('right', true); h.step(1); C.input.script('right', false);
+assert.strictEqual(C.ow.queuedDir, 'right', 'turn is queued before deactivation');
+C.overworld.scene.update(false);
+assert.strictEqual(C.ow.queuedDir, null, 'deactivation during a step discards the queued turn');
+h.step(30);
+assert.strictEqual(p.x, 4, 'reactivation does not replay the queued turn');
+
 console.log('step-buffer.test: ok');

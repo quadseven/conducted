@@ -247,7 +247,7 @@
         const prevDir = p.dir;
         if (advance(p)) onArrive(prevDir);
         if (p.moving || ow.locked) {
-          if (ow.locked) ow.queuedDir = null;
+          if (!active || ow.locked) ow.queuedDir = null;
           return;
         }
       }
