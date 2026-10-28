@@ -144,14 +144,12 @@ Instead of starting with Steamini, you choose ONE of three special trains:
 4. **Act 4**: Challenge Elite Four and become Champion
 5. **Post-Game**: Catch legendary trains, battle frontier, complete Traindex (151 trains)
 
-In the playable campaign, Cinder and Ash appear in Ironworks after the Harbor,
-Circuit, and Torque Badges. Defeating them records `steamPunkAct1Complete`.
-Their Ghost Rail Graveyard theft attempt then becomes available; defeating them
-there records `steamPunkAct2Complete` and opens the Old Iron encounter in the
-crypt. Boss Grease waits in the Victory Road power plant. Defeating him records
-`steamPunkDefeated`, secures the plant, and opens the path to the Elite Four.
-These flags are saved with the player and completed battles stay complete after
-loading.
+In Copper, Cinder and Ash can be challenged in the Diesel Den modification shop
+after the Harbor, Voltage, and Boiler Badges. A win records the saved
+`steamPunkAct1Complete` flag; a loss permits another attempt. The Ghost Rail
+Graveyard theft, the power plant finale, and the Elite Four sequence are not
+yet playable in Copper. The older `js/` campaign has a separate version of
+those later events.
 
 ### Legendary Trains
 
