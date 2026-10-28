@@ -48,6 +48,32 @@
   };
   for (const mapId of Object.keys(HUBS)) map(mapId).npcs = HUBS[mapId];
 
+  // Their first appearance is an optional conversation, not a map blocker.
+  // Keep the flag separate from trainer state so a loss remains retryable.
+  function* steamPunkAct1(n) {
+    const st = CD.state;
+    if (st.flags.steamPunkAct1Complete) {
+      yield* U.say('Ash, next time we bring a better timetable.', { speaker: 'CINDER' });
+      return;
+    }
+    if (!['harbor', 'voltage', 'boiler'].every(b => st.badges.includes(b))) {
+      yield* U.say('Nothing to see here. Just two perfectly ordinary railway enthusiasts.', { speaker: 'CINDER' });
+      return;
+    }
+    yield* U.say('Ash, the challenger has three badges. Time to show them Team Steam Punk!', { speaker: 'CINDER' });
+    yield* U.say('And this time, remember which end of the train is the front.', { speaker: 'ASH' });
+    n.trainer = { id: 'steamPunkAct1', cls: 'TEAM STEAM PUNK', name: 'CINDER AND ASH', prize: 60,
+      party: [[13, 18], [25, 18]], intro: 'Our engines will take the legendary rails!',
+      defeat: 'Our plan has run out of steam!' };
+    const result = yield* CD.encounters.fightTrainer(n, { noBlackout: true });
+    n.trainer = null;
+    if (result === 'win') st.flags.steamPunkAct1Complete = true;
+  }
+  map('DieselModShop').npcs.push(
+    { id: 'cinder', sprite: 'grunt', x: 6, y: 6, dir: 'down', move: 'still', talk: steamPunkAct1 },
+    { id: 'ash', sprite: 'grunt', x: 7, y: 6, dir: 'down', move: 'still', talk: steamPunkAct1 },
+  );
+
   // What each prop in a story hub has to say for itself.
   const HUB_PROPS = {
     SteamspringMuseum: {
