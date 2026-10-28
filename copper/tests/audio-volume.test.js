@@ -95,8 +95,8 @@ console.log('audio-volume.test: ok');
   game.step(2);
   game.press('down');
   game.press('a');
-  assert.strictEqual(G.state.options.sound, false);
-  assert.strictEqual(G.audio.muted, true);
+  assert.strictEqual(G.state.options.sound, true);
+  assert.strictEqual(G.audio.muted, false);
   assert.strictEqual(G.state.options.musicVolume, 1);
 }
 
@@ -115,4 +115,16 @@ console.log('audio-volume.test: ok');
   game.press('down'); game.press('down'); game.press('a');
   assert.strictEqual(G.audio.muted, true);
   assert.strictEqual(G.state.options.sound, false);
+}
+{
+  const game = H.load();
+  const G = game.CD;
+  const s = G.freshState();
+  s.options.sound = false;
+  s.options.musicVolume = 5;
+  s.options.sfxVolume = 8;
+  const loaded = G.save.deserialize(G.save.serialize(s));
+  assert.strictEqual(loaded.options.sound, false);
+  assert.strictEqual(loaded.options.musicVolume, 5);
+  assert.strictEqual(loaded.options.sfxVolume, 8);
 }

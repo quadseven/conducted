@@ -29,6 +29,7 @@
       if (!Number.isInteger(oldOptions[key]) || oldOptions[key] < 0 || oldOptions[key] > 10)
         s.options[key] = oldOptions.sound === false ? 0 : 10;
     }
+    if (!('musicVolume' in oldOptions) && !('sfxVolume' in oldOptions)) s.options.sound = true;
     if (!Array.isArray(s.techniques)) s.techniques = [];
     if (!s.puzzles || typeof s.puzzles !== 'object' || Array.isArray(s.puzzles)) s.puzzles = {};
     if (!Array.isArray(data.state.pcBoxes)) s.pcBoxes = [s.box.slice()];
