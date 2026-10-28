@@ -90,11 +90,29 @@ console.log('audio-volume.test: ok');
   assert(G.save.load().ok);
   assert.strictEqual(G.state.options.musicVolume, 0);
   assert.strictEqual(G.state.options.sfxVolume, 0);
+  G.audio.setMuted(!G.state.options.sound); // continueGame applies the loaded master mute
   G.engine.spawn(G.menu.options(), 'unmute-old-save');
   game.step(2);
   game.press('down');
   game.press('a');
-  assert.strictEqual(G.state.options.sound, true);
-  assert.strictEqual(G.audio.muted, false);
+  assert.strictEqual(G.state.options.sound, false);
+  assert.strictEqual(G.audio.muted, true);
   assert.strictEqual(G.state.options.musicVolume, 1);
+}
+
+// The M shortcut controls the master mute independently of both sliders.
+{
+  const game = H.load();
+  const G = game.CD;
+  const handlers = {};
+  G.input.bindKeyboard({ addEventListener: (name, handler) => { handlers[name] = handler; } });
+  handlers.keydown({ code: 'KeyM', repeat: false });
+  assert.strictEqual(G.audio.muted, true);
+  G.engine.spawn(G.menu.options(), 'muted-volume-options');
+  game.step(2);
+  game.press('down'); game.press('a');
+  assert.strictEqual(G.audio.muted, true);
+  game.press('down'); game.press('down'); game.press('a');
+  assert.strictEqual(G.audio.muted, true);
+  assert.strictEqual(G.state.options.sound, false);
 }

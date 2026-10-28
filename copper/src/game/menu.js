@@ -49,8 +49,8 @@
       ];
       const r = yield* U.choose(items, { x: 60, y: 30, w: 150, cancel: 4 });
       if (r === 0) st.options.textSpeed = speeds[(speeds.indexOf(st.options.textSpeed) + 1) % 3];
-      else if (r === 1) { st.options.musicVolume = (st.options.musicVolume + 1) % 11; CD.audio.setMusicVolume(st.options.musicVolume); if (!st.options.sound) { st.options.sound = true; CD.audio.setMuted(false); } }
-      else if (r === 2) { st.options.sfxVolume = (st.options.sfxVolume + 1) % 11; CD.audio.setSfxVolume(st.options.sfxVolume); if (!st.options.sound) { st.options.sound = true; CD.audio.setMuted(false); } }
+      else if (r === 1) { st.options.musicVolume = (st.options.musicVolume + 1) % 11; CD.audio.setMusicVolume(st.options.musicVolume); }
+      else if (r === 2) { st.options.sfxVolume = (st.options.sfxVolume + 1) % 11; CD.audio.setSfxVolume(st.options.sfxVolume); }
       else if (r === 3) st.options.battleAnims = !st.options.battleAnims;
       else return;
     }
