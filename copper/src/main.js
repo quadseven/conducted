@@ -6,6 +6,8 @@
 
   function* startNew() {
     CD.newState();
+    CD.audio.setMusicVolume(CD.state.options.musicVolume);
+    CD.audio.setSfxVolume(CD.state.options.sfxVolume);
     yield* CD.title.intro();
     O.enterMap('PlayerHouse2F', 3, 4, 'down', { quiet: true });
     E.push(O.scene);
@@ -14,6 +16,8 @@
   function* continueGame() {
     const r = CD.save.load(CD.main.selectedSlot || 1);
     if (!r.ok) { yield* U.say(r.error); return false; }
+    CD.audio.setMusicVolume(CD.state.options.musicVolume);
+    CD.audio.setSfxVolume(CD.state.options.sfxVolume);
     CD.audio.setMuted(!CD.state.options.sound);
     yield* U.fadeOut(12);
     O.enterMap(CD.state.map, CD.state.x, CD.state.y, CD.state.dir, { quiet: false });
