@@ -20,6 +20,7 @@
     player: walker({ sprite: 'player' }),
     npcs: [],          // runtime NPCs on the current map
     locked: 0,         // >0 while a script owns the controls
+    queuedDir: null,    // most recent direction tapped during a player step
     banner: null,      // location name banner {text, t}
     emotes: [],        // {who, kind, t}
     hooks: { afterStep: [], beforeStep: [] },
@@ -40,6 +41,7 @@
     const prev = CD.state.map;
     CD.state.map = id; CD.state.x = x; CD.state.y = y; if (dir) CD.state.dir = dir;
     const p = ow.player;
+    ow.queuedDir = null;
     p.x = x; p.y = y; p.tx = x; p.ty = y; p.moving = false; p.prog = 0; if (dir) p.dir = dir;
     const m = map();
     if (!opts.keepNpcs) loadNpcs(m);
@@ -237,19 +239,28 @@
       const p = ow.player;
       if (p.scripted) return;
       if (p.moving) {
+        if (active && !ow.locked) {
+          const pressedDir = I.dir();
+          if (pressedDir && I.pressed[pressedDir]) ow.queuedDir = pressedDir;
+        }
         p.speed = p.jump ? 2 : (I.held.b && !ow.locked && CD.state.flags.runningShoes !== false ? 4 : 1);
         const prevDir = p.dir;
         if (advance(p)) onArrive(prevDir);
-        if (p.moving || ow.locked) return;
+        if (p.moving || ow.locked) {
+          if (!active || ow.locked) ow.queuedDir = null;
+          return;
+        }
       }
-      if (!active || ow.locked) return;
-      if (I.pressed.start) { if (CD.menu) script(CD.menu.open(), 'menu'); return; }
-      if (I.pressed.a) { interact(); return; }
-      const d = I.dir();
+      if (!active || ow.locked) { ow.queuedDir = null; return; }
+      if (I.pressed.start) { ow.queuedDir = null; if (CD.menu) script(CD.menu.open(), 'menu'); return; }
+      if (I.pressed.a) { ow.queuedDir = null; interact(); return; }
+      const queued = ow.queuedDir;
+      ow.queuedDir = null;
+      const d = queued || I.dir();
       if (d) {
         // a quick tap turns in place; holding walks
-        if (p.dir !== d && I.heldFor[d] < 5 && !p.moving) { p.dir = d; return; }
-        if (I.heldFor[d] < 3 && p.dir !== d) return;
+        if (!queued && p.dir !== d && I.heldFor[d] < 5 && !p.moving) { p.dir = d; return; }
+        if (!queued && I.heldFor[d] < 3 && p.dir !== d) return;
         const r = startStep(p, d, 'player');
         if (!r.ok) {
           p.dir = d;
