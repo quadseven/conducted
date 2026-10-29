@@ -18,6 +18,19 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Fetch the public leak scanner
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: quadseven/infra-public
+          ref: main
+          sparse-checkout: .github/scripts/check_private_leaks.py
+          sparse-checkout-cone-mode: false
+          path: _leak-scanner
+          persist-credentials: false
+      - name: Prove the leak scanner rejects a seeded negative
+        env:
+          CONDUCTED_LEAK_SCANNER: ${{ github.workspace }}/_leak-scanner/.github/scripts/check_private_leaks.py
+        run: python3 tools/test_leak_scan_seeded_negative.py
       - name: Syntax check the browser modules
         run: for f in js/dispatch/*.js; do node --check "$f"; done
       - name: Copper Version syntax check
