@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: quadseven/infra-public
-          ref: main
+          ref: 273755079c88172df39501ee6914fd878c0920bc
           sparse-checkout: .github/scripts/check_private_leaks.py
           sparse-checkout-cone-mode: false
           path: _leak-scanner
